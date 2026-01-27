@@ -150,6 +150,7 @@ model LotImage {
   cloudKey    String?  @map("cloud_key") // Key/identifier in cloud storage
   displayOrder Int     @default(0) @map("display_order") // Order for displaying images
   isPrimary   Boolean  @default(false) @map("is_primary") // Primary/thumbnail image
+  isHidden    Boolean  @default(false) @map("is_hidden") // Hide image from public display
   createdAt   DateTime @default(now()) @map("created_at")
   updatedAt   DateTime @updatedAt @map("updated_at")
 
@@ -159,6 +160,7 @@ model LotImage {
   @@index([lotId])
   @@index([displayOrder])
   @@index([isPrimary])
+  @@index([isHidden])
   @@map("lot_images")
 }
 

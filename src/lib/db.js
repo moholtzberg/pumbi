@@ -53,21 +53,23 @@ async function mapLot(prismaLot) {
       url: img.url,
       cloudKey: img.cloudKey,
       displayOrder: img.displayOrder,
-      isPrimary: img.isPrimary
+      isPrimary: img.isPrimary,
+      isHidden: img.isHidden || false
     }));
     
     // Convert image URLs to presigned URLs
     images = await convertImageObjects(images);
     
-    // Set primary image as imageUrl for backward compatibility
-    const primaryImage = images.find(img => img.isPrimary) || images[0];
+    // Set primary image as imageUrl for backward compatibility (exclude hidden images)
+    const visibleImages = images.filter(img => !img.isHidden);
+    const primaryImage = visibleImages.find(img => img.isPrimary) || visibleImages[0];
     if (primaryImage) {
       imageUrl = await convertToPresignedUrl(primaryImage.url || primaryImage);
     }
     
-    // Set all image URLs for backward compatibility
-    if (images.length > 0) {
-      const urls = images.map(img => img.url || img);
+    // Set all image URLs for backward compatibility (only visible images)
+    if (visibleImages.length > 0) {
+      const urls = visibleImages.map(img => img.url || img);
       imageUrls = JSON.stringify(urls);
     }
   } else {
