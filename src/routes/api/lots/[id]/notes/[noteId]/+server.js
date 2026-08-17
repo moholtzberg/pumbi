@@ -3,8 +3,10 @@ import prisma from '$lib/prisma.js';
 import { deleteFile } from '$lib/services/cloudStorage.js';
 import { extractS3Key } from '$lib/utils/s3Presigned.js';
 import {
+  HOUSE_PERMISSIONS,
   requireAuthenticatedUser,
-  requireAuctionAccess
+  requireAuctionAccess,
+  requireAuctionHousePermission
 } from '$lib/server/authorization.js';
 
 export async function DELETE({ params, locals }) {
@@ -21,6 +23,11 @@ export async function DELETE({ params, locals }) {
     }
 
     requireAuctionAccess(user, lot.auction);
+    await requireAuctionHousePermission(
+      user,
+      lot.auction.auctionHouseId,
+      HOUSE_PERMISSIONS.MANAGE_CATALOG
+    );
 
     const note = await prisma.lotNote.findUnique({
       where: { id: params.noteId }

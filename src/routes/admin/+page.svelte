@@ -17,6 +17,7 @@
   let policyForm = $state({
     buyerTerms: '',
     sellerTerms: '',
+    auctionHouseTerms: '',
     buyerPremiumRate: '0.15',
     sellerCommissionRate: '0.10',
     rateConfig: ''
@@ -95,7 +96,7 @@
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(policyForm)
       });
-      policyForm = { buyerTerms: '', sellerTerms: '', buyerPremiumRate: '0.15', sellerCommissionRate: '0.10', rateConfig: '' };
+      policyForm = { buyerTerms: '', sellerTerms: '', auctionHouseTerms: '', buyerPremiumRate: '0.15', sellerCommissionRate: '0.10', rateConfig: '' };
     }, 'Policy version created.');
   }
 
@@ -180,7 +181,11 @@
         <h1 class="text-3xl font-bold">Public / Private Auctions</h1>
         <p class="mt-1 text-sm text-slate-500">Signed in as {data.admin.name || data.admin.email}</p>
       </div>
-      <button class="rounded-md border bg-white px-3 py-2 text-sm font-medium hover:bg-slate-100" onclick={loadAll}>Refresh</button>
+      <div class="flex flex-wrap gap-2">
+        <a class="rounded-md border bg-white px-3 py-2 text-sm font-medium hover:bg-slate-100" href="/admin/auction-houses">Auction-house reviews</a>
+        <a class="rounded-md border bg-white px-3 py-2 text-sm font-medium hover:bg-slate-100" href="/admin/payouts">Payout approvals</a>
+        <button class="rounded-md border bg-white px-3 py-2 text-sm font-medium hover:bg-slate-100" onclick={loadAll}>Refresh</button>
+      </div>
     </header>
 
     {#if notice}<div class="rounded-md bg-emerald-50 p-3 text-sm text-emerald-800">{notice}</div>{/if}
@@ -222,6 +227,7 @@
           <div class="grid gap-3">
             <label class="text-sm font-medium">Buyer terms<textarea class="mt-1 w-full rounded-md border-slate-300 text-sm" rows="3" bind:value={policyForm.buyerTerms} required></textarea></label>
             <label class="text-sm font-medium">Seller terms<textarea class="mt-1 w-full rounded-md border-slate-300 text-sm" rows="3" bind:value={policyForm.sellerTerms} required></textarea></label>
+            <label class="text-sm font-medium">Auction house onboarding terms<textarea class="mt-1 w-full rounded-md border-slate-300 text-sm" rows="3" bind:value={policyForm.auctionHouseTerms} required></textarea></label>
             <div class="grid grid-cols-2 gap-3">
               <label class="text-sm font-medium">Buyer rate<input class="mt-1 w-full rounded-md border-slate-300 text-sm" type="number" min="0" max="1" step="0.0001" bind:value={policyForm.buyerPremiumRate} required /></label>
               <label class="text-sm font-medium">Seller rate<input class="mt-1 w-full rounded-md border-slate-300 text-sm" type="number" min="0" max="1" step="0.0001" bind:value={policyForm.sellerCommissionRate} required /></label>

@@ -2,11 +2,13 @@ import { json, error } from '@sveltejs/kit';
 import { auctionSettingsSchema } from '$lib/zod.js';
 import prisma from '$lib/prisma.js';
 import {
+  HOUSE_PERMISSIONS,
   canManageAuctionHouse,
   getAuthenticatedUser,
   isPlatformAdmin,
   requireAuthenticatedUser,
-  requireAuctionAccess
+  requireAuctionAccess,
+  requireAuctionHousePermission
 } from '$lib/server/authorization.js';
 
 export async function GET({ params, locals }) {
@@ -64,6 +66,11 @@ export async function PATCH({ params, request, locals }) {
     });
 
     requireAuctionAccess(user, auction);
+    await requireAuctionHousePermission(
+      user,
+      auction.auctionHouseId,
+      HOUSE_PERMISSIONS.MANAGE_AUCTIONS
+    );
 
     const data = await request.json();
 

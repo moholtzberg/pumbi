@@ -2,8 +2,10 @@ import { json, error } from '@sveltejs/kit';
 import prisma from '$lib/prisma.js';
 import { uploadFile } from '$lib/services/cloudStorage.js';
 import {
+  HOUSE_PERMISSIONS,
   requireAuthenticatedUser,
-  requireAuctionAccess
+  requireAuctionAccess,
+  requireAuctionHousePermission
 } from '$lib/server/authorization.js';
 
 export async function POST({ params, request, locals }) {
@@ -20,6 +22,11 @@ export async function POST({ params, request, locals }) {
     }
 
     requireAuctionAccess(user, lot.auction);
+    await requireAuctionHousePermission(
+      user,
+      lot.auction.auctionHouseId,
+      HOUSE_PERMISSIONS.MANAGE_CATALOG
+    );
 
     const formData = await request.formData();
     const audioFile = formData.get('audio');

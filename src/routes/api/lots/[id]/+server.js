@@ -3,11 +3,13 @@ import { db } from '$lib/db.js';
 import prisma from '$lib/prisma.js';
 import { deleteFile } from '$lib/services/cloudStorage.js';
 import {
+  HOUSE_PERMISSIONS,
   canManageAuctionHouse,
   getAuthenticatedUser,
   isPlatformAdmin,
   requireAuthenticatedUser,
-  requireAuctionAccess
+  requireAuctionAccess,
+  requireAuctionHousePermission
 } from '$lib/server/authorization.js';
 
 export async function GET({ params, locals }) {
@@ -38,6 +40,11 @@ export async function PATCH({ params, request, locals }) {
       throw error(404, 'Lot not found');
     }
     requireAuctionAccess(user, writableLot.auction);
+    await requireAuctionHousePermission(
+      user,
+      writableLot.auction.auctionHouseId,
+      HOUSE_PERMISSIONS.MANAGE_CATALOG
+    );
 
     const updates = await request.json();
     if (updates.auctionId && updates.auctionId !== writableLot.auctionId) {
@@ -45,6 +52,11 @@ export async function PATCH({ params, request, locals }) {
         where: { id: updates.auctionId }
       });
       requireAuctionAccess(user, targetAuction);
+      await requireAuctionHousePermission(
+        user,
+        targetAuction.auctionHouseId,
+        HOUSE_PERMISSIONS.MANAGE_CATALOG
+      );
     }
     
     // Get existing lot to merge metaFields if needed
@@ -152,6 +164,11 @@ export async function DELETE({ params, locals }) {
       throw error(404, 'Lot not found');
     }
     requireAuctionAccess(user, lot.auction);
+    await requireAuctionHousePermission(
+      user,
+      lot.auction.auctionHouseId,
+      HOUSE_PERMISSIONS.MANAGE_CATALOG
+    );
     
     // Get all images for this lot before deleting
     const images = await prisma.lotImage.findMany({

@@ -3,9 +3,11 @@ import { db } from '$lib/db.js';
 import prisma from '$lib/prisma.js';
 import { auctionUpdateSchema } from '$lib/zod.js';
 import {
+  HOUSE_PERMISSIONS,
   isPlatformAdmin,
   requireAuthenticatedUser,
-  requireAuctionAccess
+  requireAuctionAccess,
+  requireAuctionHousePermission
 } from '$lib/server/authorization.js';
 
 export async function GET({ params }) {
@@ -20,6 +22,11 @@ export async function PATCH({ params, request, locals }) {
   const user = await requireAuthenticatedUser(locals);
   const existing = await prisma.auction.findUnique({ where: { id: params.id } });
   requireAuctionAccess(user, existing);
+  await requireAuctionHousePermission(
+    user,
+    existing.auctionHouseId,
+    HOUSE_PERMISSIONS.MANAGE_AUCTIONS
+  );
 
   const parsed = auctionUpdateSchema.safeParse(await request.json());
   if (!parsed.success) {

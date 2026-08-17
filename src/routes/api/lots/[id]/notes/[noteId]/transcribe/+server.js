@@ -6,8 +6,10 @@ import { readFile } from 'fs/promises';
 import { join } from 'path';
 import { env } from '$env/dynamic/private';
 import {
+  HOUSE_PERMISSIONS,
   requireAuthenticatedUser,
-  requireAuctionAccess
+  requireAuctionAccess,
+  requireAuctionHousePermission
 } from '$lib/server/authorization.js';
 
 async function transcribeAudio(audioUrl) {
@@ -91,6 +93,11 @@ export async function POST({ params, locals }) {
     }
 
     requireAuctionAccess(user, lot.auction);
+    await requireAuctionHousePermission(
+      user,
+      lot.auction.auctionHouseId,
+      HOUSE_PERMISSIONS.MANAGE_CATALOG
+    );
 
     const note = await prisma.lotNote.findUnique({
       where: { id: params.noteId }

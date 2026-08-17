@@ -1,6 +1,5 @@
 <script>
   import { goto } from '$app/navigation';
-  import { page } from '$app/stores';
   
   // Get session data
   let session = $state(null);
@@ -10,6 +9,18 @@
       const res = await fetch('/auth/session');
       const data = await res.json();
       session = data;
+      if (data?.user) {
+        const pending = sessionStorage.getItem('pendingAuctionHouseSignup');
+        if (pending) {
+          try {
+            Object.assign(formData, JSON.parse(pending));
+            sessionStorage.removeItem('pendingAuctionHouseSignup');
+            queueMicrotask(() => handleSubmit());
+          } catch {
+            sessionStorage.removeItem('pendingAuctionHouseSignup');
+          }
+        }
+      }
     } catch (err) {
       console.error('Error fetching session:', err);
     }
@@ -23,7 +34,6 @@
     logoUrl: '',
     // User creation fields (only needed if not logged in)
     userEmail: '',
-    userName: '',
     userFirstName: '',
     userLastName: '',
     userPassword: ''
@@ -32,6 +42,7 @@
   let errors = $state({});
   let loading = $state(false);
   let success = $state(false);
+  let successText = $state('');
   let errorMessage = $state('');
   let isLoggedIn = $derived(!!session?.user);
   
@@ -69,17 +80,45 @@
       
       // Add user creation fields if not logged in
       if (!isLoggedIn) {
-        if (!formData.userEmail || !formData.userName || !formData.userPassword) {
-          errorMessage = 'Please provide your email, name, and password to create an account, or log in first.';
+        if (!formData.userEmail || !formData.userFirstName || !formData.userLastName || !formData.userPassword) {
+          errorMessage = 'First name, last name, email, and password are required to create your account.';
           loading = false;
           return;
         }
         
-        submitData.userEmail = formData.userEmail.trim();
-        submitData.userName = formData.userName.trim();
-        submitData.userFirstName = formData.userFirstName.trim() || null;
-        submitData.userLastName = formData.userLastName.trim() || null;
+        submitData.userEmail = formData.userEmail.trim().toLowerCase();
+        submitData.userName = `${formData.userFirstName.trim()} ${formData.userLastName.trim()}`;
+        submitData.userFirstName = formData.userFirstName.trim();
+        submitData.userLastName = formData.userLastName.trim();
         submitData.userPassword = formData.userPassword;
+
+        const registration = await fetch('/api/users/register', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            email: submitData.userEmail,
+            password: submitData.userPassword,
+            firstName: submitData.userFirstName,
+            lastName: submitData.userLastName
+          })
+        });
+        const registrationData = await registration.json().catch(() => ({}));
+        if (!registration.ok) {
+          errorMessage = registrationData.message || registrationData.error || 'Failed to create your account.';
+          loading = false;
+          return;
+        }
+        sessionStorage.setItem('pendingAuctionHouseSignup', JSON.stringify({
+          name: formData.name,
+          slug: formData.slug,
+          description: formData.description,
+          domain: formData.domain,
+          logoUrl: formData.logoUrl
+        }));
+        success = true;
+        successText = 'Your account is ready. Sign in once to securely link and create your company.';
+        setTimeout(() => goto(`/auth/login?redirect=${encodeURIComponent('/auction-houses/signup?complete=1')}`), 1200);
+        return;
       }
       
       const response = await fetch('/api/auction-houses', {
@@ -90,11 +129,11 @@
         body: JSON.stringify(submitData)
       });
       
-      const data = await response.json();
+      const data = await response.json().catch(() => ({}));
       
       if (!response.ok) {
-        if (data.message) {
-          errorMessage = data.message;
+        if (data.message || data.error) {
+          errorMessage = data.message || data.error;
         } else {
           errorMessage = 'Failed to create auction house. Please try again.';
         }
@@ -104,18 +143,11 @@
       
       // Success!
       success = true;
+      successText = 'Your company is linked. Continue onboarding to request approval; access remains limited until Pumbi approves it.';
       
-      // If user was created, redirect to login
-      if (!isLoggedIn && data.message?.includes('Please log in')) {
-        setTimeout(() => {
-          goto('/auth/login');
-        }, 3000);
-      } else {
-        // Redirect to auction house page
-        setTimeout(() => {
-          goto(`/auction-houses/${data.auctionHouse.slug}`);
-        }, 2000);
-      }
+      setTimeout(() => {
+        goto('/seller/onboarding');
+      }, 1500);
       
     } catch (err) {
       console.error('Error submitting form:', err);
@@ -153,8 +185,8 @@
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
           </svg>
           <div>
-            <h3 class="text-lg font-semibold text-green-900">Registration Successful!</h3>
-            <p class="text-green-700">Your auction house has been created. Redirecting...</p>
+            <h3 class="text-lg font-semibold text-green-900">Company account created</h3>
+            <p class="text-green-700">{successText}</p>
           </div>
         </div>
       </div>
@@ -182,7 +214,7 @@
           <!-- Auction House Name -->
           <div>
             <label for="name" class="block text-sm font-medium text-gray-700 mb-2">
-              Auction House Name <span class="text-red-500">*</span>
+              Company name <span class="text-red-500">*</span>
             </label>
             <input
               type="text"
@@ -314,47 +346,33 @@
                 {/if}
               </div>
               
-              <!-- Full Name -->
-              <div class="mb-4">
-                <label for="userName" class="block text-sm font-medium text-gray-700 mb-2">
-                  Full Name <span class="text-red-500">*</span>
-                </label>
-                <input
-                  type="text"
-                  id="userName"
-                  bind:value={formData.userName}
-                  required={!isLoggedIn}
-                  class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                  placeholder="John Doe"
-                />
-                {#if errors.userName}
-                  <p class="mt-1 text-sm text-red-600">{errors.userName}</p>
-                {/if}
-              </div>
-              
-              <!-- First Name (Optional) -->
+              <!-- First Name -->
               <div class="mb-4">
                 <label for="userFirstName" class="block text-sm font-medium text-gray-700 mb-2">
-                  First Name (Optional)
+                  First name <span class="text-red-500">*</span>
                 </label>
                 <input
                   type="text"
                   id="userFirstName"
                   bind:value={formData.userFirstName}
+                  required={!isLoggedIn}
+                  autocomplete="given-name"
                   class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                   placeholder="John"
                 />
               </div>
               
-              <!-- Last Name (Optional) -->
+              <!-- Last Name -->
               <div class="mb-4">
                 <label for="userLastName" class="block text-sm font-medium text-gray-700 mb-2">
-                  Last Name (Optional)
+                  Last name <span class="text-red-500">*</span>
                 </label>
                 <input
                   type="text"
                   id="userLastName"
                   bind:value={formData.userLastName}
+                  required={!isLoggedIn}
+                  autocomplete="family-name"
                   class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                   placeholder="Doe"
                 />
@@ -384,8 +402,7 @@
               
               <div class="bg-yellow-50 border border-yellow-200 rounded-lg p-3 mb-4">
                 <p class="text-sm text-yellow-800">
-                  <strong>Note:</strong> You'll need to log in using the external authentication system to access your account. 
-                  Your user account will be created and linked to your auction house.
+                  Your account and company will be linked. Auction creation, payouts, and other seller tools remain limited until onboarding is reviewed and approved.
                 </p>
               </div>
             </div>

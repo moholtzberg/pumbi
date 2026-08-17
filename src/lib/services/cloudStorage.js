@@ -11,23 +11,24 @@ function getStorageProvider() {
   return env.STORAGE_PROVIDER || process.env.STORAGE_PROVIDER || 'local'; // 'local', 's3', 'cloudinary'
 }
 
+export function getStorageProviderName() {
+  return getStorageProvider();
+}
+
 /**
  * Upload a file buffer to cloud storage
  * @param {Buffer} buffer - File buffer
  * @param {string} filename - Original filename
  * @param {string} folder - Folder path in storage (e.g., 'lots')
+ * @param {string} contentType - Validated MIME type supplied by the server
  * @returns {Promise<{url: string, key: string}>} - Uploaded file URL and storage key
  */
-export async function uploadFile(buffer, filename, folder = 'lots') {
+export async function uploadFile(buffer, filename, folder = 'lots', contentType = null) {
   const provider = getStorageProvider();
-  console.log('Storage provider:', provider);
-  console.log('AWS_S3_BUCKET:', env.AWS_S3_BUCKET || process.env.AWS_S3_BUCKET);
-  console.log('AWS_ACCESS_KEY_ID:', (env.AWS_ACCESS_KEY_ID || process.env.AWS_ACCESS_KEY_ID) ? '***SET***' : 'NOT SET');
-  console.log('AWS_REGION:', env.AWS_REGION || process.env.AWS_REGION || 'us-east-1 (default)');
   
   switch (provider) {
     case 's3':
-      return await uploadToS3(buffer, filename, folder);
+      return await uploadToS3(buffer, filename, folder, contentType);
     case 'cloudinary':
       return await uploadToCloudinary(buffer, filename, folder);
     case 'local':
@@ -71,7 +72,7 @@ export async function getPresignedUrl(key, expiresIn = 3600) {
 }
 
 // ===== S3 Implementation =====
-async function uploadToS3(buffer, filename, folder) {
+async function uploadToS3(buffer, filename, folder, contentTypeOverride = null) {
   try {
     // Validate required environment variables (try SvelteKit env first, then process.env)
     const accessKeyId = env.AWS_ACCESS_KEY_ID || process.env.AWS_ACCESS_KEY_ID;
@@ -109,11 +110,11 @@ async function uploadToS3(buffer, filename, folder) {
     const key = `${folder}/${Date.now()}-${Math.random().toString(36).substring(7)}.${ext}`;
 
     // Determine content type based on file extension
-    let contentType;
-    if (folder === 'voice-notes' || ['mp3', 'wav', 'webm', 'ogg', 'm4a', 'aac'].includes(ext.toLowerCase())) {
+    let contentType = contentTypeOverride;
+    if (!contentType && (folder === 'voice-notes' || ['mp3', 'wav', 'webm', 'ogg', 'm4a', 'aac'].includes(ext.toLowerCase()))) {
       // Audio files
       contentType = `audio/${ext === 'mp3' ? 'mpeg' : ext === 'm4a' ? 'mp4' : ext}`;
-    } else {
+    } else if (!contentType) {
       // Image files (default)
       contentType = `image/${ext === 'jpg' ? 'jpeg' : ext}`;
     }
@@ -122,7 +123,8 @@ async function uploadToS3(buffer, filename, folder) {
       Bucket: bucket,
       Key: key,
       Body: buffer,
-      ContentType: contentType
+      ContentType: contentType,
+      ServerSideEncryption: 'AES256'
       // Note: ACL is deprecated. Use bucket policy for public access or presigned URLs for private access
     }));
 

@@ -2,8 +2,10 @@ import { json, error } from '@sveltejs/kit';
 import prisma from '$lib/prisma.js';
 import { deleteFile } from '$lib/services/cloudStorage.js';
 import {
+  HOUSE_PERMISSIONS,
   requireAuthenticatedUser,
-  requireAuctionAccess
+  requireAuctionAccess,
+  requireAuctionHousePermission
 } from '$lib/server/authorization.js';
 
 async function requireLotAccess(locals, lotId) {
@@ -16,6 +18,11 @@ async function requireLotAccess(locals, lotId) {
     throw error(404, 'Lot not found');
   }
   requireAuctionAccess(user, lot.auction);
+  await requireAuctionHousePermission(
+    user,
+    lot.auction.auctionHouseId,
+    HOUSE_PERMISSIONS.MANAGE_CATALOG
+  );
   return lot;
 }
 

@@ -17,6 +17,20 @@ export async function load({ locals, url }) {
   if (!user || !['SELLER', 'AUCTIONEER'].includes(user.role) || !user.auctionHouseId) {
     throw redirect(302, '/dashboard');
   }
+
+  const auctionHouse = await prisma.auctionHouse.findUnique({
+    where: { id: user.auctionHouseId },
+    select: { id: true, name: true, onboardingStatus: true }
+  });
+  if (!auctionHouse) throw redirect(302, '/dashboard');
+
+  const limitedRoutes = ['/seller/onboarding', '/seller/team', '/seller/banking'];
+  if (
+    auctionHouse.onboardingStatus !== 'APPROVED' &&
+    !limitedRoutes.some((path) => url.pathname.startsWith(path))
+  ) {
+    throw redirect(302, '/seller/onboarding');
+  }
   
   // Return session data for use in child routes
   return {
@@ -26,7 +40,8 @@ export async function load({ locals, url }) {
         role: user.role,
         auctionHouseId: user.auctionHouseId
       }
-    }
+    },
+    auctionHouse
   };
 }
 

@@ -19,6 +19,31 @@ npm run admin:promote -- admin@example.com
 
 Sign in again, then open `/admin` to publish Pumbi rates and terms, configure the monthly PUBLIC auction series, and review independent-seller submissions.
 
+## Stripe Connect and payout releases
+
+Set `STRIPE_SECRET_KEY` and `STRIPE_WEBHOOK_SECRET`, then configure Stripe to send
+`account.updated` events to:
+
+```text
+https://your-pumbi-host.example/api/webhooks/stripe
+```
+
+Auction-house owners, administrators, and finance members use `/seller/banking`
+to create or resume Stripe Connect Express onboarding. Bank account, tax, and
+identity details are collected by Stripe and never pass through Pumbi. Stripe
+status is refreshed when that page loads and by signed webhooks.
+
+An approved house with Stripe payouts enabled can request a release by amount,
+currency, source reference, and reason. Platform administrators review requests
+at `/admin/payouts`. Approval atomically claims the request and creates a Stripe
+transfer with a stable idempotency key; rejection requires a reason.
+
+Transfers debit the platform Stripe balance. The source reference is internal
+metadata/transfer grouping, not a Stripe `source_transaction`. Production
+settlement must ensure the platform has sufficient available funds, or extend
+the payment flow to retain and supply the originating charge or balance
+transaction dependency where applicable.
+
 ## Monthly auction automation
 
 Configure a production scheduler to send a POST request at least hourly:

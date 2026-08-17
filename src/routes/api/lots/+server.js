@@ -3,11 +3,13 @@ import { db } from '$lib/db.js';
 import { Lot } from '$lib/models/index.js';
 import prisma from '$lib/prisma.js';
 import {
+  HOUSE_PERMISSIONS,
   canManageAuctionHouse,
   getAuthenticatedUser,
   isPlatformAdmin,
   requireAuthenticatedUser,
-  requireAuctionAccess
+  requireAuctionAccess,
+  requireAuctionHousePermission
 } from '$lib/server/authorization.js';
 
 export async function GET({ url, locals }) {
@@ -55,6 +57,11 @@ export async function POST({ request, locals }) {
       where: { id: lotData.auctionId }
     });
     requireAuctionAccess(user, auction);
+    await requireAuctionHousePermission(
+      user,
+      auction.auctionHouseId,
+      HOUSE_PERMISSIONS.MANAGE_CATALOG
+    );
     
     // Get the highest position for this auction to set default position
     const existingLots = await db.lots.getByAuctionId(lotData.auctionId);

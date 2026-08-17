@@ -11,7 +11,6 @@ function mapAuctionHouse(prismaAuctionHouse) {
     domain: prismaAuctionHouse.domain,
     description: prismaAuctionHouse.description,
     logoUrl: prismaAuctionHouse.logoUrl,
-    settings: prismaAuctionHouse.settings,
     isActive: prismaAuctionHouse.isActive,
     createdAt: prismaAuctionHouse.createdAt,
     updatedAt: prismaAuctionHouse.updatedAt

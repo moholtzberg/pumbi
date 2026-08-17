@@ -240,6 +240,17 @@
         return 'bg-gray-100 text-gray-800';
     }
   }
+
+  function getOnboardingBadgeClass(status) {
+    if (status === 'APPROVED') return 'bg-green-100 text-green-800';
+    if (status === 'REJECTED') return 'bg-red-100 text-red-800';
+    if (status === 'SUBMITTED' || status === 'UNDER_REVIEW') return 'bg-amber-100 text-amber-800';
+    return 'bg-blue-100 text-blue-800';
+  }
+
+  function formatOnboardingStatus(status) {
+    return (status || 'DRAFT').replaceAll('_', ' ').toLowerCase().replace(/\b\w/g, (letter) => letter.toUpperCase());
+  }
 </script>
 
 <div class="min-h-screen bg-gray-50">
@@ -269,6 +280,37 @@
           {#if auctionHouseLogoUrl}
             <img src={auctionHouseLogoUrl} alt={auctionHouse.name} class="h-16 w-16 object-contain" />
           {/if}
+        </div>
+      </div>
+
+      <div class="mb-6 grid gap-4 md:grid-cols-2">
+        <div class="rounded-lg border border-slate-200 bg-white p-5 shadow-sm">
+          <div class="flex items-start justify-between gap-3">
+            <div>
+              <p class="text-sm font-semibold text-slate-500">Seller verification</p>
+              <h3 class="mt-1 text-lg font-bold text-slate-900">Auction house onboarding</h3>
+            </div>
+            <span class="rounded-full px-3 py-1 text-xs font-bold {getOnboardingBadgeClass(auctionHouse.onboardingStatus)}">
+              {formatOnboardingStatus(auctionHouse.onboardingStatus)}
+            </span>
+          </div>
+          {#if auctionHouse.onboardingStatus !== 'APPROVED'}
+            <p class="mt-3 text-sm text-slate-600">Auction publishing, payouts, and other seller tools remain limited until Pumbi approves your application.</p>
+          {:else}
+            <p class="mt-3 text-sm text-slate-600">Your company is approved for seller access.</p>
+          {/if}
+          {#if auctionHouse.onboardingStatus === 'REJECTED' && auctionHouse.onboardingRejectionReason}
+            <p class="mt-3 rounded-md bg-red-50 p-3 text-sm text-red-800">{auctionHouse.onboardingRejectionReason}</p>
+          {/if}
+          <a href="/seller/onboarding" class="mt-4 inline-flex rounded-lg bg-blue-600 px-4 py-2 text-sm font-semibold text-white hover:bg-blue-700">
+            {auctionHouse.onboardingStatus === 'APPROVED' ? 'View onboarding' : 'Continue onboarding'}
+          </a>
+        </div>
+        <div class="rounded-lg border border-slate-200 bg-white p-5 shadow-sm">
+          <p class="text-sm font-semibold text-slate-500">Access management</p>
+          <h3 class="mt-1 text-lg font-bold text-slate-900">Your auction house team</h3>
+          <p class="mt-3 text-sm text-slate-600">Invite colleagues and manage roles, active members, and pending invitations.</p>
+          <a href="/seller/team" class="mt-4 inline-flex rounded-lg border border-slate-300 px-4 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50">Manage team</a>
         </div>
       </div>
     {/if}

@@ -1,8 +1,10 @@
 import { json, error } from '@sveltejs/kit';
 import prisma from '$lib/prisma.js';
 import {
+  HOUSE_PERMISSIONS,
   requireAuthenticatedUser,
-  requireAuctionAccess
+  requireAuctionAccess,
+  requireAuctionHousePermission
 } from '$lib/server/authorization.js';
 
 export async function POST({ request, locals }) {
@@ -19,6 +21,11 @@ export async function POST({ request, locals }) {
       where: { id: auctionId }
     });
     requireAuctionAccess(user, auction);
+    await requireAuctionHousePermission(
+      user,
+      auction.auctionHouseId,
+      HOUSE_PERMISSIONS.MANAGE_CATALOG
+    );
 
     const matchingLots = await prisma.lot.count({
       where: { id: { in: lotIds }, auctionId }

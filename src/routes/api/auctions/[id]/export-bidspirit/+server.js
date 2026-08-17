@@ -2,8 +2,10 @@ import { error } from '@sveltejs/kit';
 import prisma from '$lib/prisma.js';
 import { convertToPresignedUrl } from '$lib/utils/s3Presigned.js';
 import {
+  HOUSE_PERMISSIONS,
   requireAuthenticatedUser,
-  requireAuctionAccess
+  requireAuctionAccess,
+  requireAuctionHousePermission
 } from '$lib/server/authorization.js';
 
 export async function GET({ params, locals }) {
@@ -27,6 +29,11 @@ export async function GET({ params, locals }) {
     });
 
     requireAuctionAccess(user, auction);
+    await requireAuctionHousePermission(
+      user,
+      auction.auctionHouseId,
+      HOUSE_PERMISSIONS.MANAGE_AUCTIONS
+    );
 
     // CSV Header
     const csvRows = [[

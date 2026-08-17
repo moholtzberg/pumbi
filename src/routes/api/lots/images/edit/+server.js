@@ -3,8 +3,10 @@ import { uploadFile } from '$lib/services/cloudStorage.js';
 import prisma from '$lib/prisma.js';
 import { env } from '$env/dynamic/private';
 import {
+  HOUSE_PERMISSIONS,
   requireAuthenticatedUser,
-  requireAuctionAccess
+  requireAuctionAccess,
+  requireAuctionHousePermission
 } from '$lib/server/authorization.js';
 
 export async function POST({ request, locals }) {
@@ -31,6 +33,11 @@ export async function POST({ request, locals }) {
     }
 
     requireAuctionAccess(user, lot.auction);
+    await requireAuctionHousePermission(
+      user,
+      lot.auction.auctionHouseId,
+      HOUSE_PERMISSIONS.MANAGE_CATALOG
+    );
 
     // Convert file to buffer
     const arrayBuffer = await file.arrayBuffer();

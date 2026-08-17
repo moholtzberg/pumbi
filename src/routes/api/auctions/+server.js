@@ -3,9 +3,10 @@ import { db } from '$lib/db.js';
 import prisma from '$lib/prisma.js';
 import { auctionCreateSchema } from '$lib/zod.js';
 import {
+  HOUSE_PERMISSIONS,
   isPlatformAdmin,
   requireAuthenticatedUser,
-  requireAuctionHouseAccess
+  requireAuctionHousePermission
 } from '$lib/server/authorization.js';
 
 export async function GET({ url }) {
@@ -47,7 +48,11 @@ export async function POST({ request, locals }) {
   try {
     const user = await requireAuthenticatedUser(locals);
     const auctionData = auctionCreateSchema.parse(await request.json());
-    requireAuctionHouseAccess(user, auctionData.auctionHouseId);
+    await requireAuctionHousePermission(
+      user,
+      auctionData.auctionHouseId,
+      HOUSE_PERMISSIONS.MANAGE_AUCTIONS
+    );
 
     if (!isPlatformAdmin(user) && auctionData.type !== 'PRIVATE') {
       return json({ error: 'Auction houses may only create private auctions' }, { status: 403 });

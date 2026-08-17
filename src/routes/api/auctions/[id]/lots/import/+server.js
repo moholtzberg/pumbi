@@ -3,8 +3,10 @@ import XLSX from 'xlsx';
 import prisma from '$lib/prisma.js';
 import { Lot } from '$lib/models/Lot.js';
 import {
+  HOUSE_PERMISSIONS,
   requireAuthenticatedUser,
-  requireAuctionAccess
+  requireAuctionAccess,
+  requireAuctionHousePermission
 } from '$lib/server/authorization.js';
 
 function parseNumber(value, fallback = 0) {
@@ -70,6 +72,11 @@ async function ensureAuctionAccess(auctionId, user) {
   });
 
   requireAuctionAccess(user, auction);
+  await requireAuctionHousePermission(
+    user,
+    auction.auctionHouseId,
+    HOUSE_PERMISSIONS.MANAGE_AUCTIONS
+  );
   return auction;
 }
 

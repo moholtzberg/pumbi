@@ -50,6 +50,7 @@ export async function POST({ request, locals }) {
           version: (latest?.version ?? 0) + 1,
           buyerTerms: requiredText(data.buyerTerms, 'Buyer terms'),
           sellerTerms: requiredText(data.sellerTerms, 'Seller terms'),
+          auctionHouseTerms: requiredText(data.auctionHouseTerms, 'Auction house terms'),
           buyerPremiumRate: rate(data.buyerPremiumRate, 'Buyer premium rate'),
           sellerCommissionRate: rate(data.sellerCommissionRate, 'Seller commission rate'),
           rateConfig,

@@ -1,14 +1,21 @@
 import { error, json } from '@sveltejs/kit';
 import prisma from '$lib/prisma.js';
 import {
+  HOUSE_PERMISSIONS,
   requireAuthenticatedUser,
-  requireAuctionAccess
+  requireAuctionAccess,
+  requireAuctionHousePermission
 } from '$lib/server/authorization.js';
 
 async function requireAuctionManager(locals, auctionId) {
   const user = await requireAuthenticatedUser(locals, 'Authentication required');
   const auction = await prisma.auction.findUnique({ where: { id: auctionId } });
   requireAuctionAccess(user, auction);
+  await requireAuctionHousePermission(
+    user,
+    auction.auctionHouseId,
+    HOUSE_PERMISSIONS.MANAGE_BIDDERS
+  );
   return { user, auction };
 }
 

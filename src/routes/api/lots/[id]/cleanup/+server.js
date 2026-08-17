@@ -2,8 +2,10 @@ import { json, error } from '@sveltejs/kit';
 import prisma from '$lib/prisma.js';
 import { env } from '$env/dynamic/private';
 import {
+  HOUSE_PERMISSIONS,
   requireAuthenticatedUser,
-  requireAuctionAccess
+  requireAuctionAccess,
+  requireAuctionHousePermission
 } from '$lib/server/authorization.js';
 
 async function cleanupWithAI({ title, description, hebrewTitle, hebrewDescription, images = [] }) {
@@ -250,6 +252,11 @@ export async function POST({ params, request, locals }) {
     }
 
     requireAuctionAccess(user, lot.auction);
+    await requireAuctionHousePermission(
+      user,
+      lot.auction.auctionHouseId,
+      HOUSE_PERMISSIONS.MANAGE_CATALOG
+    );
 
     const { includeImages = true } = await request.json().catch(() => ({}));
 
