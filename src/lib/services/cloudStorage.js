@@ -73,17 +73,30 @@ export async function getPresignedUrl(key, expiresIn = 3600) {
 
 // ===== S3 Implementation =====
 
+// DigitalOcean Spaces region identifiers (non-AWS regions)
+const DO_REGIONS = new Set(['nyc3', 'nyc2', 'ams3', 'sgp1', 'lon1', 'fra1', 'tor1', 'blr1', 'sfo2', 'sfo3', 'syd1']);
+
 /**
- * Build S3Client config, with optional DigitalOcean Spaces endpoint support.
- * Set DO_SPACES_ENDPOINT (e.g. https://nyc3.digitaloceanspaces.com) to use
- * DigitalOcean or any other S3-compatible provider.
+ * Build S3Client config, with DigitalOcean Spaces endpoint support.
+ * The endpoint is resolved in this order:
+ *   1. DO_SPACES_ENDPOINT env var (explicit override)
+ *   2. Auto-constructed from AWS_REGION when it is a known DO region (e.g. nyc3)
+ *   3. Standard AWS S3 (no endpoint override)
  */
 function getS3Config() {
   const accessKeyId = env.AWS_ACCESS_KEY_ID || process.env.AWS_ACCESS_KEY_ID;
   const secretAccessKey = env.AWS_SECRET_ACCESS_KEY || process.env.AWS_SECRET_ACCESS_KEY;
   const bucket = env.AWS_S3_BUCKET || process.env.AWS_S3_BUCKET;
   const region = env.AWS_REGION || process.env.AWS_REGION || 'us-east-1';
-  const endpoint = env.DO_SPACES_ENDPOINT || process.env.DO_SPACES_ENDPOINT || null;
+
+  let endpoint = env.DO_SPACES_ENDPOINT || process.env.DO_SPACES_ENDPOINT || null;
+
+  // Auto-detect DigitalOcean Spaces: if the region is a DO region and no explicit
+  // endpoint was provided, construct the endpoint automatically so that the AWS SDK
+  // does not try to reach <bucket>.s3.<do-region>.amazonaws.com (which does not exist).
+  if (!endpoint && DO_REGIONS.has(region)) {
+    endpoint = `https://${region}.digitaloceanspaces.com`;
+  }
 
   const clientConfig = {
     region,
