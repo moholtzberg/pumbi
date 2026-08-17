@@ -8,6 +8,7 @@
     { href: '/admin/auctions', label: 'Auctions', description: 'Series & submissions' },
     { href: '/admin/auction-houses', label: 'Auction houses', description: 'Partners & onboarding' },
     { href: '/admin/users', label: 'Users', description: 'Accounts & roles' },
+    { href: '/admin/trust', label: 'Trust & Safety', description: 'Login & fraud signals' },
     { href: '/admin/lots', label: 'Lots', description: 'Catalog inventory' },
     { href: '/admin/payouts', label: 'Payments', description: 'Payout releases' }
   ];

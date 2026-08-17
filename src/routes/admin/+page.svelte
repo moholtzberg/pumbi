@@ -5,6 +5,7 @@
     { href: '/admin/auctions', label: 'Auctions', value: data.metrics.auctions, detail: `${data.metrics.liveAuctions} live now`, color: 'bg-indigo-50 text-indigo-700' },
     { href: '/admin/auction-houses', label: 'Auction houses', value: data.metrics.auctionHouses, detail: `${data.metrics.pendingHouses} need review`, color: 'bg-violet-50 text-violet-700' },
     { href: '/admin/users', label: 'Users', value: data.metrics.users, detail: 'Accounts and access', color: 'bg-sky-50 text-sky-700' },
+    { href: '/admin/trust', label: 'Trust & Safety', value: data.metrics.loginFailures, detail: 'Failed logins in 24 hours', color: 'bg-rose-50 text-rose-700' },
     { href: '/admin/lots', label: 'Lots', value: data.metrics.lots, detail: `${data.metrics.pendingLots} submissions pending`, color: 'bg-amber-50 text-amber-700' },
     { href: '/admin/payouts', label: 'Payments', value: data.metrics.pendingPayouts, detail: 'Payouts need attention', color: 'bg-emerald-50 text-emerald-700' }
   ];
@@ -23,7 +24,7 @@
     <p class="mt-2 max-w-2xl text-sm text-slate-500">A focused view of the marketplace, partner operations, catalog, and money movement.</p>
   </header>
 
-  <section class="grid gap-4 sm:grid-cols-2 xl:grid-cols-5" aria-label="Admin areas">
+  <section class="grid gap-4 sm:grid-cols-2 xl:grid-cols-6" aria-label="Admin areas">
     {#each sections as section}
       <a href={section.href} class="group rounded-2xl border border-slate-200 bg-white p-5 shadow-sm transition hover:-translate-y-0.5 hover:border-indigo-200 hover:shadow-md">
         <span class="inline-flex rounded-lg px-2.5 py-1 text-xs font-bold {section.color}">{section.label}</span>

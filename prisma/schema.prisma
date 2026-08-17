@@ -119,6 +119,7 @@ model User {
   payoutReleasesApproved          PayoutRelease[]           @relation("PayoutReleaseApprover")
   watchedLots                     LotWatch[]
   contactVerificationCodes        ContactVerificationCode[]
+  loginSecurityEvents             LoginSecurityEvent[]
 
   @@index([auctionHouseId])
   @@index([role])
@@ -128,6 +129,35 @@ model User {
   @@index([cardVerificationStatus])
   @@index([email])
   @@map("users")
+}
+
+enum LoginSecurityOutcome {
+  SUCCESS
+  FAILURE
+}
+
+model LoginSecurityEvent {
+  id             String               @id @default(cuid())
+  userId         String?              @map("user_id")
+  attemptedEmail String?              @map("attempted_email")
+  outcome        LoginSecurityOutcome
+  deviceIdHash   String?              @map("device_id_hash") @db.Char(64)
+  ipAddress      String?              @map("ip_address")
+  ipHash         String?              @map("ip_hash") @db.Char(64)
+  countryCode    String?              @map("country_code")
+  region         String?
+  city           String?
+  userAgent      String?              @map("user_agent")
+  createdAt      DateTime             @default(now()) @map("created_at")
+
+  user User? @relation(fields: [userId], references: [id], onDelete: SetNull)
+
+  @@index([userId, createdAt])
+  @@index([deviceIdHash, createdAt])
+  @@index([ipHash, createdAt])
+  @@index([outcome, createdAt])
+  @@index([createdAt])
+  @@map("login_security_events")
 }
 
 enum UserRole {

@@ -4,6 +4,7 @@ import Credentials from "@auth/sveltekit/providers/credentials";
 import { signInSchema } from "$lib/zod";
 import { db } from "$lib/db.js";
 import { comparePassword } from "$lib/utils/password.js";
+import { recordLoginSecurityEvent } from "$lib/server/loginSecurity.js";
 
 async function getUserFromDB(email, password) {
   // Get user from local database
@@ -41,7 +42,8 @@ const providers = [
       email: { label: "Email", type: "text", placeholder: "Email" },
       password: { label: "Password", type: "password", placeholder: "Password" },
     },
-    authorize: async (credentials) => {
+    authorize: async (credentials, request) => {
+      const attemptedEmail = typeof credentials?.email === 'string' ? credentials.email : null;
       try {
         const { email, password } = await signInSchema.parseAsync(credentials);
 
@@ -59,9 +61,17 @@ const providers = [
           role: user.role || 'BUYER'
         };
 
+        await recordLoginSecurityEvent({
+          request,
+          userId: user.id,
+          attemptedEmail: user.email,
+          outcome: 'SUCCESS'
+        });
+
         return userData;
 
       } catch (error) {
+        await recordLoginSecurityEvent({ request, attemptedEmail, outcome: 'FAILURE' });
         if (error instanceof ZodError) {
           return null;
         }
