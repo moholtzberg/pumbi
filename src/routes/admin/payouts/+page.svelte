@@ -56,14 +56,14 @@
   }
 </script>
 
-<svelte:head><title>Payout review | Pumbi</title></svelte:head>
+<svelte:head><title>Payments | Pumbi Admin</title></svelte:head>
 
-<main class="min-h-screen bg-slate-50 px-4 py-8 text-slate-900">
+<div class="text-slate-900">
   <div class="mx-auto max-w-6xl space-y-6">
     <header class="flex flex-wrap items-end justify-between gap-3">
       <div>
-        <p class="text-xs font-semibold uppercase tracking-widest text-indigo-600">Platform administration</p>
-        <h1 class="text-3xl font-bold">Payout releases</h1>
+        <p class="text-xs font-semibold uppercase tracking-widest text-emerald-600">Money movement</p>
+        <h1 class="text-3xl font-bold">Payments</h1>
         <p class="mt-1 text-sm text-slate-500">Review and release approved-house funds to Stripe Express accounts.</p>
       </div>
       <button class="rounded-md border bg-white px-3 py-2 text-sm font-medium hover:bg-slate-100" onclick={load}>Refresh</button>
@@ -103,4 +103,4 @@
       </section>
     {/if}
   </div>
-</main>
+</div>

@@ -2,8 +2,7 @@ import { error, json } from '@sveltejs/kit';
 import prisma from '$lib/prisma.js';
 import { adminError, requirePlatformAdmin } from '$lib/server/platformAdmin.js';
 import { getZonedDateTimeUtc } from '$lib/server/auctionSchedule.js';
-
-export const _PLATFORM_AUCTION_HOUSE_ID = 'pumbi';
+import { PLATFORM_AUCTION_HOUSE_ID } from '$lib/server/platformAuctionHouse.js';
 
 function integer(value, label, min, max) {
   const number = Number(value);
@@ -40,7 +39,7 @@ export function _seriesData(data) {
 
   return {
     name,
-    auctionHouseId: _PLATFORM_AUCTION_HOUSE_ID,
+    auctionHouseId: PLATFORM_AUCTION_HOUSE_ID,
     auctionType: data.auctionType,
     timezone: data.timezone,
     recurrenceDayOfMonth: integer(data.recurrenceDayOfMonth, 'Day of month', 1, 31),
