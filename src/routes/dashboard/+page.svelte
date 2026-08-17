@@ -1,289 +1,136 @@
 <script>
   import { onMount } from 'svelte';
-  import { goto } from '$app/navigation';
-  
-  let session = $state(null);
-  let currentUser = $state(null);
-  let myBids = $state([]);
-  let myWinningBids = $state([]);
-  let loading = $state(true);
-  
-  onMount(async () => {
-    await loadSession();
-    if (session?.user) {
-      await loadUserData();
-    } else {
-      // Redirect to login if not authenticated
-      goto('/auth/login');
-    }
+  import { invalidateAll } from '$app/navigation';
+
+  let { data } = $props();
+  let now = $state(Date.now());
+  let removing = $state('');
+
+  const money = (value) => new Intl.NumberFormat('en-US', {
+    style: 'currency', currency: 'USD', maximumFractionDigits: 0
+  }).format(Number(value || 0));
+  const firstName = data.user.firstName || data.user.name?.trim().split(/\s+/)[0] || 'there';
+  const profileComplete = Boolean(data.user.firstName && data.user.lastName && data.user.phone && data.user.address);
+  const tasks = [
+    ...(!data.user.firstName ? [{ title: 'Add your first name', detail: 'Tell us how to address you.', href: '/dashboard/profile' }] : []),
+    ...(!data.user.lastName ? [{ title: 'Add your last name', detail: 'Complete your account identity.', href: '/dashboard/profile' }] : []),
+    ...(!data.user.phone ? [{ title: 'Add a phone number', detail: 'Auction teams may need to reach you.', href: '/dashboard/profile' }] : []),
+    ...(!data.user.address ? [{ title: 'Add your address', detail: 'Required for buyer verification.', href: '/dashboard/profile' }] : []),
+    ...(!data.user.isVerifiedBuyer ? [{
+      title: profileComplete ? 'Buyer verification is pending' : 'Complete buyer verification',
+      detail: profileComplete ? 'Your completed profile is waiting for administrator review.' : 'Finish the profile items above to become eligible for review.',
+      href: '/dashboard/profile', pending: profileComplete
+    }] : []),
+    ...(!data.user.isVerifiedBidder ? [{
+      title: 'Bidder approval is still needed',
+      detail: data.user.isVerifiedBuyer ? 'An auction administrator must approve bidding access.' : 'Buyer verification must be completed first.',
+      pending: data.user.isVerifiedBuyer
+    }] : [])
+  ];
+
+  onMount(() => {
+    const timer = setInterval(() => now = Date.now(), 1000);
+    return () => clearInterval(timer);
   });
-  
-  async function loadSession() {
-    try {
-      const res = await fetch('/auth/session');
-      const data = await res.json();
-      session = data;
-    } catch (error) {
-      console.error('Error loading session:', error);
-    }
+
+  function countdown(lot) {
+    if (lot.auction.status === 'LIVE') return 'On the block now';
+    if (lot.auction.status === 'ENDED' || lot.status === 'SOLD' || lot.status === 'UNSOLD') return 'Auction ended';
+    if (lot.auction.status === 'CANCELLED') return 'Auction cancelled';
+    const difference = new Date(lot.auction.startDate).getTime() - now;
+    if (difference <= 0) return 'Starting now';
+    const days = Math.floor(difference / 86400000);
+    const hours = Math.floor((difference % 86400000) / 3600000);
+    const minutes = Math.floor((difference % 3600000) / 60000);
+    const seconds = Math.floor((difference % 60000) / 1000);
+    if (days > 0) return `${days}d ${hours}h ${minutes}m`;
+    if (hours > 0) return `${hours}h ${minutes}m ${seconds}s`;
+    return `${minutes}m ${seconds}s`;
   }
-  
-  async function loadUserData() {
+
+  async function unwatch(lotId) {
+    removing = lotId;
     try {
-      loading = true;
-      
-      // Get or create user in our database
-      let userResponse = await fetch(`/api/users?email=${encodeURIComponent(session.user.email)}`);
-      if (!userResponse.ok) {
-        // User doesn't exist in our DB yet - create them
-        userResponse = await fetch('/api/users', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            email: session.user.email,
-            name: session.user.name || `${session.user.first_name || ''} ${session.user.last_name || ''}`.trim(),
-            firstName: session.user.first_name || null,
-            lastName: session.user.last_name || null,
-            role: 'BUYER'
-          })
-        });
-      }
-      currentUser = await userResponse.json();
-      
-      // Load user's bids
-      const bidsResponse = await fetch(`/api/bids?userId=${currentUser.id}`);
-      const allBids = await bidsResponse.json();
-      
-      // Get unique lots for these bids
-      const lotIds = [...new Set(allBids.map(bid => bid.lotId))];
-      const lotPromises = lotIds.map(id => fetch(`/api/lots/${id}`).then(r => r.json()));
-      const lots = await Promise.all(lotPromises);
-      
-      // Match bids with lots
-      myBids = allBids.map(bid => {
-        const lot = lots.find(l => l.id === bid.lotId);
-        return { ...bid, lot };
-      }).filter(bid => bid.lot); // Filter out bids with missing lots
-      
-      // Find winning bids (where user is highest bidder)
-      myWinningBids = myBids.filter(bid => 
-        bid.lot && bid.lot.highestBidderId === currentUser.id
-      );
-    } catch (error) {
-      console.error('Error loading user data:', error);
+      const response = await fetch(`/api/lots/${lotId}/watch`, { method: 'DELETE' });
+      if (response.ok) await invalidateAll();
     } finally {
-      loading = false;
+      removing = '';
     }
-  }
-  
-  function formatCurrency(amount) {
-    return new Intl.NumberFormat('en-US', {
-      style: 'currency',
-      currency: 'USD'
-    }).format(amount);
-  }
-  
-  function formatDate(dateString) {
-    return new Date(dateString).toLocaleString('en-US', {
-      year: 'numeric',
-      month: 'short',
-      day: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit'
-    });
   }
 </script>
 
-<div class="min-h-screen bg-gray-50">
-  <div class="container mx-auto px-4 py-8">
-    <h1 class="text-4xl font-bold text-gray-900 mb-8">My Dashboard</h1>
-    <div class="mb-8 rounded-xl bg-purple-900 p-6 text-white">
-      <h2 class="text-2xl font-bold">Sell in Pumbi's monthly auction</h2>
-      <p class="mt-2 text-purple-100">Independent sellers can submit lots under Pumbi's published rates and terms.</p>
-      <a href="/dashboard/sell" class="mt-4 inline-block rounded-lg bg-white px-5 py-2 font-semibold text-purple-900">Manage submissions</a>
+<svelte:head><title>Dashboard | Pumbi</title></svelte:head>
+
+<main class="min-h-screen bg-slate-50">
+  <div class="mx-auto max-w-7xl space-y-7 px-4 py-8 sm:px-6 lg:px-8">
+    <header class="flex flex-wrap items-center justify-between gap-4">
+      <div>
+        <p class="text-sm font-bold uppercase tracking-[0.18em] text-violet-600">Your Pumbi</p>
+        <h1 class="mt-1 text-3xl font-black tracking-tight text-slate-950 sm:text-4xl">Welcome, {firstName}</h1>
+        <p class="mt-1 text-sm text-slate-500">Here’s what needs your attention and what’s coming up.</p>
+      </div>
+      <a href="/dashboard/profile" aria-label="View or edit profile" title="View or edit profile" class="grid h-11 w-11 place-items-center rounded-full border border-slate-200 bg-white text-slate-700 shadow-sm transition hover:border-violet-300 hover:text-violet-700">
+        <svg viewBox="0 0 24 24" class="h-5 w-5" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M20 21a8 8 0 0 0-16 0"/><circle cx="12" cy="7" r="4"/></svg>
+      </a>
+    </header>
+
+    <div class="grid gap-6 lg:grid-cols-[minmax(0,0.85fr)_minmax(0,1.4fr)]">
+      <section class="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+        <div class="flex items-start justify-between gap-3">
+          <div><p class="text-xs font-bold uppercase tracking-wider text-amber-600">To do</p><h2 class="mt-1 text-xl font-black text-slate-950">Finish setting up</h2></div>
+          <span class="rounded-full bg-amber-50 px-2.5 py-1 text-xs font-bold text-amber-800">{tasks.length} remaining</span>
+        </div>
+
+        {#if tasks.length}
+          <ol class="mt-5 space-y-3">
+            {#each tasks as task}
+              <li class="flex gap-3 rounded-xl border border-slate-100 bg-slate-50 p-3.5">
+                <span class="mt-0.5 grid h-6 w-6 shrink-0 place-items-center rounded-full border-2 {task.pending ? 'border-blue-300 bg-blue-50' : 'border-amber-300 bg-white'}">
+                  {#if task.pending}<span class="h-2 w-2 rounded-full bg-blue-500"></span>{/if}
+                </span>
+                <div class="min-w-0 flex-1"><p class="font-bold text-slate-900">{task.title}</p><p class="mt-0.5 text-sm leading-5 text-slate-500">{task.detail}</p></div>
+                {#if task.href}<a href={task.href} aria-label={task.title} class="self-center rounded-lg px-2 py-1 text-lg text-slate-400 hover:bg-white hover:text-violet-600">›</a>{/if}
+              </li>
+            {/each}
+          </ol>
+        {:else}
+          <div class="mt-5 rounded-xl bg-emerald-50 p-5 text-center"><span class="mx-auto grid h-10 w-10 place-items-center rounded-full bg-emerald-600 text-xl text-white">✓</span><p class="mt-3 font-bold text-emerald-950">You’re all set</p><p class="mt-1 text-sm text-emerald-800">There are no outstanding account tasks.</p></div>
+        {/if}
+      </section>
+
+      <section class="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+        <div class="flex flex-wrap items-start justify-between gap-3">
+          <div><p class="text-xs font-bold uppercase tracking-wider text-violet-600">Watchlist</p><h2 class="mt-1 text-xl font-black text-slate-950">Lots you’re watching</h2></div>
+          <a href="/" class="text-sm font-bold text-violet-700 hover:text-violet-900">Browse auctions →</a>
+        </div>
+
+        {#if data.watchedLots.length}
+          <div class="mt-5 divide-y divide-slate-100">
+            {#each data.watchedLots as lot (lot.id)}
+              <article class="grid gap-4 py-4 first:pt-0 last:pb-0 sm:grid-cols-[88px_minmax(0,1fr)_auto] sm:items-center">
+                <a href={`/lots/${lot.id}`} class="block h-20 overflow-hidden rounded-xl bg-slate-100">
+                  {#if lot.imageUrl}<img src={lot.imageUrl} alt={lot.title} class="h-full w-full object-cover" />{:else}<span class="grid h-full place-items-center text-2xl text-slate-300">◇</span>{/if}
+                </a>
+                <div class="min-w-0"><p class="text-xs font-bold uppercase tracking-wide text-slate-400">Lot #{lot.lotNumber} · {lot.auction.title}</p><a href={`/lots/${lot.id}`} class="mt-1 block truncate font-bold text-slate-950 hover:text-violet-700">{lot.title}</a><p class="mt-1 text-sm text-slate-500">Current bid <strong class="text-slate-800">{money(lot.currentBid || lot.startingBid)}</strong></p></div>
+                <div class="flex items-center justify-between gap-3 sm:block sm:text-right"><div><p class="text-xs font-bold uppercase tracking-wide text-violet-500">On the block in</p><p class="mt-1 font-black tabular-nums text-violet-800">{countdown(lot)}</p></div><button type="button" onclick={() => unwatch(lot.id)} disabled={removing === lot.id} class="mt-2 text-xs font-semibold text-slate-400 hover:text-red-600 disabled:opacity-50">Remove</button></div>
+              </article>
+            {/each}
+          </div>
+        {:else}
+          <div class="mt-5 rounded-xl border border-dashed border-slate-200 px-5 py-10 text-center"><span class="text-3xl text-slate-300">♡</span><p class="mt-2 font-bold text-slate-800">Your watchlist is empty</p><p class="mt-1 text-sm text-slate-500">Open a lot and select Watch lot to track it here.</p></div>
+        {/if}
+      </section>
     </div>
 
-    {#if loading}
-      <div class="text-center py-12">
-        <div class="inline-block animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
-        <p class="mt-4 text-gray-600">Loading...</p>
-      </div>
-    {:else}
-      <!-- User Info -->
-      <div class="bg-white rounded-lg shadow-lg p-6 mb-8">
-        <h2 class="text-2xl font-bold text-gray-900 mb-4">Profile</h2>
-        <div class="space-y-2">
-          <p><span class="font-semibold">Name:</span> {currentUser.name}</p>
-          <p><span class="font-semibold">Email:</span> {currentUser.email}</p>
-          {#if currentUser.phone}
-            <p><span class="font-semibold">Phone:</span> {currentUser.phone}</p>
-          {/if}
-          {#if currentUser.address}
-            <p><span class="font-semibold">Address:</span> {currentUser.address}</p>
-          {/if}
-          <div class="flex items-center gap-4 mt-4">
-            {#if currentUser.isVerifiedBuyer}
-              <span class="inline-flex items-center px-3 py-1 rounded-full text-sm font-semibold bg-green-100 text-green-800">
-                <svg class="w-4 h-4 mr-1" fill="currentColor" viewBox="0 0 20 20">
-                  <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"/>
-                </svg>
-                Verified Buyer
-              </span>
-            {:else}
-              <div class="flex items-center gap-2">
-                <span class="inline-flex items-center px-3 py-1 rounded-full text-sm font-semibold bg-yellow-100 text-yellow-800">
-                  Not Verified
-                </span>
-                <div class="text-sm text-gray-600">
-                  <p class="mb-2">To become a verified buyer, please complete your profile:</p>
-                  <ul class="list-disc list-inside space-y-1 text-xs">
-                    {#if !currentUser.firstName || !currentUser.lastName}
-                      <li>Add your first and last name</li>
-                    {/if}
-                    {#if !currentUser.phone}
-                      <li>Add your phone number</li>
-                    {/if}
-                    {#if !currentUser.address}
-                      <li>Add your address</li>
-                    {/if}
-                  </ul>
-                  {#if currentUser.firstName && currentUser.lastName && currentUser.phone && currentUser.address}
-                    <p class="mt-2 text-xs text-gray-500">Your profile is complete. Verification is pending review by an auction house administrator.</p>
-                  {/if}
-                </div>
-              </div>
-            {/if}
-            {#if currentUser.isVerifiedBidder}
-              <span class="inline-flex items-center px-3 py-1 rounded-full text-sm font-semibold bg-blue-100 text-blue-800">
-                <svg class="w-4 h-4 mr-1" fill="currentColor" viewBox="0 0 20 20">
-                  <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"/>
-                </svg>
-                Verified Bidder
-              </span>
-            {:else if currentUser.isVerifiedBuyer}
-              <div class="text-sm text-gray-600">
-                <p>You are a verified buyer. To become a verified bidder, contact the auction house administrator.</p>
-              </div>
-            {/if}
-          </div>
-          
-          {#if !currentUser.isVerifiedBuyer}
-            <div class="mt-4 p-4 bg-yellow-50 border border-yellow-200 rounded-lg">
-              <h3 class="font-semibold text-yellow-900 mb-2">Complete Your Profile</h3>
-              <p class="text-sm text-yellow-800 mb-3">To become a verified buyer and participate in auctions, please complete your profile information.</p>
-              <a
-                href="/dashboard/profile"
-                class="inline-block px-4 py-2 bg-yellow-600 text-white rounded-md hover:bg-yellow-700 text-sm font-medium"
-              >
-                Edit Profile
-              </a>
-            </div>
-          {/if}
-        </div>
-      </div>
+    <section class="grid gap-4 sm:grid-cols-3">
+      <div class="rounded-xl border bg-white p-4"><p class="text-xs font-bold uppercase tracking-wide text-slate-400">Bids placed</p><p class="mt-1 text-2xl font-black text-slate-950">{data.stats.totalBids}</p></div>
+      <div class="rounded-xl border bg-white p-4"><p class="text-xs font-bold uppercase tracking-wide text-slate-400">Currently winning</p><p class="mt-1 text-2xl font-black text-emerald-700">{data.stats.winningBids}</p></div>
+      <div class="rounded-xl border bg-white p-4"><p class="text-xs font-bold uppercase tracking-wide text-slate-400">Winning value</p><p class="mt-1 text-2xl font-black text-violet-700">{money(data.stats.winningValue)}</p></div>
+    </section>
 
-      <!-- Stats -->
-      <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-        <div class="bg-white rounded-lg shadow-lg p-6">
-          <h3 class="text-lg font-semibold text-gray-600 mb-2">Total Bids</h3>
-          <p class="text-3xl font-bold text-blue-600">{myBids.length}</p>
-        </div>
-        <div class="bg-white rounded-lg shadow-lg p-6">
-          <h3 class="text-lg font-semibold text-gray-600 mb-2">Winning Bids</h3>
-          <p class="text-3xl font-bold text-green-600">{myWinningBids.length}</p>
-        </div>
-        <div class="bg-white rounded-lg shadow-lg p-6">
-          <h3 class="text-lg font-semibold text-gray-600 mb-2">Total Value</h3>
-          <p class="text-3xl font-bold text-purple-600">
-            {formatCurrency(myWinningBids.reduce((sum, bid) => sum + bid.amount, 0))}
-          </p>
-        </div>
-      </div>
-
-      <!-- My Bids -->
-      <div class="bg-white rounded-lg shadow-lg p-6 mb-8">
-        <h2 class="text-2xl font-bold text-gray-900 mb-6">My Bids</h2>
-        {#if myBids.length === 0}
-          <p class="text-gray-600">You haven't placed any bids yet.</p>
-        {:else}
-          <div class="space-y-4">
-            {#each myBids as bid}
-              <div class="border border-gray-200 rounded-lg p-4 hover:bg-gray-50 transition-colors">
-                <div class="flex items-start justify-between">
-                  <div class="flex-1">
-                    <h3 class="font-bold text-lg text-gray-900 mb-2">
-                      {bid.lot?.title || 'Unknown Lot'}
-                    </h3>
-                    <p class="text-sm text-gray-600 mb-2">Lot #{bid.lot?.lotNumber}</p>
-                    <p class="text-sm text-gray-500">Bid placed: {formatDate(bid.timestamp)}</p>
-                  </div>
-                  <div class="text-right ml-4">
-                    <p class="text-2xl font-bold text-blue-600 mb-2">{formatCurrency(bid.amount)}</p>
-                    {#if bid.lot?.highestBidderId === currentUser.id}
-                      <span class="inline-block px-3 py-1 bg-green-100 text-green-800 rounded-full text-sm font-semibold">
-                        Winning
-                      </span>
-                    {:else}
-                      <span class="inline-block px-3 py-1 bg-gray-100 text-gray-800 rounded-full text-sm font-semibold">
-                        Outbid
-                      </span>
-                    {/if}
-                  </div>
-                </div>
-                {#if bid.lot}
-                  <div class="mt-4 pt-4 border-t">
-                    <a
-                      href="/lots/{bid.lot.id}"
-                      class="text-blue-600 hover:text-blue-800 font-semibold"
-                    >
-                      View Lot →
-                    </a>
-                  </div>
-                {/if}
-              </div>
-            {/each}
-          </div>
-        {/if}
-      </div>
-
-      <!-- Winning Bids -->
-      {#if myWinningBids.length > 0}
-        <div class="bg-white rounded-lg shadow-lg p-6">
-          <h2 class="text-2xl font-bold text-gray-900 mb-6">Winning Bids</h2>
-          <div class="space-y-4">
-            {#each myWinningBids as bid}
-              <div class="border-2 border-green-500 rounded-lg p-4 bg-green-50">
-                <div class="flex items-start justify-between">
-                  <div class="flex-1">
-                    <h3 class="font-bold text-lg text-gray-900 mb-2">
-                      {bid.lot?.title || 'Unknown Lot'}
-                    </h3>
-                    <p class="text-sm text-gray-600 mb-2">Lot #{bid.lot?.lotNumber}</p>
-                    <p class="text-sm text-gray-500">Bid placed: {formatDate(bid.timestamp)}</p>
-                  </div>
-                  <div class="text-right ml-4">
-                    <p class="text-2xl font-bold text-green-600 mb-2">{formatCurrency(bid.amount)}</p>
-                    <span class="inline-block px-3 py-1 bg-green-200 text-green-800 rounded-full text-sm font-semibold">
-                      You're Winning!
-                    </span>
-                  </div>
-                </div>
-                {#if bid.lot}
-                  <div class="mt-4 pt-4 border-t border-green-300">
-                    <a
-                      href="/lots/{bid.lot.id}"
-                      class="text-blue-600 hover:text-blue-800 font-semibold"
-                    >
-                      View Lot →
-                    </a>
-                  </div>
-                {/if}
-              </div>
-            {/each}
-          </div>
-        </div>
-      {/if}
-    {/if}
+    <div class="grid gap-6 lg:grid-cols-[minmax(0,1.35fr)_minmax(280px,0.65fr)]">
+      <section class="rounded-2xl border bg-white p-5 shadow-sm"><div class="flex items-center justify-between"><h2 class="text-lg font-black">Recent bidding</h2><a href="/" class="text-sm font-semibold text-violet-700">Find lots</a></div>{#if data.recentBids.length}<div class="mt-4 divide-y">{#each data.recentBids as bid}<a href={`/lots/${bid.lot.id}`} class="flex items-center justify-between gap-4 py-3 first:pt-0 last:pb-0"><div class="min-w-0"><p class="truncate font-semibold text-slate-900">{bid.lot.title}</p><p class="text-xs text-slate-500">Lot #{bid.lot.lotNumber}</p></div><div class="text-right"><p class="font-bold">{money(bid.amount)}</p><p class="text-xs {bid.lot.highestBidderId === data.user.id ? 'text-emerald-600' : 'text-slate-400'}">{bid.lot.highestBidderId === data.user.id ? 'Winning' : 'Outbid'}</p></div></a>{/each}</div>{:else}<p class="mt-4 text-sm text-slate-500">You haven’t placed any bids yet.</p>{/if}</section>
+      <aside class="rounded-2xl bg-violet-950 p-5 text-white shadow-sm"><p class="text-xs font-bold uppercase tracking-wider text-violet-300">Selling with Pumbi</p><h2 class="mt-2 text-xl font-black">Submit a lot to a public auction</h2><p class="mt-2 text-sm leading-6 text-violet-200">Manage drafts, submissions, and review status in one place.</p><a href="/dashboard/sell" class="mt-5 inline-flex rounded-lg bg-white px-4 py-2 text-sm font-bold text-violet-950">Manage submissions</a></aside>
+    </div>
   </div>
-</div>
-
+</main>

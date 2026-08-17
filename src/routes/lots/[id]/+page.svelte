@@ -17,6 +17,9 @@
   let acceptTerms = $state(false);
   let checkingRegistration = $state(false);
   let registering = $state(false);
+  let isWatching = $state(false);
+  let watchBusy = $state(false);
+  let watchError = $state('');
   
   let pollInterval = null;
   
@@ -72,9 +75,43 @@
         });
       }
       currentUser = await userResponse.json();
+      await loadWatchState();
       if (lot?.auctionId) await checkRegistration();
     } catch (error) {
       console.error('Error loading user data:', error);
+    }
+  }
+
+  async function loadWatchState() {
+    if (!currentUser || !$page.params.id) return;
+    try {
+      const response = await fetch(`/api/lots/${$page.params.id}/watch`, { credentials: 'include' });
+      if (response.ok) isWatching = (await response.json()).watching;
+    } catch (error) {
+      console.error('Error loading watch status:', error);
+    }
+  }
+
+  async function toggleWatch() {
+    if (!session?.user || !currentUser) {
+      goto(`/auth/login?redirect=${encodeURIComponent($page.url.pathname)}`);
+      return;
+    }
+    watchBusy = true;
+    watchError = '';
+    try {
+      const response = await fetch(`/api/lots/${lot.id}/watch`, {
+        method: isWatching ? 'DELETE' : 'POST',
+        credentials: 'include'
+      });
+      const result = await response.json().catch(() => ({}));
+      if (!response.ok) throw new Error(result.message || 'Could not update your watchlist');
+      isWatching = result.watching;
+      lot.watchersCount = result.watchersCount;
+    } catch (error) {
+      watchError = error.message;
+    } finally {
+      watchBusy = false;
     }
   }
   
@@ -282,7 +319,20 @@
               </div>
             </div>
             <div class="p-8">
-              <h1 class="text-3xl font-bold text-gray-900 mb-4">{lot.title}</h1>
+              <div class="mb-4 flex flex-wrap items-start justify-between gap-3">
+                <h1 class="text-3xl font-bold text-gray-900">{lot.title}</h1>
+                <button
+                  type="button"
+                  onclick={toggleWatch}
+                  disabled={watchBusy}
+                  aria-pressed={isWatching}
+                  class="inline-flex items-center gap-2 rounded-full border px-4 py-2 text-sm font-bold transition disabled:opacity-50 {isWatching ? 'border-violet-200 bg-violet-50 text-violet-800' : 'border-gray-200 bg-white text-gray-700 hover:border-violet-300 hover:text-violet-700'}"
+                >
+                  <span aria-hidden="true">{isWatching ? '♥' : '♡'}</span>
+                  {watchBusy ? 'Updating…' : isWatching ? 'Watching' : 'Watch lot'}
+                </button>
+              </div>
+              {#if watchError}<p class="mb-4 text-sm font-medium text-red-600">{watchError}</p>{/if}
               <p class="text-gray-600 text-lg mb-6">{lot.description}</p>
               
               <div class="grid grid-cols-2 gap-6 mb-6">
@@ -448,4 +498,3 @@
     </div>
   </div>
 {/if}
-

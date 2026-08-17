@@ -75,7 +75,7 @@
       const firstVisible = lot.images.find(img => !img.isHidden);
       if (firstVisible) return firstVisible.url;
     }
-    return images[0] || '/placeholder-lot.jpg';
+    return images[0] || 'data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 600"%3E%3Crect width="800" height="600" fill="%23f1f5f9"/%3E%3Cpath d="M310 385h180M340 330h120M375 275h50" stroke="%2394a3b8" stroke-width="18" stroke-linecap="round"/%3E%3C/svg%3E';
   }
 </script>
 
@@ -416,4 +416,3 @@
   </div>
 
 {/if}
-
