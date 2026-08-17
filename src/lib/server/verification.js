@@ -1,5 +1,6 @@
 import { error } from '@sveltejs/kit';
 import { env } from '$env/dynamic/private';
+import { createHash, createHmac, randomInt, timingSafeEqual } from 'node:crypto';
 import prisma from '$lib/prisma.js';
 import { connectStatusForAccount, getStripe } from '$lib/server/stripe.js';
 
@@ -114,54 +115,154 @@ export function publicVerification(user) {
   };
 }
 
-function twilioConfig() {
-  if (!env.TWILIO_ACCOUNT_SID || !env.TWILIO_AUTH_TOKEN || !env.TWILIO_VERIFY_SERVICE_SID) {
-    throw error(503, 'Email and phone verification is not configured');
-  }
+function smtp2goConfig() {
+  if (!env.SMTP2GO_API_KEY) throw error(503, 'Email and SMS verification is not configured');
   return {
-    accountSid: env.TWILIO_ACCOUNT_SID,
-    authToken: env.TWILIO_AUTH_TOKEN,
-    serviceSid: env.TWILIO_VERIFY_SERVICE_SID
+    apiKey: env.SMTP2GO_API_KEY,
+    fromEmail: env.SMTP2GO_FROM_EMAIL || 'Pumbi <hello@pumbi.com>'
   };
 }
 
-async function twilioRequest(path, values) {
-  const config = twilioConfig();
-  const response = await fetch(`https://verify.twilio.com/v2/Services/${config.serviceSid}/${path}`, {
+async function smtp2goRequest(path, body) {
+  const config = smtp2goConfig();
+  const response = await fetch(`https://api.smtp2go.com/v3/${path}`, {
     method: 'POST',
     headers: {
-      authorization: `Basic ${Buffer.from(`${config.accountSid}:${config.authToken}`).toString('base64')}`,
-      'content-type': 'application/x-www-form-urlencoded'
+      'X-Smtp2go-Api-Key': config.apiKey,
+      'content-type': 'application/json',
+      accept: 'application/json'
     },
-    body: new URLSearchParams(values)
+    body: JSON.stringify(body)
   });
   const result = await response.json().catch(() => ({}));
-  if (!response.ok) {
-    console.error('Twilio Verify request failed', { status: response.status, code: result.code });
-    throw error(502, result.message || 'Verification provider rejected the request');
+  if (!response.ok || result.data?.failed > 0 || result.data?.failures?.length) {
+    console.error('SMTP2GO delivery failed', {
+      status: response.status,
+      errorCode: result.data?.error_code,
+      failed: result.data?.failed
+    });
+    throw error(502, result.data?.error || 'Verification message could not be delivered');
   }
   return result;
 }
 
+function otpChannel(channel) {
+  if (channel === 'email') return 'EMAIL';
+  if (channel === 'sms') return 'PHONE';
+  throw error(400, 'Channel must be email or sms');
+}
+
+function otpSecret() {
+  if (!env.AUTH_SECRET) throw error(503, 'Account verification is not configured');
+  return env.AUTH_SECRET;
+}
+
+function hashDestination(destination) {
+  return createHash('sha256').update(destination).digest('hex');
+}
+
+function hashCode(userId, channel, code) {
+  return createHmac('sha256', otpSecret()).update(`${userId}:${channel}:${code}`).digest('hex');
+}
+
+async function deliverVerificationCode(channel, target, code) {
+  const config = smtp2goConfig();
+  if (channel === 'EMAIL') {
+    await smtp2goRequest('email/send', {
+      sender: config.fromEmail,
+      to: [target],
+      subject: 'Your Pumbi verification code',
+      text_body: `Your Pumbi verification code is ${code}. It expires in 10 minutes. If you did not request this code, you can ignore this email.`,
+      html_body: `<p>Your Pumbi verification code is:</p><p style="font-size:28px;font-weight:700;letter-spacing:4px">${code}</p><p>This code expires in 10 minutes. If you did not request it, you can ignore this email.</p>`,
+      fastaccept: true
+    });
+    return;
+  }
+  await smtp2goRequest('sms/send', {
+    destination: [target],
+    content: `Your Pumbi verification code is ${code}. It expires in 10 minutes.`
+  });
+}
+
 export async function startContactVerification(user, channel) {
-  if (!['email', 'sms'].includes(channel)) throw error(400, 'Channel must be email or sms');
+  const databaseChannel = otpChannel(channel);
   const target = channel === 'email' ? user.email : normalizePhone(user.phone);
   if (!target) throw error(400, channel === 'email' ? 'Add an email address first' : 'Add a phone number first');
-  const result = await twilioRequest('Verifications', { To: target, Channel: channel });
-  return { status: result.status, target: channel === 'email' ? user.email : maskPhone(user.phone) };
+  const now = new Date();
+  const oneMinuteAgo = new Date(now.getTime() - 60_000);
+  const oneHourAgo = new Date(now.getTime() - 3_600_000);
+  const [latest, sentLastHour] = await Promise.all([
+    prisma.contactVerificationCode.findFirst({
+      where: { userId: user.id, channel: databaseChannel },
+      orderBy: { createdAt: 'desc' },
+      select: { createdAt: true }
+    }),
+    prisma.contactVerificationCode.count({
+      where: { userId: user.id, channel: databaseChannel, createdAt: { gte: oneHourAgo } }
+    })
+  ]);
+  if (latest?.createdAt > oneMinuteAgo) throw error(429, 'Wait one minute before requesting another code');
+  if (sentLastHour >= 5) throw error(429, 'Too many verification codes requested. Try again later');
+
+  const code = String(randomInt(100000, 1_000_000));
+  const record = await prisma.$transaction(async (tx) => {
+    await tx.contactVerificationCode.updateMany({
+      where: { userId: user.id, channel: databaseChannel, consumedAt: null },
+      data: { consumedAt: now }
+    });
+    return tx.contactVerificationCode.create({
+      data: {
+        userId: user.id,
+        channel: databaseChannel,
+        destinationHash: hashDestination(target),
+        codeHash: hashCode(user.id, databaseChannel, code),
+        expiresAt: new Date(now.getTime() + 10 * 60_000)
+      }
+    });
+  });
+  try {
+    await deliverVerificationCode(databaseChannel, target, code);
+  } catch (deliveryError) {
+    await prisma.contactVerificationCode.delete({ where: { id: record.id } }).catch(() => {});
+    throw deliveryError;
+  }
+  return { status: 'pending', target: channel === 'email' ? user.email : maskPhone(user.phone) };
 }
 
 export async function checkContactVerification(user, channel, code) {
-  if (!['email', 'sms'].includes(channel)) throw error(400, 'Channel must be email or sms');
-  if (!/^\d{4,10}$/.test(code || '')) throw error(400, 'Enter the verification code');
+  const databaseChannel = otpChannel(channel);
+  if (!/^\d{6}$/.test(code || '')) throw error(400, 'Enter the six-digit verification code');
   const target = channel === 'email' ? user.email : normalizePhone(user.phone);
   if (!target) throw error(400, 'Verification destination is missing');
-  const result = await twilioRequest('VerificationCheck', { To: target, Code: code });
-  if (result.status !== 'approved') throw error(400, 'That verification code is invalid or expired');
-  await prisma.user.update({
-    where: { id: user.id },
-    data: channel === 'email' ? { emailVerifiedAt: new Date() } : { phoneVerifiedAt: new Date() }
+  const record = await prisma.contactVerificationCode.findFirst({
+    where: {
+      userId: user.id,
+      channel: databaseChannel,
+      consumedAt: null,
+      expiresAt: { gt: new Date() }
+    },
+    orderBy: { createdAt: 'desc' }
   });
+  if (!record || record.attempts >= 5 || record.destinationHash !== hashDestination(target)) {
+    throw error(400, 'That verification code is invalid or expired');
+  }
+  const expected = Buffer.from(record.codeHash, 'hex');
+  const received = Buffer.from(hashCode(user.id, databaseChannel, code), 'hex');
+  const valid = expected.length === received.length && timingSafeEqual(expected, received);
+  await prisma.$transaction(async (tx) => {
+    const updated = await tx.contactVerificationCode.updateMany({
+      where: { id: record.id, consumedAt: null, attempts: record.attempts },
+      data: { attempts: { increment: 1 }, ...(valid ? { consumedAt: new Date() } : {}) }
+    });
+    if (updated.count !== 1) throw error(409, 'Verification code was already used');
+    if (valid) {
+      await tx.user.update({
+        where: { id: user.id },
+        data: databaseChannel === 'EMAIL' ? { emailVerifiedAt: new Date() } : { phoneVerifiedAt: new Date() }
+      });
+    }
+  });
+  if (!valid) throw error(400, 'That verification code is invalid or expired');
   return refreshBuyerVerification(user.id);
 }
 

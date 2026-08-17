@@ -100,24 +100,25 @@ model User {
   updatedAt                  DateTime           @updatedAt @map("updated_at")
 
   // Relations
-  auctionHouse                    AuctionHouse?            @relation(fields: [auctionHouseId], references: [id], onDelete: SetNull)
+  auctionHouse                    AuctionHouse?             @relation(fields: [auctionHouseId], references: [id], onDelete: SetNull)
   auctions                        Auction[] // Auctions created by this user (if seller)
   bids                            Bid[]
   auctionRegistrations            AuctionRegistration[] // Auctions this user registered for
-  auctionRegistrationsReviewed    AuctionRegistration[]    @relation("AuctionRegistrationReviewer")
-  auctionSeriesCreated            AuctionSeries[]          @relation("AuctionSeriesCreator")
-  platformPoliciesCreated         PlatformPolicy[]         @relation("PlatformPolicyCreator")
+  auctionRegistrationsReviewed    AuctionRegistration[]     @relation("AuctionRegistrationReviewer")
+  auctionSeriesCreated            AuctionSeries[]           @relation("AuctionSeriesCreator")
+  platformPoliciesCreated         PlatformPolicy[]          @relation("PlatformPolicyCreator")
   sellerProfile                   SellerProfile?
-  lotSubmissionsReviewed          LotSubmission[]          @relation("LotSubmissionReviewer")
-  ownedLots                       Lot[]                    @relation("LotOwner")
-  auctionHousesReviewed           AuctionHouse[]           @relation("AuctionHouseOnboardingReviewer")
-  auctionHouseDocumentsReviewed   AuctionHouseDocument[]   @relation("AuctionHouseDocumentReviewer")
+  lotSubmissionsReviewed          LotSubmission[]           @relation("LotSubmissionReviewer")
+  ownedLots                       Lot[]                     @relation("LotOwner")
+  auctionHousesReviewed           AuctionHouse[]            @relation("AuctionHouseOnboardingReviewer")
+  auctionHouseDocumentsReviewed   AuctionHouseDocument[]    @relation("AuctionHouseDocumentReviewer")
   auctionHouseMemberships         AuctionHouseMembership[]
-  auctionHouseInvitationsSent     AuctionHouseInvitation[] @relation("AuctionHouseInvitationInviter")
-  auctionHouseInvitationsAccepted AuctionHouseInvitation[] @relation("AuctionHouseInvitationAcceptor")
-  payoutReleasesRequested         PayoutRelease[]          @relation("PayoutReleaseRequester")
-  payoutReleasesApproved          PayoutRelease[]          @relation("PayoutReleaseApprover")
+  auctionHouseInvitationsSent     AuctionHouseInvitation[]  @relation("AuctionHouseInvitationInviter")
+  auctionHouseInvitationsAccepted AuctionHouseInvitation[]  @relation("AuctionHouseInvitationAcceptor")
+  payoutReleasesRequested         PayoutRelease[]           @relation("PayoutReleaseRequester")
+  payoutReleasesApproved          PayoutRelease[]           @relation("PayoutReleaseApprover")
   watchedLots                     LotWatch[]
+  contactVerificationCodes        ContactVerificationCode[]
 
   @@index([auctionHouseId])
   @@index([role])
@@ -141,6 +142,29 @@ enum VerificationStatus {
   PENDING
   VERIFIED
   REQUIRES_INPUT
+}
+
+enum ContactVerificationChannel {
+  EMAIL
+  PHONE
+}
+
+model ContactVerificationCode {
+  id              String                     @id @default(cuid())
+  userId          String                     @map("user_id")
+  channel         ContactVerificationChannel
+  destinationHash String                     @map("destination_hash") @db.Char(64)
+  codeHash        String                     @map("code_hash") @db.Char(64)
+  expiresAt       DateTime                   @map("expires_at")
+  attempts        Int                        @default(0)
+  consumedAt      DateTime?                  @map("consumed_at")
+  createdAt       DateTime                   @default(now()) @map("created_at")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, channel, createdAt])
+  @@index([expiresAt])
+  @@map("contact_verification_codes")
 }
 
 // Auction model - represents an auction event
