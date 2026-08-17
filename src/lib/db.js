@@ -56,6 +56,8 @@ function mapAuction(prismaAuction) {
     privateHouseRateConfigSnapshot: prismaAuction.privateHouseRateConfigSnapshot,
     createdAt: prismaAuction.createdAt,
     updatedAt: prismaAuction.updatedAt,
+    totalLots: prismaAuction._count?.lots ?? prismaAuction.lots?.length ?? 0,
+    subscriberCount: prismaAuction._count?.registrations ?? 0,
     auctionHouse: prismaAuction.auctionHouse ? mapAuctionHouse(prismaAuction.auctionHouse) : null,
     seller: prismaAuction.seller ? mapUser(prismaAuction.seller, false) : null
   };
@@ -223,7 +225,8 @@ export const db = {
         where,
         include: {
           seller: true,
-          auctionHouse: true
+          auctionHouse: true,
+          _count: { select: { lots: true, registrations: true } }
         }
       });
       return auctions.map(mapAuction);
