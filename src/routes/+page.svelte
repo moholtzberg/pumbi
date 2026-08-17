@@ -8,7 +8,7 @@
   let searchQuery = $state('');
   let statusFilter = $state('all');
   
-  onMount(async () => {
+  $effect(async () => {
     await loadAuctions();
   });
   
