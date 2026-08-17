@@ -86,5 +86,5 @@ export async function POST({ params, request, locals }) {
     where: { id: submission.id },
     select: submissionSelect
   });
-  return json({ submission: serializeSubmission(result) });
+  return json({ submission: await serializeSubmission(result) });
 }

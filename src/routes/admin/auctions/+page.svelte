@@ -176,6 +176,14 @@
     return value ? new Date(value).toLocaleString() : 'Not scheduled';
   }
 
+  function submissionCondition(item) {
+    try {
+      return item.metaFields ? JSON.parse(item.metaFields).condition || '' : '';
+    } catch {
+      return '';
+    }
+  }
+
   function activePolicy() {
     const now = Date.now();
     return policies.find((policy) => policy.isActive && new Date(policy.effectiveFrom).getTime() <= now && (!policy.effectiveTo || new Date(policy.effectiveTo).getTime() > now));
@@ -364,12 +372,15 @@
         <div class="space-y-3">
           {#each submissions as item}
             <article class="grid gap-3 rounded-lg border p-4 lg:grid-cols-[minmax(0,1fr)_minmax(280px,0.8fr)]">
-              <div>
+              <div class="flex gap-3">
+                {#if item.images?.[0]}<img src={item.images[0].previewUrl} alt={item.title || 'Lot submission'} class="h-20 w-20 shrink-0 rounded-lg object-cover" />{/if}
+                <div class="min-w-0">
                 <div class="flex flex-wrap items-center gap-2">
                   <h3 class="font-semibold">{item.title || 'Untitled submission'}</h3>
                   <span class="rounded-full bg-slate-100 px-2 py-0.5 text-xs">{item.status}</span>
                 </div>
                 <p class="mt-1 line-clamp-2 text-sm text-slate-600">{item.description || 'No description'}</p>
+                {#if submissionCondition(item)}<p class="mt-2 text-xs text-slate-600"><strong>Condition:</strong> {submissionCondition(item)}</p>{/if}
                 <p class="mt-2 text-xs text-slate-500">
                   {item.sellerProfile.displayName || item.sellerProfile.user.name || item.sellerProfile.user.email}
                   · Start {item.requestedStartingBid ?? '—'} · Increment {item.requestedBidIncrement ?? '—'}
@@ -377,6 +388,7 @@
                 </p>
                 {#if item.rejectionReason}<p class="mt-2 text-xs text-red-700">Reason: {item.rejectionReason}</p>{/if}
                 {#if item.approvedLot}<p class="mt-2 text-xs text-emerald-700">Created lot #{item.approvedLot.lotNumber}</p>{/if}
+                </div>
               </div>
               {#if item.status === 'SUBMITTED'}
                 <div class="grid gap-2">

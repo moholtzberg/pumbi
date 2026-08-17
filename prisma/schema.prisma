@@ -457,12 +457,13 @@ model LotSubmission {
   createdAt                   DateTime            @default(now()) @map("created_at")
   updatedAt                   DateTime            @updatedAt @map("updated_at")
 
-  sellerProfile  SellerProfile   @relation(fields: [sellerProfileId], references: [id], onDelete: Cascade)
-  auctionSeries  AuctionSeries?  @relation(fields: [auctionSeriesId], references: [id], onDelete: SetNull)
-  auction        Auction?        @relation(fields: [auctionId], references: [id], onDelete: SetNull)
-  acceptedPolicy PlatformPolicy? @relation(fields: [acceptedPolicyId], references: [id], onDelete: SetNull)
-  reviewedBy     User?           @relation("LotSubmissionReviewer", fields: [reviewedById], references: [id], onDelete: SetNull)
+  sellerProfile  SellerProfile        @relation(fields: [sellerProfileId], references: [id], onDelete: Cascade)
+  auctionSeries  AuctionSeries?       @relation(fields: [auctionSeriesId], references: [id], onDelete: SetNull)
+  auction        Auction?             @relation(fields: [auctionId], references: [id], onDelete: SetNull)
+  acceptedPolicy PlatformPolicy?      @relation(fields: [acceptedPolicyId], references: [id], onDelete: SetNull)
+  reviewedBy     User?                @relation("LotSubmissionReviewer", fields: [reviewedById], references: [id], onDelete: SetNull)
   approvedLot    Lot?
+  images         LotSubmissionImage[]
 
   @@index([sellerProfileId])
   @@index([auctionSeriesId])
@@ -471,6 +472,20 @@ model LotSubmission {
   @@index([acceptedPolicyId])
   @@index([reviewedById])
   @@map("lot_submissions")
+}
+
+model LotSubmissionImage {
+  id           String   @id @default(cuid())
+  submissionId String   @map("submission_id")
+  url          String
+  cloudKey     String?  @map("cloud_key")
+  displayOrder Int      @default(0) @map("display_order")
+  createdAt    DateTime @default(now()) @map("created_at")
+
+  submission LotSubmission @relation(fields: [submissionId], references: [id], onDelete: Cascade)
+
+  @@index([submissionId])
+  @@map("lot_submission_images")
 }
 
 enum LotSubmissionStatus {

@@ -136,7 +136,15 @@ async function uploadToS3(buffer, filename, folder, contentTypeOverride = null) 
     if (error.message.includes('not installed')) {
       throw error;
     }
-    console.error('S3 upload error:', error);
+    console.error('S3 upload error:', {
+      name: error?.name,
+      code: error?.Code,
+      message: error?.message,
+      status: error?.$metadata?.httpStatusCode
+    });
+    if (error?.name === 'InvalidAccessKeyId' || error?.Code === 'InvalidAccessKeyId') {
+      throw new Error('S3 rejected the configured access key');
+    }
     throw new Error(`S3 upload failed: ${error.message}`);
   }
 }
@@ -327,4 +335,3 @@ async function deleteFromLocal(key, folder) {
     console.warn('File not found for deletion:', filepath);
   }
 }
-

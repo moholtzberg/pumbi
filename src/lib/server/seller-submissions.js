@@ -1,5 +1,6 @@
 import { error } from '@sveltejs/kit';
 import prisma from '$lib/prisma.js';
+import { convertToPresignedUrl } from '$lib/utils/s3Presigned.js';
 
 export const submissionSelect = {
   id: true,
@@ -7,6 +8,7 @@ export const submissionSelect = {
   title: true,
   description: true,
   category: true,
+  metaFields: true,
   requestedStartingBid: true,
   requestedBidIncrement: true,
   auctionSeriesId: true,
@@ -20,7 +22,11 @@ export const submissionSelect = {
   updatedAt: true,
   auctionSeries: { select: { id: true, name: true, nextRunAt: true } },
   auction: { select: { id: true, title: true, startDate: true } },
-  approvedLot: { select: { id: true, auctionId: true, lotNumber: true } }
+  approvedLot: { select: { id: true, auctionId: true, lotNumber: true } },
+  images: {
+    orderBy: { displayOrder: 'asc' },
+    select: { id: true, url: true, cloudKey: true, displayOrder: true }
+  }
 };
 
 export async function requireCurrentUser(locals) {
@@ -144,6 +150,10 @@ export function readSubmissionInput(body) {
     requestedBidIncrement: money(body.requestedBidIncrement, 'Requested bid increment')
   };
 
+  if (body.condition !== undefined) {
+    data.metaFields = JSON.stringify({ condition: text(body.condition, 2000) });
+  }
+
   if (body.auctionSeriesId !== undefined || body.auctionId !== undefined) {
     const auctionSeriesId = text(body.auctionSeriesId, 100);
     const auctionId = text(body.auctionId, 100);
@@ -155,6 +165,21 @@ export function readSubmissionInput(body) {
   }
 
   return data;
+}
+
+export function readSubmissionImages(images) {
+  if (images === undefined) return undefined;
+  if (!Array.isArray(images)) throw error(400, 'images must be an array');
+  if (images.length > 8) throw error(400, 'A submission may have up to 8 images');
+
+  return images.map((image, index) => {
+    if (!image || typeof image !== 'object') throw error(400, 'Invalid submission image');
+    const key = typeof image.key === 'string' ? image.key.trim() : '';
+    if (!/^lots\/[a-zA-Z0-9._/-]+$/.test(key) || key.includes('..')) {
+      throw error(400, 'Submission images must use a valid Pumbi S3 object key');
+    }
+    return { url: key, cloudKey: key, displayOrder: index };
+  });
 }
 
 export async function validatePublicTarget({ auctionSeriesId, auctionId }, now = new Date()) {
@@ -199,9 +224,22 @@ export async function validatePublicTarget({ auctionSeriesId, auctionId }, now =
   if (now >= cutoff) throw error(409, 'The submission cutoff has passed for this auction');
 }
 
-export function serializeSubmission(submission) {
+export async function serializeSubmission(submission) {
+  let condition = '';
+  try {
+    condition = submission.metaFields ? JSON.parse(submission.metaFields).condition || '' : '';
+  } catch {
+    condition = '';
+  }
+  const images = await Promise.all((submission.images || []).map(async (image) => ({
+    ...image,
+    key: image.cloudKey || image.url,
+    previewUrl: await convertToPresignedUrl(image.url)
+  })));
   return {
     ...submission,
+    condition,
+    images,
     requestedStartingBid: submission.requestedStartingBid?.toString() ?? null,
     requestedBidIncrement: submission.requestedBidIncrement?.toString() ?? null
   };

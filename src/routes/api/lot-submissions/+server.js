@@ -4,6 +4,7 @@ import {
   getActivePolicy,
   getPublicOpportunities,
   readSubmissionInput,
+  readSubmissionImages,
   requireCurrentUser,
   serializeSubmission,
   submissionSelect,
@@ -30,7 +31,7 @@ export async function GET({ locals }) {
     : [];
 
   return json({
-    submissions: submissions.map(serializeSubmission),
+    submissions: await Promise.all(submissions.map(serializeSubmission)),
     opportunities,
     policy: policy
       ? {
@@ -55,12 +56,17 @@ export async function POST({ request, locals }) {
     throw error(400, 'Request body must be valid JSON');
   });
   const data = readSubmissionInput(body);
+  const images = readSubmissionImages(body.images);
   await validatePublicTarget(data);
 
   const submission = await prisma.lotSubmission.create({
-    data: { ...data, sellerProfileId: profile.id },
+    data: {
+      ...data,
+      sellerProfileId: profile.id,
+      ...(images?.length ? { images: { create: images } } : {})
+    },
     select: submissionSelect
   });
 
-  return json({ submission: serializeSubmission(submission) }, { status: 201 });
+  return json({ submission: await serializeSubmission(submission) }, { status: 201 });
 }

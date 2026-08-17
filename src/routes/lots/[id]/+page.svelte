@@ -278,6 +278,14 @@
       minute: '2-digit'
     });
   }
+
+  function conditionForLot(item) {
+    try {
+      return item?.metaFields ? JSON.parse(item.metaFields).condition || '' : '';
+    } catch {
+      return '';
+    }
+  }
   
   onMount(() => {
     loadBids();
@@ -334,6 +342,12 @@
               </div>
               {#if watchError}<p class="mb-4 text-sm font-medium text-red-600">{watchError}</p>{/if}
               <p class="text-gray-600 text-lg mb-6">{lot.description}</p>
+              {#if conditionForLot(lot)}
+                <div class="mb-6 rounded-xl border border-amber-200 bg-amber-50 p-4">
+                  <p class="text-xs font-bold uppercase tracking-wide text-amber-700">Condition</p>
+                  <p class="mt-1 text-sm leading-6 text-amber-950">{conditionForLot(lot)}</p>
+                </div>
+              {/if}
               
               <div class="grid grid-cols-2 gap-6 mb-6">
                 <div>

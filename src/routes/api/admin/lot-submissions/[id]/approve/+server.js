@@ -51,7 +51,11 @@ async function approveOnce(submissionId, auctionId, adminId) {
   return prisma.$transaction(async (tx) => {
     const submission = await tx.lotSubmission.findUnique({
       where: { id: submissionId },
-      include: { sellerProfile: { select: { id: true, userId: true } }, approvedLot: { select: { id: true } } }
+      include: {
+        sellerProfile: { select: { id: true, userId: true } },
+        approvedLot: { select: { id: true } },
+        images: { orderBy: { displayOrder: 'asc' } }
+      }
     });
     if (!submission) throw error(404, 'Lot submission not found');
     if (submission.status !== 'SUBMITTED' || submission.approvedLot) {
@@ -83,7 +87,17 @@ async function approveOnce(submissionId, auctionId, adminId) {
         isReady: true,
         ownerUserId: submission.sellerProfile.userId,
         submittingSellerProfileId: submission.sellerProfile.id,
-        submissionId: submission.id
+        submissionId: submission.id,
+        ...(submission.images.length ? {
+          images: {
+            create: submission.images.map((image, index) => ({
+              url: image.url,
+              cloudKey: image.cloudKey,
+              displayOrder: index,
+              isPrimary: index === 0
+            }))
+          }
+        } : {})
       }
     });
 

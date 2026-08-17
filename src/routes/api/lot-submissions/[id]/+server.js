@@ -2,6 +2,7 @@ import { error, json } from '@sveltejs/kit';
 import prisma from '$lib/prisma.js';
 import {
   readSubmissionInput,
+  readSubmissionImages,
   requireCurrentUser,
   serializeSubmission,
   submissionSelect,
@@ -32,6 +33,7 @@ export async function PATCH({ params, request, locals }) {
     throw error(400, 'Request body must be valid JSON');
   });
   const data = readSubmissionInput(body);
+  const images = readSubmissionImages(body.images);
   const target = {
     auctionSeriesId:
       data.auctionSeriesId === undefined ? existing.auctionSeriesId : data.auctionSeriesId,
@@ -41,11 +43,14 @@ export async function PATCH({ params, request, locals }) {
 
   const submission = await prisma.lotSubmission.update({
     where: { id: existing.id },
-    data,
+    data: {
+      ...data,
+      ...(images === undefined ? {} : { images: { deleteMany: {}, create: images } })
+    },
     select: submissionSelect
   });
 
-  return json({ submission: serializeSubmission(submission) });
+  return json({ submission: await serializeSubmission(submission) });
 }
 
 export const PUT = PATCH;
