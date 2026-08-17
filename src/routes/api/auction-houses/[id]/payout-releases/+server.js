@@ -6,6 +6,7 @@ import {
 } from '$lib/server/authorization.js';
 import {
   assertHousePayoutReady,
+  assertSellerPayoutReady,
   parsePayoutRequest,
   PAYOUT_HOUSE_ROLES
 } from '$lib/server/payouts.js';
@@ -13,6 +14,7 @@ import {
 async function requirePayoutHouse(locals, id) {
   const user = await requireAuthenticatedUser(locals);
   await requireAuctionHouseRole(user, id, PAYOUT_HOUSE_ROLES);
+  assertSellerPayoutReady(user);
   const house = await prisma.auctionHouse.findUnique({ where: { id } });
   if (!house) throw error(404, 'Auction house not found');
   assertHousePayoutReady(house);
