@@ -2,12 +2,28 @@ import { json } from '@sveltejs/kit';
 import { db } from '$lib/db.js';
 import { Lot } from '$lib/models/index.js';
 import prisma from '$lib/prisma.js';
+import {
+  canManageAuctionHouse,
+  getAuthenticatedUser,
+  isPlatformAdmin,
+  requireAuthenticatedUser,
+  requireAuctionAccess
+} from '$lib/server/authorization.js';
 
-export async function GET({ url }) {
+export async function GET({ url, locals }) {
   const auctionId = url.searchParams.get('auctionId');
   
   if (auctionId) {
-    const lots = await db.lots.getByAuctionId(auctionId);
+    const [auction, user] = await Promise.all([
+      prisma.auction.findUnique({ where: { id: auctionId } }),
+      getAuthenticatedUser(locals)
+    ]);
+    if (!auction) return json([]);
+    const canManage = auction.type === 'PUBLIC'
+      ? isPlatformAdmin(user)
+      : canManageAuctionHouse(user, auction.auctionHouseId);
+    const allLots = await db.lots.getByAuctionId(auctionId);
+    const lots = canManage ? allLots : allLots.filter((lot) => lot.isReady);
     
     // Load bids for each lot
     const lotsWithBids = await Promise.all(
@@ -23,12 +39,22 @@ export async function GET({ url }) {
   return json([]);
 }
 
-export async function POST({ request }) {
+export async function POST({ request, locals }) {
   try {
+    const user = await requireAuthenticatedUser(locals);
     const data = await request.json();
     
     // Separate images from lot data
     const { images, imageUrl, imageUrls, ...lotData } = data;
+
+    if (!lotData.auctionId) {
+      return json({ error: 'Auction ID is required' }, { status: 400 });
+    }
+
+    const auction = await prisma.auction.findUnique({
+      where: { id: lotData.auctionId }
+    });
+    requireAuctionAccess(user, auction);
     
     // Get the highest position for this auction to set default position
     const existingLots = await db.lots.getByAuctionId(lotData.auctionId);
@@ -90,6 +116,7 @@ export async function POST({ request }) {
     const lotWithImages = await db.lots.getById(lot.id);
     return json(lotWithImages, { status: 201 });
   } catch (error) {
+    if (error.status) throw error;
     console.error('Error creating lot:', error);
     return json(
       { 

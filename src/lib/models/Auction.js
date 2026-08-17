@@ -8,10 +8,33 @@ const auctionSchema = z.object({
   description: z.string().nullable().optional(),
   startDate: z.coerce.date(), // Coerce strings/numbers to Date objects
   endDate: z.coerce.date(), // Coerce strings/numbers to Date objects
-  status: z.enum(['UPCOMING', 'LIVE', 'ENDED', 'CANCELLED']).default('UPCOMING'),
+  status: z.preprocess(
+    value => typeof value === 'string' ? value.toUpperCase() : value,
+    z.enum(['UPCOMING', 'LIVE', 'ENDED', 'CANCELLED'])
+  ).default('UPCOMING'),
+  type: z.preprocess(
+    value => typeof value === 'string' ? value.toUpperCase() : value,
+    z.enum(['PUBLIC', 'PRIVATE'])
+  ).default('PRIVATE'),
   imageUrl: z.string().url().nullable().optional().or(z.literal('')),
+  settings: z.string().nullable().optional(),
   auctionHouseId: z.string().min(1, 'Auction house ID is required'),
   sellerId: z.string().min(1, 'Seller ID is required'),
+  seriesId: z.string().nullable().optional(),
+  seriesOccurrenceAt: z.coerce.date().nullable().optional(),
+  platformPolicyId: z.string().nullable().optional(),
+  policyVersionSnapshot: z.number().int().nullable().optional(),
+  buyerTermsSnapshot: z.string().nullable().optional(),
+  sellerTermsSnapshot: z.string().nullable().optional(),
+  buyerPremiumRateSnapshot: z.coerce.number().nonnegative().nullable().optional(),
+  sellerCommissionRateSnapshot: z.coerce.number().nonnegative().nullable().optional(),
+  rateConfigSnapshot: z.unknown().nullable().optional(),
+  privateHouseNameSnapshot: z.string().nullable().optional(),
+  privateHouseBuyerTermsSnapshot: z.string().nullable().optional(),
+  privateHouseSellerTermsSnapshot: z.string().nullable().optional(),
+  privateHouseBuyerPremiumRateSnapshot: z.coerce.number().nonnegative().nullable().optional(),
+  privateHouseSellerCommissionRateSnapshot: z.coerce.number().nonnegative().nullable().optional(),
+  privateHouseRateConfigSnapshot: z.unknown().nullable().optional(),
   createdAt: z.date().optional(),
   updatedAt: z.date().optional()
 });

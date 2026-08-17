@@ -27,12 +27,38 @@ function mapAuction(prismaAuction) {
     startDate: prismaAuction.startDate,
     endDate: prismaAuction.endDate,
     status: prismaAuction.status.toLowerCase(),
+    type: prismaAuction.type?.toLowerCase() || 'private',
     imageUrl: prismaAuction.imageUrl,
+    settings: prismaAuction.settings,
     auctionHouseId: prismaAuction.auctionHouseId,
     sellerId: prismaAuction.sellerId,
+    seriesId: prismaAuction.seriesId,
+    seriesOccurrenceAt: prismaAuction.seriesOccurrenceAt,
+    platformPolicyId: prismaAuction.platformPolicyId,
+    policyVersionSnapshot: prismaAuction.policyVersionSnapshot,
+    buyerTermsSnapshot: prismaAuction.buyerTermsSnapshot,
+    sellerTermsSnapshot: prismaAuction.sellerTermsSnapshot,
+    buyerPremiumRateSnapshot: prismaAuction.buyerPremiumRateSnapshot == null
+      ? null
+      : Number(prismaAuction.buyerPremiumRateSnapshot),
+    sellerCommissionRateSnapshot: prismaAuction.sellerCommissionRateSnapshot == null
+      ? null
+      : Number(prismaAuction.sellerCommissionRateSnapshot),
+    rateConfigSnapshot: prismaAuction.rateConfigSnapshot,
+    privateHouseNameSnapshot: prismaAuction.privateHouseNameSnapshot,
+    privateHouseBuyerTermsSnapshot: prismaAuction.privateHouseBuyerTermsSnapshot,
+    privateHouseSellerTermsSnapshot: prismaAuction.privateHouseSellerTermsSnapshot,
+    privateHouseBuyerPremiumRateSnapshot: prismaAuction.privateHouseBuyerPremiumRateSnapshot == null
+      ? null
+      : Number(prismaAuction.privateHouseBuyerPremiumRateSnapshot),
+    privateHouseSellerCommissionRateSnapshot: prismaAuction.privateHouseSellerCommissionRateSnapshot == null
+      ? null
+      : Number(prismaAuction.privateHouseSellerCommissionRateSnapshot),
+    privateHouseRateConfigSnapshot: prismaAuction.privateHouseRateConfigSnapshot,
     createdAt: prismaAuction.createdAt,
     updatedAt: prismaAuction.updatedAt,
-    auctionHouse: prismaAuction.auctionHouse ? mapAuctionHouse(prismaAuction.auctionHouse) : null
+    auctionHouse: prismaAuction.auctionHouse ? mapAuctionHouse(prismaAuction.auctionHouse) : null,
+    seller: prismaAuction.seller ? mapUser(prismaAuction.seller, false) : null
   };
 }
 
@@ -112,8 +138,14 @@ async function mapLot(prismaLot) {
     endTime: prismaLot.endTime,
     highestBidderId: prismaLot.highestBidderId,
     highestBidderName: prismaLot.highestBidderName,
+    isReady: prismaLot.isReady,
+    watchersCount: prismaLot.watchersCount,
+    submittingSellerProfileId: prismaLot.submittingSellerProfileId,
+    submissionId: prismaLot.submissionId,
+    ownerUserId: prismaLot.ownerUserId,
     createdAt: prismaLot.createdAt,
-    updatedAt: prismaLot.updatedAt
+    updatedAt: prismaLot.updatedAt,
+    auction: prismaLot.auction ? mapAuction(prismaLot.auction) : null
   };
 }
 
@@ -129,12 +161,12 @@ function mapBid(prismaBid) {
   };
 }
 
-function mapUser(prismaUser) {
+function mapUser(prismaUser, includePassword = true) {
   if (!prismaUser) return null;
   return {
     id: prismaUser.id,
     email: prismaUser.email,
-    password: prismaUser.password, // Include password for auth verification
+    password: includePassword ? prismaUser.password : undefined,
     name: prismaUser.name,
     firstName: prismaUser.firstName,
     lastName: prismaUser.lastName,

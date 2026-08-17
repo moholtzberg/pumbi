@@ -23,7 +23,8 @@
     startDate: '',
     endDate: '',
     imageUrl: '',
-    status: 'UPCOMING'
+    status: 'UPCOMING',
+    type: 'PRIVATE'
   });
   
   onMount(async () => {
@@ -186,6 +187,7 @@
           endDate: endDate,
           imageUrl: newAuction.imageUrl || null,
           status: newAuction.status.toUpperCase(),
+          type: 'PRIVATE',
           auctionHouseId: currentUser.auctionHouseId,
           sellerId: currentUser.id
         })
@@ -199,7 +201,8 @@
           startDate: '',
           endDate: '',
           imageUrl: '',
-          status: 'UPCOMING'
+          status: 'UPCOMING',
+          type: 'PRIVATE'
         };
         await loadAuctions();
       } else {
@@ -324,6 +327,9 @@
             </div>
             <div class="p-6">
               <h3 class="text-xl font-bold text-gray-900 mb-2">{auction.title}</h3>
+              <span class="mb-3 inline-flex rounded-full bg-purple-100 px-2 py-1 text-xs font-bold text-purple-800">
+                {(auction.type || 'PRIVATE').toUpperCase()} auction
+              </span>
               <p class="text-gray-600 text-sm mb-4 line-clamp-2">{auction.description}</p>
               <div class="space-y-2 mb-4 text-sm">
                 <div class="flex justify-between">
@@ -362,6 +368,14 @@
                 >
                   Settings
                 </button>
+                {#if (auction.type || 'PRIVATE').toUpperCase() === 'PRIVATE'}
+                  <button
+                    onclick={() => goto(`/seller/auctions/${auction.id}/bidders`)}
+                    class="flex-1 bg-green-700 text-white py-2 rounded-lg hover:bg-green-800 transition-colors font-semibold text-sm"
+                  >
+                    Bidders
+                  </button>
+                {/if}
               </div>
             </div>
           </div>
@@ -390,6 +404,10 @@
 
         <form onsubmit={(e) => { e.preventDefault(); createAuction(); }}>
           <div class="space-y-4">
+            <div class="rounded-lg border border-purple-200 bg-purple-50 p-4">
+              <p class="font-semibold text-purple-900">Private auction</p>
+              <p class="mt-1 text-sm text-purple-800">Your auction house controls every lot, its rates and terms, and which registered bidders are approved.</p>
+            </div>
             <div>
               <label for="title" class="block text-sm font-medium text-gray-700 mb-2">
                 Auction Title *

@@ -1,4 +1,5 @@
 import { redirect } from '@sveltejs/kit';
+import prisma from '$lib/prisma.js';
 
 /**
  * Server-side authentication check for all seller portal routes
@@ -11,12 +12,21 @@ export async function load({ locals, url }) {
   if (!session?.user) {
     throw redirect(302, `/auth/login?redirect=${encodeURIComponent(url.pathname)}`);
   }
+
+  const user = await prisma.user.findUnique({ where: { email: session.user.email } });
+  if (!user || !['SELLER', 'AUCTIONEER'].includes(user.role) || !user.auctionHouseId) {
+    throw redirect(302, '/dashboard');
+  }
   
   // Return session data for use in child routes
   return {
-    session: session ? {
-      user: session.user
-    } : null
+    session: {
+      user: {
+        ...session.user,
+        role: user.role,
+        auctionHouseId: user.auctionHouseId
+      }
+    }
   };
 }
 

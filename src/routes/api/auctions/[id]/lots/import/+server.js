@@ -2,6 +2,10 @@ import { json, error } from '@sveltejs/kit';
 import XLSX from 'xlsx';
 import prisma from '$lib/prisma.js';
 import { Lot } from '$lib/models/Lot.js';
+import {
+  requireAuthenticatedUser,
+  requireAuctionAccess
+} from '$lib/server/authorization.js';
 
 function parseNumber(value, fallback = 0) {
   if (value === null || value === undefined || value === '') return fallback;
@@ -59,30 +63,13 @@ function collectColumns(rows) {
   return Array.from(columns);
 }
 
-function ensureAuth(session) {
-  if (!session?.user) {
-    throw error(401, 'Unauthorized');
-  }
-}
-
-async function ensureAuctionAccess(auctionId, userEmail) {
+async function ensureAuctionAccess(auctionId, user) {
   const auction = await prisma.auction.findUnique({
     where: { id: auctionId },
     include: { auctionHouse: true }
   });
 
-  if (!auction) {
-    throw error(404, 'Auction not found');
-  }
-
-  const user = await prisma.user.findUnique({
-    where: { email: userEmail }
-  });
-
-  if (!user || (user.id !== auction.sellerId && user.auctionHouseId !== auction.auctionHouseId)) {
-    throw error(403, 'Forbidden');
-  }
-
+  requireAuctionAccess(user, auction);
   return auction;
 }
 
@@ -180,9 +167,8 @@ function toPrismaData(payload, { includeAuctionId = true } = {}) {
 
 export async function POST({ params, request, locals }) {
   try {
-    const session = await locals.auth?.();
-    ensureAuth(session);
-    await ensureAuctionAccess(params.id, session.user.email);
+    const user = await requireAuthenticatedUser(locals);
+    await ensureAuctionAccess(params.id, user);
 
     const formData = await request.formData();
     const action = (formData.get('action') || 'preview').toString();

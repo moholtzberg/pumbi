@@ -232,6 +232,7 @@
               <h1 class="text-2xl font-bold text-white">Auction Settings</h1>
               <div class="mt-2 text-blue-100 text-sm">
                 <span class="font-semibold">{auction.title}</span>
+                <span class="ml-2 rounded-full bg-white/20 px-2 py-1 text-xs">{(auction.type || 'PRIVATE').toUpperCase()}</span>
               </div>
             </div>
             <div class="flex items-center gap-3">
@@ -241,6 +242,14 @@
               >
                 Manage Lots
               </a>
+              {#if (auction.type || 'PRIVATE').toUpperCase() === 'PRIVATE'}
+                <a
+                  href="/seller/auctions/{auction.id}/bidders"
+                  class="bg-white/20 text-white px-4 py-2 rounded-lg hover:bg-white/30 transition-colors text-sm font-semibold"
+                >
+                  Bidder approvals
+                </a>
+              {/if}
               <button
                 onclick={saveSettings}
                 disabled={saving}

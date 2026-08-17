@@ -1,6 +1,10 @@
 import { json, error } from '@sveltejs/kit';
 import prisma from '$lib/prisma.js';
 import { env } from '$env/dynamic/private';
+import {
+  requireAuthenticatedUser,
+  requireAuctionAccess
+} from '$lib/server/authorization.js';
 
 async function summarizeText(text, contextPrompt = '') {
   const apiKey = env.OPENAI_API_KEY || process.env.OPENAI_API_KEY;
@@ -48,10 +52,7 @@ async function summarizeText(text, contextPrompt = '') {
 
 export async function POST({ params, locals }) {
   try {
-    const session = await locals.auth?.();
-    if (!session?.user) {
-      throw error(401, 'Unauthorized');
-    }
+    const user = await requireAuthenticatedUser(locals);
 
     const lot = await prisma.lot.findUnique({
       where: { id: params.id },
@@ -68,14 +69,7 @@ export async function POST({ params, locals }) {
       throw error(404, 'Lot not found');
     }
 
-    // Check permissions
-    const user = await prisma.user.findUnique({
-      where: { email: session.user.email }
-    });
-
-    if (!user || (user.id !== lot.auction.sellerId && user.auctionHouseId !== lot.auction.auctionHouseId)) {
-      throw error(403, 'Forbidden');
-    }
+    requireAuctionAccess(user, lot.auction);
 
     const note = await prisma.lotNote.findUnique({
       where: { id: params.noteId }

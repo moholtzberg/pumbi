@@ -14,14 +14,15 @@ model AuctionHouse {
   domain      String?  @unique // Custom domain (optional)
   description String?
   logoUrl     String?  @map("logo_url")
-  settings    String?  // JSON string for custom settings
+  settings    String? // JSON string for custom settings
   isActive    Boolean  @default(true) @map("is_active")
   createdAt   DateTime @default(now()) @map("created_at")
   updatedAt   DateTime @updatedAt @map("updated_at")
 
   // Relations
-  users    User[]    // Users belonging to this auction house (sellers, auctioneers)
-  auctions Auction[] // Auctions hosted by this auction house
+  users         User[] // Users belonging to this auction house (sellers, auctioneers)
+  auctions      Auction[] // Auctions hosted by this auction house
+  auctionSeries AuctionSeries[]
 
   @@index([slug])
   @@index([isActive])
@@ -30,28 +31,34 @@ model AuctionHouse {
 
 // User model - represents users in the system
 model User {
-  id            String       @id @default(cuid())
-  email         String       @unique
-  password      String?      // Hashed password (optional for existing users, required for new)
-  name          String?
-  firstName     String?      @map("first_name")
-  lastName      String?      @map("last_name")
-  phone         String?      // Phone number
-  address       String?      // Address
-  isVerifiedBuyer Boolean    @default(false) @map("is_verified_buyer") // Profile verified
-  isVerifiedBidder Boolean   @default(false) @map("is_verified_bidder") // Can bid as verified bidder
-  resetPasswordToken String? @map("reset_password_token") // Token for password reset
+  id                   String    @id @default(cuid())
+  email                String    @unique
+  password             String? // Hashed password (optional for existing users, required for new)
+  name                 String?
+  firstName            String?   @map("first_name")
+  lastName             String?   @map("last_name")
+  phone                String? // Phone number
+  address              String? // Address
+  isVerifiedBuyer      Boolean   @default(false) @map("is_verified_buyer") // Profile verified
+  isVerifiedBidder     Boolean   @default(false) @map("is_verified_bidder") // Can bid as verified bidder
+  resetPasswordToken   String?   @map("reset_password_token") // Token for password reset
   resetPasswordExpires DateTime? @map("reset_password_expires") // Expiration for reset token
-  role          UserRole     @default(BUYER)
-  auctionHouseId String?     @map("auction_house_id") // For sellers/auctioneers
-  createdAt     DateTime     @default(now()) @map("created_at")
-  updatedAt     DateTime     @updatedAt @map("updated_at")
+  role                 UserRole  @default(BUYER)
+  auctionHouseId       String?   @map("auction_house_id") // For sellers/auctioneers
+  createdAt            DateTime  @default(now()) @map("created_at")
+  updatedAt            DateTime  @updatedAt @map("updated_at")
 
   // Relations
-  auctionHouse AuctionHouse? @relation(fields: [auctionHouseId], references: [id], onDelete: SetNull)
-  auctions     Auction[]     // Auctions created by this user (if seller)
-  bids         Bid[]
-  auctionRegistrations AuctionRegistration[] // Auctions this user registered for
+  auctionHouse                 AuctionHouse?         @relation(fields: [auctionHouseId], references: [id], onDelete: SetNull)
+  auctions                     Auction[] // Auctions created by this user (if seller)
+  bids                         Bid[]
+  auctionRegistrations         AuctionRegistration[] // Auctions this user registered for
+  auctionRegistrationsReviewed AuctionRegistration[] @relation("AuctionRegistrationReviewer")
+  auctionSeriesCreated         AuctionSeries[]       @relation("AuctionSeriesCreator")
+  platformPoliciesCreated      PlatformPolicy[]      @relation("PlatformPolicyCreator")
+  sellerProfile                SellerProfile?
+  lotSubmissionsReviewed       LotSubmission[]       @relation("LotSubmissionReviewer")
+  ownedLots                    Lot[]                 @relation("LotOwner")
 
   @@index([auctionHouseId])
   @@index([role])
@@ -65,31 +72,55 @@ enum UserRole {
   BUYER
   SELLER
   AUCTIONEER
+  PLATFORM_ADMIN
 }
 
 // Auction model - represents an auction event
 model Auction {
-  id            String        @id @default(cuid())
-  title         String
-  description   String?
-  startDate     DateTime      @map("start_date")
-  endDate       DateTime      @map("end_date")
-  status        AuctionStatus  @default(UPCOMING)
-  imageUrl      String?       @map("image_url")
-  settings      String?       // JSON string for auction-specific settings
-  auctionHouseId String       @map("auction_house_id") // Multi-tenant: which auction house hosts this
-  sellerId      String        @map("seller_id")
-  createdAt     DateTime      @default(now()) @map("created_at")
-  updatedAt     DateTime      @updatedAt @map("updated_at")
+  id                                       String        @id @default(cuid())
+  title                                    String
+  description                              String?
+  startDate                                DateTime      @map("start_date")
+  endDate                                  DateTime      @map("end_date")
+  status                                   AuctionStatus @default(UPCOMING)
+  type                                     AuctionType   @default(PRIVATE)
+  imageUrl                                 String?       @map("image_url")
+  settings                                 String? // JSON string for auction-specific settings
+  auctionHouseId                           String        @map("auction_house_id") // Multi-tenant: which auction house hosts this
+  sellerId                                 String        @map("seller_id")
+  seriesId                                 String?       @map("series_id")
+  seriesOccurrenceAt                       DateTime?     @map("series_occurrence_at")
+  platformPolicyId                         String?       @map("platform_policy_id")
+  policyVersionSnapshot                    Int?          @map("policy_version_snapshot")
+  buyerTermsSnapshot                       String?       @map("buyer_terms_snapshot")
+  sellerTermsSnapshot                      String?       @map("seller_terms_snapshot")
+  buyerPremiumRateSnapshot                 Decimal?      @map("buyer_premium_rate_snapshot") @db.Decimal(7, 4)
+  sellerCommissionRateSnapshot             Decimal?      @map("seller_commission_rate_snapshot") @db.Decimal(7, 4)
+  rateConfigSnapshot                       Json?         @map("rate_config_snapshot")
+  privateHouseNameSnapshot                 String?       @map("private_house_name_snapshot")
+  privateHouseBuyerTermsSnapshot           String?       @map("private_house_buyer_terms_snapshot")
+  privateHouseSellerTermsSnapshot          String?       @map("private_house_seller_terms_snapshot")
+  privateHouseBuyerPremiumRateSnapshot     Decimal?      @map("private_house_buyer_premium_rate_snapshot") @db.Decimal(7, 4)
+  privateHouseSellerCommissionRateSnapshot Decimal?      @map("private_house_seller_commission_rate_snapshot") @db.Decimal(7, 4)
+  privateHouseRateConfigSnapshot           Json?         @map("private_house_rate_config_snapshot")
+  createdAt                                DateTime      @default(now()) @map("created_at")
+  updatedAt                                DateTime      @updatedAt @map("updated_at")
 
   // Relations
-  auctionHouse AuctionHouse @relation(fields: [auctionHouseId], references: [id], onDelete: Cascade)
-  seller       User        @relation(fields: [sellerId], references: [id], onDelete: Cascade)
-  lots         Lot[]
-  registrations AuctionRegistration[] // Users registered for this auction
+  auctionHouse   AuctionHouse          @relation(fields: [auctionHouseId], references: [id], onDelete: Cascade)
+  seller         User                  @relation(fields: [sellerId], references: [id], onDelete: Cascade)
+  series         AuctionSeries?        @relation(fields: [seriesId], references: [id], onDelete: SetNull)
+  platformPolicy PlatformPolicy?       @relation(fields: [platformPolicyId], references: [id], onDelete: SetNull)
+  lots           Lot[]
+  registrations  AuctionRegistration[] // Users registered for this auction
+  lotSubmissions LotSubmission[]
 
+  @@unique([seriesId, seriesOccurrenceAt])
   @@index([auctionHouseId])
   @@index([sellerId])
+  @@index([seriesId])
+  @@index([platformPolicyId])
+  @@index([type])
   @@index([status])
   @@index([startDate])
   @@index([endDate])
@@ -103,56 +134,100 @@ enum AuctionStatus {
   CANCELLED
 }
 
+enum AuctionType {
+  PUBLIC
+  PRIVATE
+}
+
+model AuctionSeries {
+  id                             String      @id @default(cuid())
+  name                           String
+  auctionHouseId                 String      @map("auction_house_id")
+  createdById                    String      @map("created_by_id")
+  auctionType                    AuctionType @default(PRIVATE) @map("auction_type")
+  timezone                       String
+  recurrenceDayOfMonth           Int         @map("recurrence_day_of_month")
+  recurrenceLocalTime            String      @map("recurrence_local_time")
+  nextRunAt                      DateTime?   @map("next_run_at")
+  submissionCutoffOffsetDays     Int         @default(7) @map("submission_cutoff_offset_days")
+  auctionStartOffsetMinutes      Int         @default(0) @map("auction_start_offset_minutes")
+  auctionDurationMinutes         Int         @default(1440) @map("auction_duration_minutes")
+  registrationOpenOffsetDays     Int         @default(14) @map("registration_open_offset_days")
+  registrationCloseOffsetMinutes Int         @default(0) @map("registration_close_offset_minutes")
+  isActive                       Boolean     @default(true) @map("is_active")
+  createdAt                      DateTime    @default(now()) @map("created_at")
+  updatedAt                      DateTime    @updatedAt @map("updated_at")
+
+  auctionHouse   AuctionHouse    @relation(fields: [auctionHouseId], references: [id], onDelete: Cascade)
+  createdBy      User            @relation("AuctionSeriesCreator", fields: [createdById], references: [id], onDelete: Restrict)
+  auctions       Auction[]
+  lotSubmissions LotSubmission[]
+
+  @@index([auctionHouseId])
+  @@index([createdById])
+  @@index([nextRunAt])
+  @@index([isActive])
+  @@map("auction_series")
+}
+
 // Lot model - represents an individual lot/item in an auction
 model Lot {
-  id                String     @id @default(cuid())
-  auctionId         String     @map("auction_id")
-  lotNumber         Int        @map("lot_number")
-  position          Int        @default(0) // Order/position for displaying lots (1, 2, 3, ...)
-  title             String
-  hebrewTitle       String?    @map("hebrew_title")
-  description       String?
-  hebrewDescription String?   @map("hebrew_description")
-  category          String?
-  tags              String?    // JSON array of tags
-  metaFields        String?    @map("meta_fields") // JSON object for category-specific metadata
-  startingBid       Float      @map("starting_bid")
-  currentBid        Float      @default(0) @map("current_bid")
-  bidIncrement      Float      @map("bid_increment")
-  status            LotStatus  @default(ACTIVE)
-  endTime           DateTime?  @map("end_time")
-  highestBidderId   String?    @map("highest_bidder_id")
-  highestBidderName String?    @map("highest_bidder_name")
-  isReady           Boolean    @default(false) @map("is_ready")
-  watchersCount     Int        @default(0) @map("watchers_count")
-  createdAt         DateTime   @default(now()) @map("created_at")
-  updatedAt         DateTime   @updatedAt @map("updated_at")
+  id                        String    @id @default(cuid())
+  auctionId                 String    @map("auction_id")
+  lotNumber                 Int       @map("lot_number")
+  position                  Int       @default(0) // Order/position for displaying lots (1, 2, 3, ...)
+  title                     String
+  hebrewTitle               String?   @map("hebrew_title")
+  description               String?
+  hebrewDescription         String?   @map("hebrew_description")
+  category                  String?
+  tags                      String? // JSON array of tags
+  metaFields                String?   @map("meta_fields") // JSON object for category-specific metadata
+  startingBid               Float     @map("starting_bid")
+  currentBid                Float     @default(0) @map("current_bid")
+  bidIncrement              Float     @map("bid_increment")
+  status                    LotStatus @default(ACTIVE)
+  endTime                   DateTime? @map("end_time")
+  highestBidderId           String?   @map("highest_bidder_id")
+  highestBidderName         String?   @map("highest_bidder_name")
+  isReady                   Boolean   @default(false) @map("is_ready")
+  watchersCount             Int       @default(0) @map("watchers_count")
+  submittingSellerProfileId String?   @map("submitting_seller_profile_id")
+  submissionId              String?   @unique @map("submission_id")
+  ownerUserId               String?   @map("owner_user_id")
+  createdAt                 DateTime  @default(now()) @map("created_at")
+  updatedAt                 DateTime  @updatedAt @map("updated_at")
 
   // Relations
-  auction Auction     @relation(fields: [auctionId], references: [id], onDelete: Cascade)
-  bids    Bid[]
-  images  LotImage[]  // Multiple images per lot
-  notes   LotNote[]   // Notes associated with this lot
+  auction                 Auction        @relation(fields: [auctionId], references: [id], onDelete: Cascade)
+  bids                    Bid[]
+  images                  LotImage[] // Multiple images per lot
+  notes                   LotNote[] // Notes associated with this lot
+  submittingSellerProfile SellerProfile? @relation(fields: [submittingSellerProfileId], references: [id], onDelete: SetNull)
+  submission              LotSubmission? @relation(fields: [submissionId], references: [id], onDelete: SetNull)
+  owner                   User?          @relation("LotOwner", fields: [ownerUserId], references: [id], onDelete: SetNull)
 
   @@unique([auctionId, lotNumber])
   @@index([auctionId])
   @@index([status])
   @@index([endTime])
   @@index([position])
+  @@index([submittingSellerProfileId])
+  @@index([ownerUserId])
   @@map("lots")
 }
 
 // LotImage model - represents images associated with a lot
 model LotImage {
-  id          String   @id @default(cuid())
-  lotId       String   @map("lot_id")
-  url         String   // Cloud storage URL
-  cloudKey    String?  @map("cloud_key") // Key/identifier in cloud storage
-  displayOrder Int     @default(0) @map("display_order") // Order for displaying images
-  isPrimary   Boolean  @default(false) @map("is_primary") // Primary/thumbnail image
-  isHidden    Boolean  @default(false) @map("is_hidden") // Hide image from public display
-  createdAt   DateTime @default(now()) @map("created_at")
-  updatedAt   DateTime @updatedAt @map("updated_at")
+  id           String   @id @default(cuid())
+  lotId        String   @map("lot_id")
+  url          String // Cloud storage URL
+  cloudKey     String?  @map("cloud_key") // Key/identifier in cloud storage
+  displayOrder Int      @default(0) @map("display_order") // Order for displaying images
+  isPrimary    Boolean  @default(false) @map("is_primary") // Primary/thumbnail image
+  isHidden     Boolean  @default(false) @map("is_hidden") // Hide image from public display
+  createdAt    DateTime @default(now()) @map("created_at")
+  updatedAt    DateTime @updatedAt @map("updated_at")
 
   // Relations
   lot Lot @relation(fields: [lotId], references: [id], onDelete: Cascade)
@@ -181,8 +256,8 @@ model Bid {
   timestamp DateTime @default(now())
 
   // Relations
-  lot  Lot    @relation(fields: [lotId], references: [id], onDelete: Cascade)
-  user User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  lot  Lot  @relation(fields: [lotId], references: [id], onDelete: Cascade)
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([lotId])
   @@index([userId])
@@ -192,14 +267,14 @@ model Bid {
 
 // LotNote model - represents notes (voice or text) associated with a lot
 model LotNote {
-  id              String   @id @default(cuid())
-  lotId           String   @map("lot_id")
-  content         String?  // Transcribed or text note content
-  summary         String?  // AI-generated summary
-  audioUrl        String?  @map("audio_url") // URL to uploaded audio file
-  transcription   String?  // Raw transcription from speech-to-text
-  createdAt       DateTime @default(now()) @map("created_at")
-  updatedAt       DateTime @updatedAt @map("updated_at")
+  id            String   @id @default(cuid())
+  lotId         String   @map("lot_id")
+  content       String? // Transcribed or text note content
+  summary       String? // AI-generated summary
+  audioUrl      String?  @map("audio_url") // URL to uploaded audio file
+  transcription String? // Raw transcription from speech-to-text
+  createdAt     DateTime @default(now()) @map("created_at")
+  updatedAt     DateTime @updatedAt @map("updated_at")
 
   // Relations
   lot Lot @relation(fields: [lotId], references: [id], onDelete: Cascade)
@@ -211,18 +286,131 @@ model LotNote {
 
 // AuctionRegistration model - tracks which users registered for which auctions
 model AuctionRegistration {
-  id        String   @id @default(cuid())
-  auctionId String   @map("auction_id")
-  userId    String   @map("user_id")
-  createdAt DateTime @default(now()) @map("created_at")
-  updatedAt DateTime @updatedAt @map("updated_at")
+  id                         String                    @id @default(cuid())
+  auctionId                  String                    @map("auction_id")
+  userId                     String                    @map("user_id")
+  status                     AuctionRegistrationStatus @default(PENDING)
+  reviewedById               String?                   @map("reviewed_by_id")
+  reviewedAt                 DateTime?                 @map("reviewed_at")
+  rejectionReason            String?                   @map("rejection_reason")
+  acceptedPolicyId           String?                   @map("accepted_policy_id")
+  acceptedPolicyVersion      Int?                      @map("accepted_policy_version")
+  acceptedBuyerTermsSnapshot String?                   @map("accepted_buyer_terms_snapshot")
+  termsAcceptedAt            DateTime?                 @map("terms_accepted_at")
+  termsAcceptedIp            String?                   @map("terms_accepted_ip")
+  termsAcceptedUserAgent     String?                   @map("terms_accepted_user_agent")
+  createdAt                  DateTime                  @default(now()) @map("created_at")
+  updatedAt                  DateTime                  @updatedAt @map("updated_at")
 
   // Relations
-  auction Auction @relation(fields: [auctionId], references: [id], onDelete: Cascade)
-  user    User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  auction        Auction         @relation(fields: [auctionId], references: [id], onDelete: Cascade)
+  user           User            @relation(fields: [userId], references: [id], onDelete: Cascade)
+  reviewedBy     User?           @relation("AuctionRegistrationReviewer", fields: [reviewedById], references: [id], onDelete: SetNull)
+  acceptedPolicy PlatformPolicy? @relation(fields: [acceptedPolicyId], references: [id], onDelete: SetNull)
 
   @@unique([auctionId, userId])
   @@index([auctionId])
   @@index([userId])
+  @@index([status])
+  @@index([reviewedById])
+  @@index([acceptedPolicyId])
   @@map("auction_registrations")
+}
+
+enum AuctionRegistrationStatus {
+  PENDING
+  APPROVED
+  REJECTED
+}
+
+model PlatformPolicy {
+  id                   String    @id @default(cuid())
+  version              Int       @unique
+  buyerTerms           String    @map("buyer_terms")
+  sellerTerms          String    @map("seller_terms")
+  buyerPremiumRate     Decimal   @map("buyer_premium_rate") @db.Decimal(7, 4)
+  sellerCommissionRate Decimal   @map("seller_commission_rate") @db.Decimal(7, 4)
+  rateConfig           Json?     @map("rate_config")
+  isActive             Boolean   @default(false) @map("is_active")
+  effectiveFrom        DateTime  @map("effective_from")
+  effectiveTo          DateTime? @map("effective_to")
+  createdById          String    @map("created_by_id")
+  createdAt            DateTime  @default(now()) @map("created_at")
+  updatedAt            DateTime  @updatedAt @map("updated_at")
+
+  createdBy            User                  @relation("PlatformPolicyCreator", fields: [createdById], references: [id], onDelete: Restrict)
+  auctions             Auction[]
+  auctionRegistrations AuctionRegistration[]
+  lotSubmissions       LotSubmission[]
+
+  @@index([isActive, effectiveFrom])
+  @@index([createdById])
+  @@map("platform_policies")
+}
+
+model SellerProfile {
+  id           String   @id @default(cuid())
+  userId       String   @unique @map("user_id")
+  displayName  String?  @map("display_name")
+  legalName    String?  @map("legal_name")
+  contactEmail String?  @map("contact_email")
+  contactPhone String?  @map("contact_phone")
+  address      String?
+  createdAt    DateTime @default(now()) @map("created_at")
+  updatedAt    DateTime @updatedAt @map("updated_at")
+
+  user           User            @relation(fields: [userId], references: [id], onDelete: Cascade)
+  lotSubmissions LotSubmission[]
+  lots           Lot[]
+
+  @@map("seller_profiles")
+}
+
+model LotSubmission {
+  id                          String              @id @default(cuid())
+  sellerProfileId             String              @map("seller_profile_id")
+  auctionSeriesId             String?             @map("auction_series_id")
+  auctionId                   String?             @map("auction_id")
+  status                      LotSubmissionStatus @default(DRAFT)
+  title                       String?
+  description                 String?
+  category                    String?
+  tags                        String?
+  metaFields                  String?             @map("meta_fields")
+  requestedStartingBid        Decimal?            @map("requested_starting_bid") @db.Decimal(12, 2)
+  requestedBidIncrement       Decimal?            @map("requested_bid_increment") @db.Decimal(12, 2)
+  acceptedPolicyId            String?             @map("accepted_policy_id")
+  acceptedPolicyVersion       Int?                @map("accepted_policy_version")
+  acceptedSellerTermsSnapshot String?             @map("accepted_seller_terms_snapshot")
+  termsAcceptedAt             DateTime?           @map("terms_accepted_at")
+  termsAcceptedIp             String?             @map("terms_accepted_ip")
+  termsAcceptedUserAgent      String?             @map("terms_accepted_user_agent")
+  submittedAt                 DateTime?           @map("submitted_at")
+  reviewedById                String?             @map("reviewed_by_id")
+  reviewedAt                  DateTime?           @map("reviewed_at")
+  rejectionReason             String?             @map("rejection_reason")
+  createdAt                   DateTime            @default(now()) @map("created_at")
+  updatedAt                   DateTime            @updatedAt @map("updated_at")
+
+  sellerProfile  SellerProfile   @relation(fields: [sellerProfileId], references: [id], onDelete: Cascade)
+  auctionSeries  AuctionSeries?  @relation(fields: [auctionSeriesId], references: [id], onDelete: SetNull)
+  auction        Auction?        @relation(fields: [auctionId], references: [id], onDelete: SetNull)
+  acceptedPolicy PlatformPolicy? @relation(fields: [acceptedPolicyId], references: [id], onDelete: SetNull)
+  reviewedBy     User?           @relation("LotSubmissionReviewer", fields: [reviewedById], references: [id], onDelete: SetNull)
+  approvedLot    Lot?
+
+  @@index([sellerProfileId])
+  @@index([auctionSeriesId])
+  @@index([auctionId])
+  @@index([status])
+  @@index([acceptedPolicyId])
+  @@index([reviewedById])
+  @@map("lot_submissions")
+}
+
+enum LotSubmissionStatus {
+  DRAFT
+  SUBMITTED
+  APPROVED
+  REJECTED
 }

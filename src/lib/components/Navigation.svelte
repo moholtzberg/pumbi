@@ -6,6 +6,7 @@
   let isMenuOpen = $state(false);
   let session = $state(null);
   let hasAuctionHouse = $state(false);
+  let currentUser = $state(null);
 
   $effect(async () => {
     try {
@@ -13,7 +14,10 @@
       session = await response.json();
       if (session?.user?.email) {
         const userResponse = await fetch(`/api/users?email=${encodeURIComponent(session.user.email)}`, { credentials: 'include' });
-        if (userResponse.ok) hasAuctionHouse = !!(await userResponse.json()).auctionHouseId;
+        if (userResponse.ok) {
+          currentUser = await userResponse.json();
+          hasAuctionHouse = !!currentUser.auctionHouseId;
+        }
       }
     } catch (error) {
       console.error('Error loading session:', error);
@@ -40,6 +44,8 @@
     <div class="desktop-actions">
       <a href="/#auctions" class="icon-link" aria-label="Search"><svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"></circle><path d="m16 16 4 4"></path></svg></a>
       {#if session?.user}
+        {#if !hasAuctionHouse}<a href="/dashboard/sell" class="account-link">Sell</a>{/if}
+        {#if currentUser?.role?.toUpperCase() === 'PLATFORM_ADMIN'}<a href="/admin" class="account-link">Admin</a>{/if}
         <a href={hasAuctionHouse ? '/seller' : '/dashboard'} class="account-link">{session.user.name || 'My account'}</a>
         <button onclick={handleLogout} class="text-action">Sign out</button>
       {:else}
@@ -60,6 +66,8 @@
       <a href="/#category-heading" onclick={() => isMenuOpen = false}>Auction houses</a>
       <a href="/#partner" onclick={() => isMenuOpen = false}>How it works</a>
       {#if session?.user}
+        {#if !hasAuctionHouse}<a href="/dashboard/sell">Sell with Pumbi</a>{/if}
+        {#if currentUser?.role?.toUpperCase() === 'PLATFORM_ADMIN'}<a href="/admin">Platform admin</a>{/if}
         <a href={hasAuctionHouse ? '/seller' : '/dashboard'}>My account</a>
         <button onclick={handleLogout}>Sign out</button>
       {:else}

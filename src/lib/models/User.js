@@ -15,7 +15,7 @@ const userSchema = z.object({
   isVerifiedBidder: z.boolean().default(false),
   resetPasswordToken: z.string().nullable().optional(),
   resetPasswordExpires: z.date().nullable().optional(),
-  role: z.enum(['BUYER', 'SELLER', 'AUCTIONEER']).default('BUYER'),
+  role: z.enum(['BUYER', 'SELLER', 'AUCTIONEER', 'PLATFORM_ADMIN']).default('BUYER'),
   auctionHouseId: z.string().nullable().optional(),
   createdAt: z.date().optional(),
   updatedAt: z.date().optional()

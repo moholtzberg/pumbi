@@ -1,13 +1,14 @@
 import { error } from '@sveltejs/kit';
 import prisma from '$lib/prisma.js';
 import { convertToPresignedUrl } from '$lib/utils/s3Presigned.js';
+import {
+  requireAuthenticatedUser,
+  requireAuctionAccess
+} from '$lib/server/authorization.js';
 
 export async function GET({ params, locals }) {
   try {
-    const session = await locals.auth?.();
-    if (!session?.user) {
-      throw error(401, 'Unauthorized');
-    }
+    const user = await requireAuthenticatedUser(locals);
 
     // Get auction with lots and images
     const auction = await prisma.auction.findUnique({
@@ -25,18 +26,7 @@ export async function GET({ params, locals }) {
       }
     });
 
-    if (!auction) {
-      throw error(404, 'Auction not found');
-    }
-
-    // Check permissions
-    const user = await prisma.user.findUnique({
-      where: { email: session.user.email }
-    });
-
-    if (!user || (user.id !== auction.sellerId && user.auctionHouseId !== auction.auctionHouseId)) {
-      throw error(403, 'Forbidden');
-    }
+    requireAuctionAccess(user, auction);
 
     // CSV Header
     const csvRows = [[

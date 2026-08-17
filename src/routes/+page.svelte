@@ -151,6 +151,9 @@
               <span class="absolute top-4 right-4 px-3 py-1 rounded-full text-sm font-semibold {getStatusBadgeClass(auction.status)}">
                 {auction.status.toUpperCase()}
               </span>
+              <span class="absolute left-4 top-4 rounded-full bg-purple-100 px-3 py-1 text-sm font-semibold text-purple-800">
+                {(auction.type || 'PRIVATE').toUpperCase()}
+              </span>
             </div>
             <div class="p-6">
               <h3 class="text-xl font-bold text-gray-900 mb-2">{auction.title}</h3>

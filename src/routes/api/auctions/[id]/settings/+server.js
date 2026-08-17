@@ -1,6 +1,13 @@
 import { json, error } from '@sveltejs/kit';
 import { auctionSettingsSchema } from '$lib/zod.js';
 import prisma from '$lib/prisma.js';
+import {
+  canManageAuctionHouse,
+  getAuthenticatedUser,
+  isPlatformAdmin,
+  requireAuthenticatedUser,
+  requireAuctionAccess
+} from '$lib/server/authorization.js';
 
 export async function GET({ params, locals }) {
   try {
@@ -17,8 +24,8 @@ export async function GET({ params, locals }) {
     const settings = auction.settings ? JSON.parse(auction.settings) : {};
 
     // For public access (non-logged-in users), only return gallery-related settings
-    const session = await locals.auth?.();
-    if (!session?.user) {
+    const user = await getAuthenticatedUser(locals);
+    if (!user) {
       // Public access - only return gallery template settings
       return json({
         galleryTemplate: settings.galleryTemplate || 'card-grid',
@@ -26,13 +33,10 @@ export async function GET({ params, locals }) {
       });
     }
 
-    // For authenticated users, check permissions for full settings access
-    const user = await prisma.user.findUnique({
-      where: { email: session.user.email }
-    });
-
-    // If user is seller or belongs to auction house, return full settings
-    if (user && (user.id === auction.sellerId || user.auctionHouseId === auction.auctionHouseId)) {
+    const canManage = auction.type === 'PUBLIC'
+      ? isPlatformAdmin(user)
+      : canManageAuctionHouse(user, auction.auctionHouseId);
+    if (canManage) {
       return json(settings);
     }
 
@@ -52,28 +56,14 @@ export async function GET({ params, locals }) {
 
 export async function PATCH({ params, request, locals }) {
   try {
-    const session = await locals.auth?.();
-    if (!session?.user) {
-      throw error(401, 'Unauthorized');
-    }
+    const user = await requireAuthenticatedUser(locals);
 
     const auction = await prisma.auction.findUnique({
       where: { id: params.id },
       include: { seller: true }
     });
 
-    if (!auction) {
-      throw error(404, 'Auction not found');
-    }
-
-    // Check if user has access to this auction
-    const user = await prisma.user.findUnique({
-      where: { email: session.user.email }
-    });
-
-    if (!user || (user.id !== auction.sellerId && user.auctionHouseId !== auction.auctionHouseId)) {
-      throw error(403, 'Forbidden');
-    }
+    requireAuctionAccess(user, auction);
 
     const data = await request.json();
 

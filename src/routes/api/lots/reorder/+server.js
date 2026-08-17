@@ -1,12 +1,13 @@
 import { json, error } from '@sveltejs/kit';
 import prisma from '$lib/prisma.js';
+import {
+  requireAuthenticatedUser,
+  requireAuctionAccess
+} from '$lib/server/authorization.js';
 
 export async function POST({ request, locals }) {
   try {
-    const session = await locals.auth?.();
-    if (!session?.user) {
-      throw error(401, 'Unauthorized');
-    }
+    const user = await requireAuthenticatedUser(locals);
 
     const { auctionId, lotIds } = await request.json();
 
@@ -14,26 +15,16 @@ export async function POST({ request, locals }) {
       throw error(400, 'Invalid request: auctionId and lotIds array are required');
     }
 
-    // Verify user has access to this auction
-    const user = await prisma.user.findUnique({
-      where: { email: session.user.email }
-    });
-
-    if (!user) {
-      throw error(401, 'User not found');
-    }
-
     const auction = await prisma.auction.findUnique({
       where: { id: auctionId }
     });
+    requireAuctionAccess(user, auction);
 
-    if (!auction) {
-      throw error(404, 'Auction not found');
-    }
-
-    // Check if user has access (seller or same auction house)
-    if (user.id !== auction.sellerId && user.auctionHouseId !== auction.auctionHouseId) {
-      throw error(403, 'Forbidden');
+    const matchingLots = await prisma.lot.count({
+      where: { id: { in: lotIds }, auctionId }
+    });
+    if (matchingLots !== lotIds.length) {
+      throw error(400, 'All lots must belong to the specified auction');
     }
 
     // Update positions for all lots

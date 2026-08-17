@@ -97,6 +97,9 @@
               <span class="px-3 py-1 rounded-full text-sm font-semibold {auction.status === 'live' ? 'bg-red-100 text-red-800' : auction.status === 'upcoming' ? 'bg-blue-100 text-blue-800' : 'bg-gray-100 text-gray-800'}">
                 {auction.status.toUpperCase()}
               </span>
+              <span class="ml-2 rounded-full bg-purple-100 px-3 py-1 text-sm font-semibold text-purple-800">
+                {(auction.type || 'PRIVATE').toUpperCase()}
+              </span>
             </div>
             <h1 class="text-4xl font-bold text-gray-900 mb-4">{auction.title}</h1>
             <p class="text-gray-600 text-lg mb-6">{auction.description}</p>
@@ -133,6 +136,28 @@
                 </div>
               {/if}
             </div>
+            <div class="rounded-lg border border-gray-200 bg-gray-50 p-4 text-sm text-gray-700">
+              {#if auction.type?.toUpperCase() === 'PUBLIC'}
+                <p class="font-semibold text-gray-900">Pumbi public monthly auction</p>
+                <p class="mt-1">Open to all account holders. Independent sellers may submit lots for Pumbi approval.</p>
+                {#if auction.buyerPremiumRateSnapshot != null}
+                  <p class="mt-2"><strong>Buyer premium:</strong> {Number(auction.buyerPremiumRateSnapshot) * 100}%</p>
+                {/if}
+                <a href="/dashboard/sell" class="mt-3 inline-block font-semibold text-blue-700">Submit an item →</a>
+              {:else}
+                <p class="font-semibold text-gray-900">Auction-house managed auction</p>
+                <p class="mt-1">Anyone may browse. Bidding requires approval from {auction.auctionHouse?.name || 'the auction house'}.</p>
+                {#if auction.privateHouseBuyerPremiumRateSnapshot != null}
+                  <p class="mt-2"><strong>Buyer premium:</strong> {Number(auction.privateHouseBuyerPremiumRateSnapshot) * 100}%</p>
+                {/if}
+              {/if}
+            </div>
+            {#if auction.buyerTermsSnapshot || auction.privateHouseBuyerTermsSnapshot}
+              <details class="mt-4 rounded-lg border border-gray-200 p-4">
+                <summary class="cursor-pointer font-semibold">Buyer terms</summary>
+                <p class="mt-3 whitespace-pre-wrap text-sm text-gray-700">{auction.type?.toUpperCase() === 'PUBLIC' ? auction.buyerTermsSnapshot : auction.privateHouseBuyerTermsSnapshot}</p>
+              </details>
+            {/if}
           </div>
         </div>
       </div>

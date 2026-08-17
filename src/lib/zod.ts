@@ -182,3 +182,60 @@ export const auctionSettingsSchema = z.object({
   // AI Settings
   aiPrompt: z.string().optional().nullable(), // Additional prompt for this specific auction (tone, style, context)
 })
+
+const nullableUrl = z.string().url("Invalid image URL").or(z.literal("")).nullable().optional()
+const auctionStatusApiSchema = z.preprocess(
+  value => typeof value === "string" ? value.toUpperCase() : value,
+  z.enum(["UPCOMING", "LIVE", "ENDED", "CANCELLED"])
+)
+const auctionTypeApiSchema = z.preprocess(
+  value => typeof value === "string" ? value.toUpperCase() : value,
+  z.enum(["PUBLIC", "PRIVATE"])
+)
+
+const auctionFieldsSchema = z.object({
+  title: z.string().trim().min(1, "Title is required"),
+  description: z.string().nullable().optional(),
+  startDate: z.coerce.date(),
+  endDate: z.coerce.date(),
+  status: auctionStatusApiSchema.default("UPCOMING"),
+  type: auctionTypeApiSchema.default("PRIVATE"),
+  imageUrl: nullableUrl,
+  settings: z.union([z.string(), z.record(z.unknown())]).nullable().optional(),
+  auctionHouseId: z.string().min(1, "Auction house ID is required"),
+  sellerId: z.string().min(1, "Seller ID is required"),
+  seriesId: z.string().nullable().optional(),
+  seriesOccurrenceAt: z.coerce.date().nullable().optional(),
+  platformPolicyId: z.string().nullable().optional(),
+  policyVersionSnapshot: z.coerce.number().int().nullable().optional(),
+  buyerTermsSnapshot: z.string().nullable().optional(),
+  sellerTermsSnapshot: z.string().nullable().optional(),
+  buyerPremiumRateSnapshot: z.coerce.number().nonnegative().nullable().optional(),
+  sellerCommissionRateSnapshot: z.coerce.number().nonnegative().nullable().optional(),
+  rateConfigSnapshot: z.unknown().nullable().optional(),
+  privateHouseNameSnapshot: z.string().nullable().optional(),
+  privateHouseBuyerTermsSnapshot: z.string().nullable().optional(),
+  privateHouseSellerTermsSnapshot: z.string().nullable().optional(),
+  privateHouseBuyerPremiumRateSnapshot: z.coerce.number().nonnegative().nullable().optional(),
+  privateHouseSellerCommissionRateSnapshot: z.coerce.number().nonnegative().nullable().optional(),
+  privateHouseRateConfigSnapshot: z.unknown().nullable().optional(),
+})
+
+export const auctionCreateSchema = auctionFieldsSchema.refine(({ startDate, endDate }) => endDate > startDate, {
+  message: "End date must be after start date",
+  path: ["endDate"],
+})
+
+export const auctionUpdateSchema = auctionFieldsSchema.partial().refine(
+  ({ startDate, endDate }) => !startDate || !endDate || endDate > startDate,
+  {
+    message: "End date must be after start date",
+    path: ["endDate"],
+  }
+)
+
+export const auctionRegistrationSchema = z.object({
+  acceptedTerms: z.boolean().optional(),
+  termsAccepted: z.boolean().optional(),
+  policyAccepted: z.boolean().optional(),
+}).passthrough()

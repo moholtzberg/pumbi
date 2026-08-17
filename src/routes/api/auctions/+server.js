@@ -1,30 +1,18 @@
 import { json } from '@sveltejs/kit';
 import { db } from '$lib/db.js';
-import { writeFile, appendFile } from 'fs/promises';
-import { join } from 'path';
-
-const LOG_PATH = '/Users/moholtzberg/code/bidspirit-clone/.cursor/debug.log';
-
-async function log(data) {
-  try {
-    const logEntry = JSON.stringify({...data, timestamp: Date.now(), sessionId: 'debug-session', runId: 'run1'}) + '\n';
-    await appendFile(LOG_PATH, logEntry, 'utf8');
-  } catch (e) {}
-}
+import prisma from '$lib/prisma.js';
+import { auctionCreateSchema } from '$lib/zod.js';
+import {
+  isPlatformAdmin,
+  requireAuthenticatedUser,
+  requireAuctionHouseAccess
+} from '$lib/server/authorization.js';
 
 export async function GET({ url }) {
-  // #region agent log
-  await log({location:'api/auctions/+server.js:4',message:'GET /api/auctions entry',data:{},hypothesisId:'D'});
-  // #endregion
   try {
     const status = url.searchParams.get('status');
     const sellerId = url.searchParams.get('sellerId');
     const auctionHouseId = url.searchParams.get('auctionHouseId');
-    
-    console.log('GET /api/auctions - params:', { status, sellerId, auctionHouseId });
-    // #region agent log
-    await log({location:'api/auctions/+server.js:12',message:'Before db.auctions.getAll',data:{options:{auctionHouseId}},hypothesisId:'A'});
-    // #endregion
     
     const options = {};
     if (auctionHouseId) {
@@ -32,10 +20,6 @@ export async function GET({ url }) {
     }
     
     let auctions = await db.auctions.getAll(options);
-    // #region agent log
-    await log({location:'api/auctions/+server.js:18',message:'After db.auctions.getAll',data:{auctionsType:typeof auctions,isArray:Array.isArray(auctions),length:auctions?.length,firstAuction:auctions?.[0]},hypothesisId:'A,E'});
-    // #endregion
-    console.log('auctions.getAll returned:', auctions);
     
     // Ensure auctions is an array
     if (!Array.isArray(auctions)) {
@@ -43,50 +27,116 @@ export async function GET({ url }) {
       return json([]);
     }
     
-    console.log('Total auctions before filtering:', auctions.length);
-    
     if (status) {
       auctions = auctions.filter(a => a.status && a.status.toLowerCase() === status.toLowerCase());
-      console.log('After status filter:', auctions.length);
     }
     
     if (sellerId) {
       auctions = auctions.filter(a => a.sellerId === sellerId);
-      console.log('After sellerId filter:', auctions.length);
     }
-    
-    console.log('Returning auctions:', auctions.length);
-    // #region agent log
-    await log({location:'api/auctions/+server.js:39',message:'Returning auctions',data:{count:auctions.length},hypothesisId:'D'});
-    // #endregion
+
     return json(auctions);
   } catch (error) {
     console.error('Error in GET /api/auctions:', error);
     console.error('Error stack:', error.stack);
-    // #region agent log
-    await log({location:'api/auctions/+server.js:42',message:'Error caught in GET',data:{errorMessage:error.message,errorCode:error.code,errorName:error.name,errorStack:error.stack},hypothesisId:'A,B'});
-    // #endregion
     return json({ error: error.message }, { status: 500 });
   }
 }
 
-export async function POST({ request }) {
+export async function POST({ request, locals }) {
   try {
-    const data = await request.json();
-    
-    // Remove settings field if it exists (until migration is run)
-    // The settings column doesn't exist in the database yet
-    const { settings, ...auctionData } = data;
-    
-    const auction = await db.auctions.create(auctionData);
+    const user = await requireAuthenticatedUser(locals);
+    const auctionData = auctionCreateSchema.parse(await request.json());
+    requireAuctionHouseAccess(user, auctionData.auctionHouseId);
+
+    if (!isPlatformAdmin(user) && auctionData.type !== 'PRIVATE') {
+      return json({ error: 'Auction houses may only create private auctions' }, { status: 403 });
+    }
+
+    if (!isPlatformAdmin(user)) {
+      const seller = await prisma.user.findUnique({ where: { id: auctionData.sellerId } });
+      if (!seller || seller.auctionHouseId !== auctionData.auctionHouseId) {
+        return json({ error: 'Seller must belong to the owning auction house' }, { status: 400 });
+      }
+    }
+
+    if (auctionData.settings && typeof auctionData.settings !== 'string') {
+      auctionData.settings = JSON.stringify(auctionData.settings);
+    }
+
+    const safeAuctionData = { ...auctionData };
+    for (const field of [
+      'platformPolicyId',
+      'policyVersionSnapshot',
+      'buyerTermsSnapshot',
+      'sellerTermsSnapshot',
+      'buyerPremiumRateSnapshot',
+      'sellerCommissionRateSnapshot',
+      'rateConfigSnapshot',
+      'privateHouseNameSnapshot',
+      'privateHouseBuyerTermsSnapshot',
+      'privateHouseSellerTermsSnapshot',
+      'privateHouseBuyerPremiumRateSnapshot',
+      'privateHouseSellerCommissionRateSnapshot',
+      'privateHouseRateConfigSnapshot'
+    ]) {
+      delete safeAuctionData[field];
+    }
+
+    let snapshotData = {};
+    if (safeAuctionData.type === 'PRIVATE') {
+      const house = await prisma.auctionHouse.findUnique({ where: { id: safeAuctionData.auctionHouseId } });
+      if (!house) return json({ error: 'Auction house not found' }, { status: 404 });
+      let houseSettings = {};
+      try {
+        houseSettings = house.settings ? JSON.parse(house.settings) : {};
+      } catch {
+        houseSettings = {};
+      }
+      snapshotData = {
+        privateHouseNameSnapshot: house.name,
+        privateHouseBuyerTermsSnapshot: houseSettings.termsOfSaleInEnglish || null,
+        privateHouseSellerTermsSnapshot: houseSettings.disclaimerForSellersInEnglish || null,
+        privateHouseBuyerPremiumRateSnapshot: Number(houseSettings.buyersPremium || 0) / 100,
+        privateHouseSellerCommissionRateSnapshot: Number(houseSettings.sellerCommissionRate || 0) / 100,
+        privateHouseRateConfigSnapshot: {
+          currency: houseSettings.defaultCurrency || 'USD',
+          paymentMethods: houseSettings.paymentMethods || [],
+          bidIncrements: houseSettings.bidIncrements || [],
+          addVat: Boolean(houseSettings.addVat)
+        }
+      };
+    } else {
+      const policy = await prisma.platformPolicy.findFirst({
+        where: {
+          isActive: true,
+          effectiveFrom: { lte: new Date() },
+          OR: [{ effectiveTo: null }, { effectiveTo: { gt: new Date() } }]
+        },
+        orderBy: [{ effectiveFrom: 'desc' }, { version: 'desc' }]
+      });
+      if (!policy) return json({ error: 'An active Pumbi policy is required for public auctions' }, { status: 409 });
+      snapshotData = {
+        platformPolicyId: policy.id,
+        policyVersionSnapshot: policy.version,
+        buyerTermsSnapshot: policy.buyerTerms,
+        sellerTermsSnapshot: policy.sellerTerms,
+        buyerPremiumRateSnapshot: policy.buyerPremiumRate,
+        sellerCommissionRateSnapshot: policy.sellerCommissionRate,
+        rateConfigSnapshot: policy.rateConfig
+      };
+    }
+
+    const auction = await db.auctions.create({ ...safeAuctionData, ...snapshotData });
     return json(auction, { status: 201 });
   } catch (error) {
+    if (error.status) throw error;
     console.error('Error creating auction:', error);
-    console.error('Error details:', {
-      code: error.code,
-      meta: error.meta,
-      message: error.message
-    });
+
+    if (error.name === 'ZodError') {
+      return json({ error: 'Invalid auction data', details: error.flatten() }, { status: 400 });
+    }
+
     return json({ 
       error: error.message || 'Failed to create auction',
       code: error.code,

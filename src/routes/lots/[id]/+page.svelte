@@ -13,6 +13,8 @@
   let currentUser = $state(null);
   let auctionSettings = $state(null);
   let isRegistered = $state(false);
+  let registrationStatus = $state('NONE');
+  let acceptTerms = $state(false);
   let checkingRegistration = $state(false);
   let registering = $state(false);
   
@@ -70,6 +72,7 @@
         });
       }
       currentUser = await userResponse.json();
+      if (lot?.auctionId) await checkRegistration();
     } catch (error) {
       console.error('Error loading user data:', error);
     }
@@ -119,7 +122,8 @@
       });
       if (response.ok) {
         const data = await response.json();
-        isRegistered = data.registered;
+        registrationStatus = data.status || (data.registered ? 'APPROVED' : 'NONE');
+        isRegistered = registrationStatus === 'APPROVED';
       }
     } catch (error) {
       console.error('Error checking registration:', error);
@@ -134,10 +138,14 @@
       registering = true;
       const response = await fetch(`/api/auctions/${lot.auctionId}/register`, {
         method: 'POST',
-        credentials: 'include'
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({ acceptedTerms: acceptTerms })
       });
       if (response.ok) {
-        isRegistered = true;
+        const result = await response.json();
+        registrationStatus = result.status || (result.registered ? 'APPROVED' : 'PENDING');
+        isRegistered = registrationStatus === 'APPROVED';
       } else {
         const error = await response.json();
         bidError = error.message || 'Failed to register for auction';
@@ -339,32 +347,29 @@
                   Login to Bid
                 </a>
               </div>
-            {:else if !currentUser.isVerifiedBuyer}
-              <div class="mb-6 bg-yellow-50 border border-yellow-200 rounded-lg p-4">
-                <p class="text-sm text-yellow-800 mb-2 font-semibold">Verification Required</p>
-                <p class="text-sm text-yellow-700 mb-4">You must be a verified buyer to place bids. Please complete your profile and get verified.</p>
-                <a
-                  href="/dashboard/profile"
-                  class="inline-block bg-yellow-600 text-white px-4 py-2 rounded-lg hover:bg-yellow-700 transition-colors text-sm"
-                >
-                  Complete Profile
-                </a>
-              </div>
-            {:else if auctionSettings?.requireRegistrationToBid && !isRegistered}
+            {:else if (lot.auction?.type || auctionSettings?.requireRegistrationToBid) && !isRegistered}
               <div class="mb-6 bg-blue-50 border border-blue-200 rounded-lg p-4">
-                <p class="text-sm text-blue-800 mb-2 font-semibold">Registration Required</p>
-                <p class="text-sm text-blue-700 mb-4">You must register for this auction before placing bids.</p>
-                <button
-                  onclick={registerForAuction}
-                  disabled={registering}
-                  class="inline-block bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors text-sm disabled:opacity-50 disabled:cursor-not-allowed"
-                >
-                  {#if registering}
-                    Registering...
-                  {:else}
-                    Register for Auction
-                  {/if}
-                </button>
+                {#if registrationStatus === 'PENDING'}
+                  <p class="font-semibold text-blue-900">Approval pending</p>
+                  <p class="mt-1 text-sm text-blue-800">The auction house will review your bidder registration.</p>
+                {:else if registrationStatus === 'REJECTED'}
+                  <p class="font-semibold text-red-900">Registration not approved</p>
+                  <p class="mt-1 text-sm text-red-800">Contact the auction organizer if you need more information.</p>
+                {:else}
+                  <p class="text-sm text-blue-800 mb-2 font-semibold">{lot.auction?.type?.toUpperCase() === 'PRIVATE' ? 'Bidder approval required' : 'Accept Pumbi terms to bid'}</p>
+                  <p class="text-sm text-blue-700 mb-4">{lot.auction?.type?.toUpperCase() === 'PRIVATE' ? 'Submit your registration for approval by the auction house.' : 'This public auction is open to all account holders.'}</p>
+                  <label class="mb-4 flex items-start gap-2 text-sm text-blue-900">
+                    <input type="checkbox" bind:checked={acceptTerms} class="mt-1" />
+                    <span>I accept the applicable buyer terms and rates for this auction.</span>
+                  </label>
+                  <button
+                    onclick={registerForAuction}
+                    disabled={registering || !acceptTerms}
+                    class="inline-block bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors text-sm disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    {registering ? 'Submitting...' : lot.auction?.type?.toUpperCase() === 'PRIVATE' ? 'Request approval' : 'Accept and register'}
+                  </button>
+                {/if}
               </div>
             {:else if currentUser && lot.highestBidderId === currentUser.id}
               <div class="mb-6 bg-green-50 border border-green-200 rounded-lg p-4">

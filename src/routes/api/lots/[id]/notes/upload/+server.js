@@ -1,13 +1,14 @@
 import { json, error } from '@sveltejs/kit';
 import prisma from '$lib/prisma.js';
 import { uploadFile } from '$lib/services/cloudStorage.js';
+import {
+  requireAuthenticatedUser,
+  requireAuctionAccess
+} from '$lib/server/authorization.js';
 
 export async function POST({ params, request, locals }) {
   try {
-    const session = await locals.auth?.();
-    if (!session?.user) {
-      throw error(401, 'Unauthorized');
-    }
+    const user = await requireAuthenticatedUser(locals);
 
     const lot = await prisma.lot.findUnique({
       where: { id: params.id },
@@ -18,14 +19,7 @@ export async function POST({ params, request, locals }) {
       throw error(404, 'Lot not found');
     }
 
-    // Check permissions
-    const user = await prisma.user.findUnique({
-      where: { email: session.user.email }
-    });
-
-    if (!user || (user.id !== lot.auction.sellerId && user.auctionHouseId !== lot.auction.auctionHouseId)) {
-      throw error(403, 'Forbidden');
-    }
+    requireAuctionAccess(user, lot.auction);
 
     const formData = await request.formData();
     const audioFile = formData.get('audio');

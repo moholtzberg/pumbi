@@ -2,13 +2,14 @@ import { json, error } from '@sveltejs/kit';
 import { uploadFile } from '$lib/services/cloudStorage.js';
 import prisma from '$lib/prisma.js';
 import { env } from '$env/dynamic/private';
+import {
+  requireAuthenticatedUser,
+  requireAuctionAccess
+} from '$lib/server/authorization.js';
 
 export async function POST({ request, locals }) {
   try {
-    const session = await locals.auth?.();
-    if (!session?.user) {
-      throw error(401, 'Unauthorized');
-    }
+    const user = await requireAuthenticatedUser(locals);
 
     const formData = await request.formData();
     const file = formData.get('file');
@@ -29,13 +30,7 @@ export async function POST({ request, locals }) {
       throw error(404, 'Lot not found');
     }
 
-    const user = await prisma.user.findUnique({
-      where: { email: session.user.email }
-    });
-
-    if (!user || (user.id !== lot.auction.sellerId && user.auctionHouseId !== lot.auction.auctionHouseId)) {
-      throw error(403, 'Forbidden');
-    }
+    requireAuctionAccess(user, lot.auction);
 
     // Convert file to buffer
     const arrayBuffer = await file.arrayBuffer();

@@ -97,6 +97,11 @@
 <div class="min-h-screen bg-gray-50">
   <div class="container mx-auto px-4 py-8">
     <h1 class="text-4xl font-bold text-gray-900 mb-8">My Dashboard</h1>
+    <div class="mb-8 rounded-xl bg-purple-900 p-6 text-white">
+      <h2 class="text-2xl font-bold">Sell in Pumbi's monthly auction</h2>
+      <p class="mt-2 text-purple-100">Independent sellers can submit lots under Pumbi's published rates and terms.</p>
+      <a href="/dashboard/sell" class="mt-4 inline-block rounded-lg bg-white px-5 py-2 font-semibold text-purple-900">Manage submissions</a>
+    </div>
 
     {#if loading}
       <div class="text-center py-12">

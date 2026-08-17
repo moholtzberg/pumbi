@@ -2,18 +2,50 @@ import { json, error } from '@sveltejs/kit';
 import { db } from '$lib/db.js';
 import prisma from '$lib/prisma.js';
 import { deleteFile } from '$lib/services/cloudStorage.js';
+import {
+  canManageAuctionHouse,
+  getAuthenticatedUser,
+  isPlatformAdmin,
+  requireAuthenticatedUser,
+  requireAuctionAccess
+} from '$lib/server/authorization.js';
 
-export async function GET({ params }) {
+export async function GET({ params, locals }) {
   const lot = await db.lots.getById(params.id);
   if (!lot) {
     throw error(404, 'Lot not found');
   }
+  if (!lot.isReady) {
+    const user = await getAuthenticatedUser(locals);
+    const canManage = lot.auction?.type === 'PUBLIC'
+      ? isPlatformAdmin(user)
+      : canManageAuctionHouse(user, lot.auction?.auctionHouseId);
+    if (!canManage) {
+      throw error(404, 'Lot not found');
+    }
+  }
   return json(lot);
 }
 
-export async function PATCH({ params, request }) {
+export async function PATCH({ params, request, locals }) {
   try {
+    const user = await requireAuthenticatedUser(locals);
+    const writableLot = await prisma.lot.findUnique({
+      where: { id: params.id },
+      include: { auction: true }
+    });
+    if (!writableLot) {
+      throw error(404, 'Lot not found');
+    }
+    requireAuctionAccess(user, writableLot.auction);
+
     const updates = await request.json();
+    if (updates.auctionId && updates.auctionId !== writableLot.auctionId) {
+      const targetAuction = await prisma.auction.findUnique({
+        where: { id: updates.auctionId }
+      });
+      requireAuctionAccess(user, targetAuction);
+    }
     
     // Get existing lot to merge metaFields if needed
     const existingLot = await db.lots.getById(params.id);
@@ -109,12 +141,17 @@ export async function PATCH({ params, request }) {
   }
 }
 
-export async function DELETE({ params }) {
+export async function DELETE({ params, locals }) {
   try {
-    const lot = await db.lots.getById(params.id);
+    const user = await requireAuthenticatedUser(locals);
+    const lot = await prisma.lot.findUnique({
+      where: { id: params.id },
+      include: { auction: true }
+    });
     if (!lot) {
       throw error(404, 'Lot not found');
     }
+    requireAuctionAccess(user, lot.auction);
     
     // Get all images for this lot before deleting
     const images = await prisma.lotImage.findMany({

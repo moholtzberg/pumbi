@@ -1,6 +1,23 @@
 import { json, error } from '@sveltejs/kit';
 import prisma from '$lib/prisma.js';
 import { deleteFile } from '$lib/services/cloudStorage.js';
+import {
+  requireAuthenticatedUser,
+  requireAuctionAccess
+} from '$lib/server/authorization.js';
+
+async function requireLotAccess(locals, lotId) {
+  const user = await requireAuthenticatedUser(locals);
+  const lot = await prisma.lot.findUnique({
+    where: { id: lotId },
+    include: { auction: true }
+  });
+  if (!lot) {
+    throw error(404, 'Lot not found');
+  }
+  requireAuctionAccess(user, lot.auction);
+  return lot;
+}
 
 // Get all images for a lot
 export async function GET({ params }) {
@@ -17,21 +34,13 @@ export async function GET({ params }) {
 }
 
 // Add images to a lot
-export async function POST({ params, request }) {
+export async function POST({ params, request, locals }) {
   try {
+    await requireLotAccess(locals, params.id);
     const { images } = await request.json(); // Array of {url, key, displayOrder?, isPrimary?}
     
     if (!Array.isArray(images) || images.length === 0) {
       throw error(400, 'Images array is required');
-    }
-
-    // Verify lot exists
-    const lot = await prisma.lot.findUnique({
-      where: { id: params.id }
-    });
-
-    if (!lot) {
-      throw error(404, 'Lot not found');
     }
 
     // If setting a primary image, unset existing primary
@@ -68,21 +77,21 @@ export async function POST({ params, request }) {
 }
 
 // Update image order and primary status
-export async function PATCH({ params, request }) {
+export async function PATCH({ params, request, locals }) {
   try {
+    await requireLotAccess(locals, params.id);
     const { images } = await request.json(); // Array of {id, displayOrder, isPrimary?}
     
     if (!Array.isArray(images) || images.length === 0) {
       throw error(400, 'Images array is required');
     }
 
-    // Verify lot exists
-    const lot = await prisma.lot.findUnique({
-      where: { id: params.id }
+    const existingImages = await prisma.lotImage.findMany({
+      where: { id: { in: images.map((image) => image.id) }, lotId: params.id },
+      select: { id: true }
     });
-
-    if (!lot) {
-      throw error(404, 'Lot not found');
+    if (existingImages.length !== images.length) {
+      throw error(404, 'Image not found');
     }
 
     // Check if any image is being set as primary
@@ -118,8 +127,9 @@ export async function PATCH({ params, request }) {
 }
 
 // Delete an image
-export async function DELETE({ params, url }) {
+export async function DELETE({ params, url, locals }) {
   try {
+    await requireLotAccess(locals, params.id);
     const imageId = url.searchParams.get('imageId');
     if (!imageId) {
       throw error(400, 'imageId parameter is required');
@@ -129,7 +139,7 @@ export async function DELETE({ params, url }) {
       where: { id: imageId }
     });
 
-    if (!image) {
+    if (!image || image.lotId !== params.id) {
       throw error(404, 'Image not found');
     }
 
