@@ -66,13 +66,13 @@
       <a href="/#category-heading" onclick={() => isMenuOpen = false}>Auction houses</a>
       <a href="/#partner" onclick={() => isMenuOpen = false}>How it works</a>
       {#if session?.user}
-        {#if !hasAuctionHouse}<a href="/dashboard/sell">Sell with Pumbi</a>{/if}
-        {#if currentUser?.role?.toUpperCase() === 'PLATFORM_ADMIN'}<a href="/admin">Platform admin</a>{/if}
-        <a href={hasAuctionHouse ? '/seller' : '/dashboard'}>My account</a>
-        <button onclick={handleLogout}>Sign out</button>
+        {#if !hasAuctionHouse}<a href="/dashboard/sell" onclick={() => isMenuOpen = false}>Sell with Pumbi</a>{/if}
+        {#if currentUser?.role?.toUpperCase() === 'PLATFORM_ADMIN'}<a href="/admin" onclick={() => isMenuOpen = false}>Platform admin</a>{/if}
+        <a href={hasAuctionHouse ? '/seller' : '/dashboard'} onclick={() => isMenuOpen = false}>My account</a>
+        <button onclick={() => { isMenuOpen = false; handleLogout(); }}>Sign out</button>
       {:else}
-        <a href="/auth/login">Sign in</a>
-        <a href="/auth/register" class="mobile-join">Join Pumbi →</a>
+        <a href="/auth/login" onclick={() => isMenuOpen = false}>Sign in</a>
+        <a href="/auth/register" class="mobile-join" onclick={() => isMenuOpen = false}>Join Pumbi →</a>
       {/if}
     </div>
   {/if}
