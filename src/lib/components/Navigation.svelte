@@ -1,201 +1,101 @@
 <script>
-    import { page } from '$app/stores';
-    import { signOut } from '@auth/sveltekit/client';
-    import { goto } from '$app/navigation';
-    
-    let isMenuOpen = $state(false);
-    let session = $state(null);
-    let hasAuctionHouse = $state(false);
-    
-    $effect(async () => {
-      try {
-        const res = await fetch('/auth/session');
-        const data = await res.json();
-        session = data;
-        
-        // Check if user has an auction house
-        if (session?.user?.email) {
-          try {
-            const userRes = await fetch(`/api/users?email=${encodeURIComponent(session.user.email)}`, {
-              credentials: 'include'
-            });
-            if (userRes.ok) {
-              const user = await userRes.json();
-              hasAuctionHouse = !!user.auctionHouseId;
-            }
-          } catch (err) {
-            console.error('Error checking auction house:', err);
-          }
-        }
-      } catch (error) {
-        console.error('Error loading session:', error);
+  import { page } from '$app/stores';
+  import { signOut } from '@auth/sveltekit/client';
+  import { goto } from '$app/navigation';
+
+  let isMenuOpen = $state(false);
+  let session = $state(null);
+  let hasAuctionHouse = $state(false);
+
+  $effect(async () => {
+    try {
+      const response = await fetch('/auth/session');
+      session = await response.json();
+      if (session?.user?.email) {
+        const userResponse = await fetch(`/api/users?email=${encodeURIComponent(session.user.email)}`, { credentials: 'include' });
+        if (userResponse.ok) hasAuctionHouse = !!(await userResponse.json()).auctionHouseId;
       }
-    });
-    
-    async function handleLogout() {
-      await signOut({ redirect: false });
-      goto('/');
+    } catch (error) {
+      console.error('Error loading session:', error);
     }
+  });
+
+  async function handleLogout() {
+    await signOut({ redirect: false });
+    goto('/');
+  }
 </script>
 
-<!-- Navigation Bar -->
-<nav class="bg-white shadow sticky top-0 z-50 print:hidden">
-    <div class="container mx-auto px-4 py-4 flex items-center justify-between">
-      
-        <a href="/" class="flex items-center space-x-2">
-            <span class="text-2xl font-bold text-blue-600">Pumbi</span>
-            <span class="text-sm text-gray-600 font-medium">Judaica Auctions</span>
-        </a>
-  
-      <!-- Desktop Menu -->
-      <ul class="hidden md:flex space-x-6 items-center">
-        <li>
-          <a 
-            href="/" 
-            class="text-gray-700 hover:text-blue-600 transition-colors {($page.url.pathname === '/') ? 'text-blue-600 font-semibold' : ''}"
-          >
-            Auctions
-          </a>
-        </li>
-        <li>
-          <a 
-            href="/dashboard" 
-            class="text-gray-700 hover:text-blue-600 transition-colors {($page.url.pathname === '/dashboard') ? 'text-blue-600 font-semibold' : ''}"
-          >
-            Dashboard
-          </a>
-        </li>
-        <li>
-          <a 
-            href="/seller" 
-            class="text-gray-700 hover:text-blue-600 transition-colors {($page.url.pathname.startsWith('/seller')) ? 'text-blue-600 font-semibold' : ''}"
-          >
-            Seller Portal
-          </a>
-        </li>
-        {#if !hasAuctionHouse}
-          <li>
-            <a 
-              href="/auction-houses/signup" 
-              class="text-gray-700 hover:text-blue-600 transition-colors {($page.url.pathname === '/auction-houses/signup') ? 'text-blue-600 font-semibold' : ''}"
-            >
-              Register Auction House
-            </a>
-          </li>
-        {/if}
-        {#if session?.user}
-          <li>
-            <a 
-              href="/dashboard" 
-              class="text-gray-700 hover:text-blue-600 transition-colors {($page.url.pathname === '/dashboard') ? 'text-blue-600 font-semibold' : ''}"
-            >
-              {session.user.name || session.user.email}
-            </a>
-          </li>
-          <li>
-            <button
-              onclick={handleLogout}
-              class="bg-red-600 text-white px-4 py-2 rounded-md hover:bg-red-700 transition-colors"
-            >
-              Logout
-            </button>
-          </li>
-        {:else}
-          <li>
-            <a 
-              href="/auth/login" 
-              class="bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700 transition-colors"
-            >
-              Login
-            </a>
-          </li>
-        {/if}
-      </ul>
-  
-      <!-- Mobile Menu Button -->
-      <button
-        class="md:hidden text-gray-700 focus:outline-none"
-        onclick={() => isMenuOpen = !isMenuOpen}
-        aria-label="Toggle navigation menu"
-        aria-expanded={isMenuOpen}
-      >
-        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          {#if isMenuOpen}
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
-          {:else}
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-              d="M4 6h16M4 12h16M4 18h16" />
-          {/if}
-        </svg>
-      </button>
+<nav class="site-nav print:hidden" class:menu-open={isMenuOpen}>
+  <div class="nav-inner">
+    <a href="/" class="brand" aria-label="Pumbi home"><span>P</span><strong>Pumbi</strong></a>
+
+    <div class="desktop-links">
+      <a class:active={$page.url.pathname === '/'} href="/#auctions">Auctions</a>
+      <a href="/#category-heading">Categories</a>
+      <a href="/#category-heading">Auction houses</a>
+      <a href="/#partner">How it works</a>
     </div>
-  
-    <!-- Mobile Menu -->
-    {#if isMenuOpen}
-      <div class="md:hidden bg-white shadow">
-        <ul class="flex flex-col items-center space-y-4 py-4">
-          <li>
-            <a 
-              href="/" 
-              class="text-gray-700 hover:text-blue-600 transition-colors {($page.url.pathname === '/') ? 'text-blue-600 font-semibold' : ''}"
-            >
-              Auctions
-            </a>
-          </li>
-          <li>
-            <a 
-              href="/dashboard" 
-              class="text-gray-700 hover:text-blue-600 transition-colors {($page.url.pathname === '/dashboard') ? 'text-blue-600 font-semibold' : ''}"
-            >
-              Dashboard
-            </a>
-          </li>
-          <li>
-            <a 
-              href="/seller" 
-              class="text-gray-700 hover:text-blue-600 transition-colors {($page.url.pathname.startsWith('/seller')) ? 'text-blue-600 font-semibold' : ''}"
-            >
-              Seller Portal
-            </a>
-          </li>
-          {#if !hasAuctionHouse}
-            <li>
-              <a 
-                href="/auction-houses/signup" 
-                class="text-gray-700 hover:text-blue-600 transition-colors {($page.url.pathname === '/auction-houses/signup') ? 'text-blue-600 font-semibold' : ''}"
-              >
-                Register Auction House
-              </a>
-            </li>
-          {/if}
-          {#if session?.user}
-            <li>
-              <a 
-                href="/dashboard" 
-                class="text-gray-700 hover:text-blue-600 transition-colors {($page.url.pathname === '/dashboard') ? 'text-blue-600 font-semibold' : ''}"
-              >
-                {session.user.name || session.user.email}
-              </a>
-            </li>
-            <li>
-              <button
-                onclick={handleLogout}
-                class="bg-red-600 text-white px-4 py-2 rounded-md hover:bg-red-700 transition-colors"
-              >
-                Logout
-              </button>
-            </li>
-          {:else}
-            <li>
-              <a 
-                href="/auth/login" 
-                class="bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700 transition-colors"
-              >
-                Login
-              </a>
-            </li>
-          {/if}
-        </ul>
-      </div>
-    {/if}
+
+    <div class="desktop-actions">
+      <a href="/#auctions" class="icon-link" aria-label="Search"><svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"></circle><path d="m16 16 4 4"></path></svg></a>
+      {#if session?.user}
+        <a href={hasAuctionHouse ? '/seller' : '/dashboard'} class="account-link">{session.user.name || 'My account'}</a>
+        <button onclick={handleLogout} class="text-action">Sign out</button>
+      {:else}
+        <a href="/auth/login" class="account-link">Sign in</a>
+        <a href="/auth/register" class="join-button">Join Pumbi <span>→</span></a>
+      {/if}
+    </div>
+
+    <button class="menu-toggle" onclick={() => isMenuOpen = !isMenuOpen} aria-expanded={isMenuOpen} aria-label="Toggle navigation">
+      <span></span><span></span>
+    </button>
+  </div>
+
+  {#if isMenuOpen}
+    <div class="mobile-menu">
+      <a href="/#auctions" onclick={() => isMenuOpen = false}>Auctions</a>
+      <a href="/#category-heading" onclick={() => isMenuOpen = false}>Categories</a>
+      <a href="/#category-heading" onclick={() => isMenuOpen = false}>Auction houses</a>
+      <a href="/#partner" onclick={() => isMenuOpen = false}>How it works</a>
+      {#if session?.user}
+        <a href={hasAuctionHouse ? '/seller' : '/dashboard'}>My account</a>
+        <button onclick={handleLogout}>Sign out</button>
+      {:else}
+        <a href="/auth/login">Sign in</a>
+        <a href="/auth/register" class="mobile-join">Join Pumbi →</a>
+      {/if}
+    </div>
+  {/if}
 </nav>
+
+<style>
+  .site-nav { position: sticky; top: 0; z-index: 50; height: 70px; background: rgba(247,244,238,.96); color: #1a2821; border-bottom: 1px solid rgba(48,58,52,.13); backdrop-filter: blur(14px); }
+  .nav-inner { width: min(1240px, calc(100% - 48px)); height: 100%; margin: auto; display: grid; grid-template-columns: 1fr auto 1fr; align-items: center; }
+  .brand { display: flex; align-items: center; width: max-content; gap: 10px; }
+  .brand span { display: grid; place-items: center; width: 34px; height: 34px; background: #a95739; color: #fff; font: italic 23px Georgia,serif; }
+  .brand strong { font: 600 25px 'Cormorant Garamond',Georgia,serif; letter-spacing: -.02em; }
+  .desktop-links { display: flex; align-items: stretch; height: 100%; gap: 30px; }
+  .desktop-links a { display: flex; align-items: center; position: relative; font-size: 12px; font-weight: 750; color: #435048; }
+  .desktop-links a:after { content: ''; position: absolute; left: 0; right: 100%; bottom: 0; height: 2px; background: #a95739; transition: .2s ease; }
+  .desktop-links a:hover:after, .desktop-links a.active:after { right: 0; }
+  .desktop-actions { display: flex; justify-content: flex-end; align-items: center; gap: 21px; }
+  .icon-link svg { width: 20px; height: 20px; fill: none; stroke: currentColor; stroke-width: 1.7; }
+  .account-link, .text-action { font-size: 12px; font-weight: 750; }
+  .join-button { display: flex; gap: 17px; padding: 12px 16px; background: #18372f; color: #fff; font-size: 11px; font-weight: 850; }
+  .menu-toggle { display: none; justify-self: end; width: 38px; height: 38px; position: relative; }
+  .menu-toggle span { position: absolute; left: 8px; width: 23px; height: 1.5px; background: currentColor; transition: .2s ease; }
+  .menu-toggle span:first-child { top: 14px; } .menu-toggle span:last-child { top: 22px; }
+  .menu-open .menu-toggle span:first-child { transform: translateY(4px) rotate(45deg); }
+  .menu-open .menu-toggle span:last-child { transform: translateY(-4px) rotate(-45deg); }
+  .mobile-menu { background: #f7f4ee; border-top: 1px solid #ddd6ca; padding: 18px 24px 30px; display: grid; }
+  .mobile-menu a, .mobile-menu button { padding: 14px 0; text-align: left; border-bottom: 1px solid #e2dcd1; font: 500 22px Georgia,serif; }
+  .mobile-menu .mobile-join { margin-top: 15px; padding: 15px; text-align: center; background: #18372f; color: #fff; border: 0; font: 800 12px Arial,sans-serif; }
+  @media (max-width: 900px) {
+    .site-nav { height: 62px; }
+    .nav-inner { width: min(100% - 32px,1240px); display: flex; justify-content: space-between; }
+    .desktop-links, .desktop-actions { display: none; }
+    .menu-toggle { display: block; }
+  }
+</style>

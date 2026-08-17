@@ -7,6 +7,7 @@
   import QuickVoiceRecorder from '$lib/components/lots/QuickVoiceRecorder.svelte';
   import ImageEditor from '$lib/components/lots/ImageEditor.svelte';
   import BannerGenerator from '$lib/components/BannerGenerator.svelte';
+  import ConsignmentPDF from '$lib/components/lots/ConsignmentPDF.svelte';
 
   let auction = $state(null);
   let lots = $state([]);
@@ -17,6 +18,7 @@
   let removeBackground = $state({}); // { lotId: boolean } - per-lot background removal setting
   let showImageModal = $state(null); // { lotId, images }
   let saving = $state({}); // Track which lots are being saved
+  let cleaningUp = $state({}); // Track which lots are being cleaned up
   let availableCategories = $state([]);
   let availableTags = $state([]);
   let showCategoryDropdown = $state({}); // { lotId: boolean }
@@ -31,7 +33,205 @@
   let expandedBannerRows = $state(new Set()); // Track which lots have expanded banner generator
   let editingImage = $state(null); // { lotId, imageId, imageUrl }
   let removingBackground = $state({}); // { imageId: boolean } - track which images are being processed
+  let removingBackgroundFromAll = $state({}); // { lotId: boolean } - track which lots are processing all images
   let hoveredImage = $state(null); // { url, x, y } - track which image is being hovered for preview
+  let showConsignmentPDF = $state(null); // { lotId } - track which lot to show consignment PDF for
+  let showBannerTemplateSelector = $state(false); // Show template selector for bulk banner generation
+  let generatingBanners = $state(false); // Track if generating banners for multiple lots
+  let selectedBannerTemplate = $state(null); // Selected template for bulk generation
+  let savedBannerTemplates = $state([]); // Loaded banner templates
+
+  // Column visibility and views
+  const columnDefinitions = [
+    { key: 'checkbox', label: 'Checkbox', alwaysVisible: true },
+    { key: 'dragHandle', label: 'Drag', alwaysVisible: false },
+    { key: 'position', label: 'Position', alwaysVisible: false },
+    { key: 'lotNumber', label: 'Lot Number', alwaysVisible: false },
+    { key: 'images', label: 'Images', alwaysVisible: false },
+    { key: 'title', label: 'Title', alwaysVisible: false },
+    { key: 'description', label: 'Description', alwaysVisible: false },
+    { key: 'hebrewTitle', label: 'Hebrew Title', alwaysVisible: false },
+    { key: 'hebrewDescription', label: 'Hebrew Description', alwaysVisible: false },
+    { key: 'yearEnglish', label: 'Year (English)', alwaysVisible: false },
+    { key: 'yearHebrew', label: 'Year (Hebrew)', alwaysVisible: false },
+    { key: 'category', label: 'Category', alwaysVisible: false },
+    { key: 'bids', label: 'Bids', alwaysVisible: false },
+    { key: 'increment', label: 'Increment', alwaysVisible: false },
+    { key: 'status', label: 'Status', alwaysVisible: false },
+    { key: 'watchers', label: 'Watchers', alwaysVisible: false },
+    { key: 'ready', label: 'Ready', alwaysVisible: false },
+    { key: 'endTime', label: 'End Time', alwaysVisible: false },
+    { key: 'actions', label: 'Actions', alwaysVisible: false }
+  ];
+
+  // Default column visibility
+  const defaultColumnVisibility = {
+    checkbox: true,
+    dragHandle: true,
+    position: true,
+    lotNumber: true,
+    images: true,
+    title: true,
+    description: true,
+    hebrewTitle: false,
+    hebrewDescription: false,
+    yearEnglish: false,
+    yearHebrew: false,
+    category: true,
+    bids: true,
+    increment: false,
+    status: true,
+    watchers: true,
+    ready: true,
+    endTime: true,
+    actions: true
+  };
+
+  let columnVisibility = $state({ ...defaultColumnVisibility });
+  let savedViews = $state([]);
+  let showColumnSettings = $state(false);
+  let showViewManager = $state(false);
+  let newViewName = $state('');
+  let currentViewName = $state('Default View');
+
+  // Load saved views from localStorage
+  function loadSavedViews() {
+    if (typeof window === 'undefined' || !window.localStorage) {
+      return; // Skip during SSR
+    }
+    try {
+      const stored = localStorage.getItem(`lot-column-views-${$page.params.id}`);
+      if (stored) {
+        savedViews = JSON.parse(stored);
+      }
+      // Load default view if available
+      const defaultView = savedViews.find(v => v.isDefault) || savedViews[0];
+      if (defaultView) {
+        columnVisibility = { ...defaultColumnVisibility, ...defaultView.visibility };
+        currentViewName = defaultView.name;
+      }
+    } catch (error) {
+      console.error('Error loading saved views:', error);
+    }
+  }
+
+  // Save views to localStorage
+  function saveViews() {
+    if (typeof window === 'undefined' || !window.localStorage) {
+      return; // Skip during SSR
+    }
+    try {
+      localStorage.setItem(`lot-column-views-${$page.params.id}`, JSON.stringify(savedViews));
+    } catch (error) {
+      console.error('Error saving views:', error);
+    }
+  }
+
+  // Save current view
+  function saveCurrentView() {
+    if (!newViewName.trim()) {
+      alert('Please enter a view name');
+      return;
+    }
+    
+    const view = {
+      id: Date.now().toString(),
+      name: newViewName.trim(),
+      visibility: { ...columnVisibility },
+      isDefault: savedViews.length === 0
+    };
+    
+    savedViews = [...savedViews, view];
+    saveViews();
+    currentViewName = view.name;
+    newViewName = '';
+    showViewManager = false;
+  }
+
+  // Load a saved view
+  function loadView(view) {
+    columnVisibility = { ...defaultColumnVisibility, ...view.visibility };
+    currentViewName = view.name;
+    showViewManager = false;
+  }
+
+  // Delete a saved view
+  function deleteView(viewId) {
+    savedViews = savedViews.filter(v => v.id !== viewId);
+    saveViews();
+    if (savedViews.length > 0 && currentViewName === savedViews.find(v => v.id === viewId)?.name) {
+      loadView(savedViews[0]);
+    } else if (savedViews.length === 0) {
+      columnVisibility = { ...defaultColumnVisibility };
+      currentViewName = 'Default View';
+    }
+  }
+
+  // Set default view
+  function setDefaultView(viewId) {
+    savedViews = savedViews.map(v => ({ ...v, isDefault: v.id === viewId }));
+    saveViews();
+    const defaultView = savedViews.find(v => v.id === viewId);
+    if (defaultView) {
+      loadView(defaultView);
+    }
+  }
+
+  // Toggle column visibility
+  function toggleColumn(key) {
+    if (columnDefinitions.find(c => c.key === key)?.alwaysVisible) {
+      return; // Can't hide always-visible columns
+    }
+    columnVisibility[key] = !columnVisibility[key];
+  }
+
+  // Convert Gregorian year to Hebrew year format
+  function convertToHebrewYear(year) {
+    if (!year || isNaN(year)) return '';
+    const yearNum = parseInt(year);
+    if (yearNum < 1000 || yearNum > 9999) return '';
+    const hebrewYear = yearNum + 3760;
+    // Simplified Hebrew year conversion
+    const ones = ['', 'א', 'ב', 'ג', 'ד', 'ה', 'ו', 'ז', 'ח', 'ט'];
+    const tens = ['', 'י', 'כ', 'ל', 'מ', 'נ', 'ס', 'ע', 'פ', 'צ'];
+    const hundreds = ['', 'ק', 'ר', 'ש', 'ת'];
+    let result = '';
+    let remaining = hebrewYear;
+    if (remaining >= 5000) {
+      result += 'ה\'';
+      remaining -= 5000;
+    }
+    const hundredsDigit = Math.floor(remaining / 100);
+    if (hundredsDigit > 0 && hundredsDigit <= 4) {
+      result += hundreds[hundredsDigit];
+      remaining -= hundredsDigit * 100;
+    }
+    const tensDigit = Math.floor(remaining / 10);
+    if (tensDigit > 0 && tensDigit <= 9) {
+      result += tens[tensDigit];
+      remaining -= tensDigit * 10;
+    }
+    if (remaining > 0 && remaining <= 9) {
+      result += ones[remaining];
+    }
+    if (result.length > 1 && !result.startsWith('ה\'')) {
+      const lastChar = result.slice(-1);
+      const beforeLast = result.slice(0, -1);
+      result = beforeLast + '׳' + lastChar;
+    }
+    return result || '';
+  }
+
+  // Initialize views on mount (client-side only)
+  if (typeof window !== 'undefined') {
+    loadSavedViews();
+    
+    // Close dropdowns when clicking outside
+    window.addEventListener('click', () => {
+      showColumnSettings = false;
+      showViewManager = false;
+    });
+  }
 
   // Importer state
   const importFields = [
@@ -101,10 +301,13 @@
     return 'bg-yellow-50';
   }
 
-  function getLotImages(lot) {
+  function getLotImages(lot, includeHidden = false) {
     // Use new images array if available
     if (lot.images && Array.isArray(lot.images)) {
-      return lot.images.map(img => img.url || img);
+      const images = lot.images
+        .filter(img => includeHidden || !img.isHidden)
+        .map(img => img.url || img);
+      return images;
     }
     
     // Fallback to legacy fields
@@ -175,12 +378,30 @@
       console.log('Loaded lots:', loadedLots);
       
       // Parse images for each lot
-      lots = loadedLots.map(lot => ({
+      lots = loadedLots.map(lot => {
+        // Extract year fields from metaFields if they exist
+        let yearEnglish = null;
+        let yearHebrew = null;
+        if (lot.metaFields) {
+          try {
+            const metaFields = typeof lot.metaFields === 'string' 
+              ? JSON.parse(lot.metaFields) 
+              : lot.metaFields;
+            yearEnglish = metaFields.yearEnglish || null;
+            yearHebrew = metaFields.yearHebrew || null;
+          } catch (e) {
+            // Ignore parse errors
+          }
+        }
+        return {
         ...lot,
         _images: getLotImages(lot),
         images: lot.images || [],
-        _tags: lot.tags ? (typeof lot.tags === 'string' ? JSON.parse(lot.tags) : lot.tags) : []
-      }));
+          _tags: lot.tags ? (typeof lot.tags === 'string' ? JSON.parse(lot.tags) : lot.tags) : [],
+          yearEnglish: yearEnglish || lot.yearEnglish || null,
+          yearHebrew: yearHebrew || lot.yearHebrew || null
+        };
+      });
       
       // Initialize positions if not set
       if (lots.length > 0 && lots.some(lot => !lot.position || lot.position === 0)) {
@@ -400,8 +621,14 @@
     }
   }
   
-  function handleDragStart(lot) {
+  function handleDragStart(event, lot) {
+    event.stopPropagation();
     draggedLot = lot;
+    // Set drag data
+    if (event.dataTransfer) {
+      event.dataTransfer.effectAllowed = 'move';
+      event.dataTransfer.setData('text/html', lot.id);
+    }
   }
   
   function handleDragOver(event, targetLot) {
@@ -456,6 +683,8 @@
 
       // Handle special field types
       let updateValue = value;
+      let fieldToSave = field;
+      
       if (field === 'startingBid' || field === 'bidIncrement' || field === 'currentBid') {
         updateValue = parseFloat(value) || 0;
       } else if (field === 'lotNumber') {
@@ -482,11 +711,38 @@
           updateValue = null;
           lot._tags = [];
         }
+      } else if (field === 'yearEnglish' || field === 'yearHebrew') {
+        // Year fields are stored in metaFields JSON
+        // First, get existing metaFields from the lot
+        let metaFields = {};
+        try {
+          if (lot.metaFields) {
+            metaFields = typeof lot.metaFields === 'string' 
+              ? JSON.parse(lot.metaFields) 
+              : lot.metaFields;
+          }
+        } catch (e) {
+          metaFields = {};
+        }
+        // Update the specific year field
+        if (value && value.trim() !== '') {
+          metaFields[field] = value.trim();
+        } else {
+          delete metaFields[field];
+        }
+        // Convert back to JSON string
+        updateValue = Object.keys(metaFields).length > 0 ? JSON.stringify(metaFields) : null;
+        fieldToSave = 'metaFields';
+        // Update local state
+        lot.metaFields = updateValue;
+        lot[field] = value && value.trim() !== '' ? value.trim() : null; // Also store locally for display
       }
 
       // Update local state immediately
       if (field === 'category') {
         lot.category = updateValue;
+      } else if (field === 'yearEnglish' || field === 'yearHebrew') {
+        // Already handled above
       } else if (field !== 'tags') {
         lot[field] = updateValue;
       }
@@ -546,7 +802,7 @@
             'Content-Type': 'application/json'
           },
           body: JSON.stringify({
-            [field]: updateValue
+            [fieldToSave]: updateValue
           })
         });
 
@@ -558,10 +814,26 @@
         const updated = await response.json();
         const index = lots.findIndex(l => l.id === lotId);
         if (index !== -1) {
+          // Extract year fields from metaFields if they exist
+          let yearEnglish = null;
+          let yearHebrew = null;
+          if (updated.metaFields) {
+            try {
+              const metaFields = typeof updated.metaFields === 'string' 
+                ? JSON.parse(updated.metaFields) 
+                : updated.metaFields;
+              yearEnglish = metaFields.yearEnglish || null;
+              yearHebrew = metaFields.yearHebrew || null;
+            } catch (e) {
+              // Ignore parse errors
+            }
+          }
           lots[index] = { 
             ...updated, 
             _images: getLotImages(updated),
-            _tags: updated.tags ? (typeof updated.tags === 'string' ? JSON.parse(updated.tags) : updated.tags) : []
+            _tags: updated.tags ? (typeof updated.tags === 'string' ? JSON.parse(updated.tags) : updated.tags) : [],
+            yearEnglish: yearEnglish || updated.yearEnglish || null,
+            yearHebrew: yearHebrew || updated.yearHebrew || null
           };
         }
 
@@ -582,6 +854,72 @@
     } else if (event.key === 'Escape') {
       event.preventDefault();
       cancelEdit();
+    }
+  }
+
+  async function cleanupLot(lotId) {
+    try {
+      cleaningUp[lotId] = true;
+      
+      const lot = lots.find(l => l.id === lotId);
+      if (!lot) return;
+
+      const response = await fetch(`/api/lots/${lotId}/cleanup`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          includeImages: true
+        })
+      });
+
+      if (!response.ok) {
+        const error = await response.json().catch(() => ({ error: 'Failed to clean up' }));
+        throw new Error(error.error || 'Failed to clean up');
+      }
+
+      const cleaned = await response.json();
+      
+      // Update local state with cleaned data
+      const index = lots.findIndex(l => l.id === lotId);
+      if (index !== -1) {
+        if (cleaned.title) lot.title = cleaned.title;
+        if (cleaned.description) lot.description = cleaned.description;
+        if (cleaned.hebrewTitle) lot.hebrewTitle = cleaned.hebrewTitle;
+        if (cleaned.hebrewDescription) lot.hebrewDescription = cleaned.hebrewDescription;
+        if (cleaned.yearEnglish) lot.yearEnglish = cleaned.yearEnglish;
+        if (cleaned.yearHebrew) lot.yearHebrew = cleaned.yearHebrew;
+        
+        // Update metaFields if year fields were updated
+        if (cleaned.yearEnglish || cleaned.yearHebrew) {
+          let metaFields = {};
+          try {
+            if (lot.metaFields) {
+              metaFields = typeof lot.metaFields === 'string' 
+                ? JSON.parse(lot.metaFields) 
+                : lot.metaFields;
+            }
+          } catch (e) {
+            metaFields = {};
+          }
+          if (cleaned.yearEnglish) metaFields.yearEnglish = cleaned.yearEnglish;
+          if (cleaned.yearHebrew) metaFields.yearHebrew = cleaned.yearHebrew;
+          lot.metaFields = Object.keys(metaFields).length > 0 ? JSON.stringify(metaFields) : null;
+        }
+        
+        lots[index] = { ...lot };
+      }
+
+      // Reload data to get updated lot from server
+      await loadData();
+      
+      alert('Lot information cleaned up successfully!');
+    } catch (error) {
+      console.error('Error cleaning up lot:', error);
+      alert(`Failed to clean up: ${error.message || 'Please try again.'}`);
+    } finally {
+      cleaningUp[lotId] = false;
     }
   }
 
@@ -721,6 +1059,37 @@
     }
   }
 
+  async function deleteAllImages(lotId) {
+    const lot = lots.find(l => l.id === lotId);
+    if (!lot || !lot.images || lot.images.length === 0) {
+      return;
+    }
+
+    const imageCount = lot.images.length;
+    if (!confirm(`Are you sure you want to delete all ${imageCount} image(s) for Lot #${lot.lotNumber}? This action cannot be undone.`)) {
+      return;
+    }
+
+    try {
+      // Delete all images in parallel
+      const deletePromises = lot.images.map(image => 
+        fetch(`/api/lots/${lotId}/images?imageId=${image.id}`, {
+          method: 'DELETE'
+        })
+      );
+
+      await Promise.all(deletePromises);
+
+      // Reload lot data to get updated images
+      await loadData();
+      
+      alert(`Successfully deleted ${imageCount} image(s).`);
+    } catch (error) {
+      console.error('Error deleting all images:', error);
+      alert('Failed to delete all images. Please try again.');
+    }
+  }
+
   async function removeBackgroundFromImage(lotId, imageId, imageUrl) {
     try {
       removingBackground[imageId] = true;
@@ -838,6 +1207,583 @@
     }
   }
 
+  async function removeBackgroundFromAllImages(lotId) {
+    const lot = lots.find(l => l.id === lotId);
+    if (!lot || !lot.images || lot.images.length === 0) {
+      alert('No images found for this lot');
+      return;
+    }
+
+    const confirmed = confirm(`This will process ${lot.images.length} image(s) and may take a few minutes. Continue?`);
+    if (!confirmed) return;
+
+    try {
+      removingBackgroundFromAll[lotId] = true;
+      removingBackgroundFromAll = { ...removingBackgroundFromAll };
+
+      const images = [...lot.images];
+      let successCount = 0;
+      let failCount = 0;
+      const uploadedImages = [];
+
+      for (const imageObj of images) {
+        try {
+          // Get presigned URL if needed
+          let actualImageUrl = imageObj.url;
+          if (imageObj.url && !imageObj.url.startsWith('http://') && !imageObj.url.startsWith('https://')) {
+            try {
+              const presignedResponse = await fetch('/api/images/presigned', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ keys: [imageObj.url] })
+              });
+              if (presignedResponse.ok) {
+                const { urls } = await presignedResponse.json();
+                actualImageUrl = urls[imageObj.url] || imageObj.url;
+              }
+            } catch (e) {
+              console.warn('Failed to get presigned URL, using original:', e);
+            }
+          }
+
+          // Call background removal API
+          const formData = new FormData();
+          formData.append('url', actualImageUrl);
+
+          const response = await fetch('/api/images/remove-background', {
+            method: 'POST',
+            body: formData
+          });
+
+          if (!response.ok) {
+            throw new Error('Failed to remove background');
+          }
+
+          const result = await response.json();
+          
+          if (!result.success || !result.image) {
+            throw new Error('Background removal failed: No image returned');
+          }
+
+          // Convert base64 to Blob
+          let base64Data = result.image;
+          if (base64Data.includes(',')) {
+            base64Data = base64Data.split(',')[1];
+          }
+          
+          const binaryString = atob(base64Data);
+          const bytes = new Uint8Array(binaryString.length);
+          for (let i = 0; i < binaryString.length; i++) {
+            bytes[i] = binaryString.charCodeAt(i);
+          }
+          const blob = new Blob([bytes], { type: 'image/png' });
+          const file = new File([blob], `no-background-${Date.now()}-${imageObj.id}.png`, { type: 'image/png' });
+
+          // Upload the processed image
+          const uploadFormData = new FormData();
+          uploadFormData.append('files', file);
+          uploadFormData.append('lotId', lotId);
+
+          const uploadResponse = await fetch('/api/upload/image', {
+            method: 'POST',
+            body: uploadFormData
+          });
+
+          if (!uploadResponse.ok) {
+            throw new Error('Failed to upload processed image');
+          }
+
+          const { images: newImages } = await uploadResponse.json();
+          uploadedImages.push(...newImages);
+          successCount++;
+
+          // Small delay between images to avoid overwhelming the API
+          await new Promise(resolve => setTimeout(resolve, 1000));
+        } catch (error) {
+          console.error(`Failed to process image ${imageObj.id}:`, error);
+          failCount++;
+        }
+      }
+
+      // Create all image records in database at once
+      if (uploadedImages.length > 0) {
+        const currentImageCount = lot.images?.length || 0;
+        const imageResponse = await fetch(`/api/lots/${lotId}/images`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({
+            images: uploadedImages.map((img, index) => ({
+              url: img.url,
+              key: img.key,
+              displayOrder: currentImageCount + index,
+              isPrimary: false
+            }))
+          })
+        });
+
+        if (!imageResponse.ok) {
+          throw new Error('Failed to save image records');
+        }
+      }
+
+      // Reload data to show all new images
+      await loadData();
+
+      alert(`Background removal complete!\nSuccess: ${successCount}\nFailed: ${failCount}`);
+    } catch (error) {
+      console.error('Error removing backgrounds from all images:', error);
+      alert(`Failed to process all images: ${error.message}`);
+    } finally {
+      removingBackgroundFromAll[lotId] = false;
+      removingBackgroundFromAll = { ...removingBackgroundFromAll };
+    }
+  }
+
+  // Load banner templates from localStorage
+  function loadBannerTemplates() {
+    try {
+      const stored = localStorage.getItem('banner-templates-lot');
+      if (stored) {
+        savedBannerTemplates = JSON.parse(stored);
+      } else {
+        savedBannerTemplates = [];
+      }
+    } catch (error) {
+      console.error('Error loading banner templates:', error);
+      savedBannerTemplates = [];
+    }
+  }
+
+  // Open template selector for bulk banner generation
+  function openBannerTemplateSelector() {
+    if (selectedLots.size === 0) {
+      alert('Please select at least one lot');
+      return;
+    }
+    loadBannerTemplates();
+    showBannerTemplateSelector = true;
+  }
+
+  // Generate banners for all selected lots using a template
+  async function generateBannersForSelectedLots(template) {
+    if (selectedLots.size === 0) {
+      alert('Please select at least one lot');
+      return;
+    }
+
+    const templateName = template ? template.name : 'Default Settings';
+    const confirmed = confirm(`This will generate banners for ${selectedLots.size} lot(s) using ${templateName}. Continue?`);
+    if (!confirmed) return;
+
+    try {
+      generatingBanners = true;
+      showBannerTemplateSelector = false;
+      
+      const selectedLotIds = Array.from(selectedLots);
+      let successCount = 0;
+      let failCount = 0;
+
+      for (const lotId of selectedLotIds) {
+        try {
+          const lot = lots.find(l => l.id === lotId);
+          if (!lot) {
+            console.error(`Lot ${lotId} not found`);
+            failCount++;
+            continue;
+          }
+
+          // Get featured image (primary image)
+          const featuredImage = lot.images?.find(img => img.isPrimary) || lot.images?.[0];
+          if (!featuredImage) {
+            console.warn(`Lot ${lot.lotNumber} has no images, skipping`);
+            failCount++;
+            continue;
+          }
+
+          console.log(`Processing lot ${lot.lotNumber}, featured image:`, featuredImage);
+
+          // Get image URL - use the URL directly if it's already a full presigned URL
+          let imageUrl = featuredImage.url;
+          
+          // If no URL but we have a key, get presigned URL
+          if (!imageUrl && featuredImage.key) {
+            const imageUrlModule = await import('$lib/utils/imageUrl.js');
+            imageUrl = await imageUrlModule.getImageUrl(featuredImage.key);
+          }
+          
+          // Clean up double-encoded URLs and duplicate query parameters
+          if (imageUrl) {
+            // Check if URL is double-encoded (has %3F or %26)
+            if (imageUrl.includes('%3F') || imageUrl.includes('%26')) {
+              try {
+                // Decode once
+                imageUrl = decodeURIComponent(imageUrl);
+              } catch (e) {
+                console.warn('Failed to decode URL:', e);
+              }
+            }
+            
+            // Remove duplicate query parameters
+            const firstQ = imageUrl.indexOf('?');
+            if (firstQ !== -1) {
+              const secondQ = imageUrl.indexOf('?', firstQ + 1);
+              if (secondQ !== -1) {
+                // Keep only the first query string
+                imageUrl = imageUrl.substring(0, secondQ);
+              }
+            }
+          }
+          
+          if (!imageUrl) {
+            console.error(`Failed to get image URL for lot ${lot.lotNumber}`);
+            failCount++;
+            continue;
+          }
+
+          console.log(`Using image URL for lot ${lot.lotNumber}:`, imageUrl.substring(0, 100) + '...');
+
+          // Generate banner using template settings (or default if no template)
+          const bannerDataUrl = await generateBannerFromTemplate(template || null, lot, imageUrl);
+          
+          if (!bannerDataUrl) {
+            console.error(`Failed to generate banner for lot ${lot.lotNumber}`);
+            failCount++;
+            continue;
+          }
+
+          console.log(`Generated banner for lot ${lot.lotNumber}, saving...`);
+
+          // Save banner to lot
+          await saveBannerToLot(lotId, bannerDataUrl);
+          
+          console.log(`Successfully saved banner for lot ${lot.lotNumber}`);
+          successCount++;
+          
+          // Small delay between lots
+          await new Promise(resolve => setTimeout(resolve, 500));
+        } catch (error) {
+          console.error(`Failed to generate banner for lot ${lotId}:`, error);
+          console.error('Error details:', error.stack);
+          failCount++;
+        }
+      }
+
+      // Reload data to show new banners
+      await loadData();
+
+      alert(`Banner generation complete!\nSuccess: ${successCount}\nFailed: ${failCount}`);
+    } catch (error) {
+      console.error('Error generating banners:', error);
+      alert(`Failed to generate banners: ${error.message}`);
+    } finally {
+      generatingBanners = false;
+    }
+  }
+
+  // Generate a banner from a template (or default settings if template is null)
+  async function generateBannerFromTemplate(template, lot, imageUrl) {
+    // Default settings if no template
+    const defaultSettings = {
+      width: 1559,
+      height: 945,
+      backgroundType: 'solid',
+      backgroundColor: '#F5F1E8',
+      imageLayout: 'right',
+      textImageRatio: 0.4,
+      textColor: '#2C1810',
+      textAlign: 'center',
+      textBackground: 'rgba(245, 241, 232, 0.95)',
+      textBackgroundOpacity: 0.95,
+      padding: 30,
+      fontSize: 42,
+      fontFamily: 'Cormorant Garamond, Times New Roman, serif',
+      titleEnglishFontSize: 48,
+      subtitleEnglishFontSize: 28
+    };
+    
+    const settings = template?.settings || defaultSettings;
+    
+    // Default banner dimensions
+    const width = settings.width || 1559;
+    const height = settings.height || 945;
+
+    const canvas = document.createElement('canvas');
+    canvas.width = width;
+    canvas.height = height;
+    const ctx = canvas.getContext('2d');
+
+    // Draw background
+    if (settings.backgroundType === 'solid') {
+      ctx.fillStyle = settings.backgroundColor || '#F5F1E8';
+      ctx.fillRect(0, 0, width, height);
+    } else if (settings.backgroundType === 'gradient') {
+      const grad = ctx.createLinearGradient(0, 0, width, height);
+      const colors = settings.backgroundGradient?.colors || ['#F5F1E8', '#E8E0D0'];
+      const stops = settings.backgroundGradient?.stops || [0, 100];
+      colors.forEach((color, i) => {
+        grad.addColorStop(stops[i] / 100, color);
+      });
+      ctx.fillStyle = grad;
+      ctx.fillRect(0, 0, width, height);
+    } else {
+      ctx.fillStyle = settings.backgroundColor || '#F5F1E8';
+      ctx.fillRect(0, 0, width, height);
+    }
+
+    // Calculate text area based on layout
+    const imageLayout = settings.imageLayout || 'right';
+    const textImageRatio = settings.textImageRatio || 0.4;
+    let textAreaWidth, textAreaX, textAreaY;
+    
+    if (imageLayout === 'right') {
+      textAreaWidth = width * textImageRatio;
+      textAreaX = 0;
+      textAreaY = 0;
+    } else if (imageLayout === 'left') {
+      textAreaWidth = width * textImageRatio;
+      textAreaX = width - textAreaWidth;
+      textAreaY = 0;
+    } else if (imageLayout === 'full' || imageLayout === 'center') {
+      textAreaWidth = width;
+      textAreaX = 0;
+      textAreaY = 0;
+    } else {
+      textAreaWidth = width * textImageRatio;
+      textAreaX = 0;
+      textAreaY = 0;
+    }
+
+    // Draw image
+    if (imageUrl) {
+      try {
+        console.log('Loading image for banner:', imageUrl.substring(0, 100) + '...');
+        // Use proxy for CORS
+        const proxyUrl = `/api/images/proxy?url=${encodeURIComponent(imageUrl)}`;
+        const response = await fetch(proxyUrl);
+        if (!response.ok) {
+          const errorText = await response.text();
+          console.error('Proxy response error:', response.status, errorText);
+          throw new Error(`Failed to load image: ${response.status}`);
+        }
+        
+        const blob = await response.blob();
+        const blobUrl = URL.createObjectURL(blob);
+        
+        await new Promise((resolve, reject) => {
+          const img = new Image();
+          img.onload = () => {
+            console.log('Image loaded, dimensions:', img.width, 'x', img.height);
+            
+            if (imageLayout === 'right') {
+              const imageWidth = width * (1 - textImageRatio);
+              const imageX = width * textImageRatio;
+              // Scale to cover height while maintaining aspect ratio
+              const scale = Math.max(imageWidth / img.width, height / img.height);
+              const scaledWidth = img.width * scale;
+              const scaledHeight = img.height * scale;
+              const offsetX = imageX + (imageWidth - scaledWidth) / 2;
+              const offsetY = (height - scaledHeight) / 2;
+              ctx.drawImage(img, offsetX, offsetY, scaledWidth, scaledHeight);
+            } else if (imageLayout === 'left') {
+              const imageWidth = width * (1 - textImageRatio);
+              const scale = Math.max(imageWidth / img.width, height / img.height);
+              const scaledWidth = img.width * scale;
+              const scaledHeight = img.height * scale;
+              const offsetX = (imageWidth - scaledWidth) / 2;
+              const offsetY = (height - scaledHeight) / 2;
+              ctx.drawImage(img, offsetX, offsetY, scaledWidth, scaledHeight);
+            } else if (imageLayout === 'full' || imageLayout === 'center') {
+              // Full background image
+              const scale = Math.max(width / img.width, height / img.height);
+              const scaledWidth = img.width * scale;
+              const scaledHeight = img.height * scale;
+              const offsetX = (width - scaledWidth) / 2;
+              const offsetY = (height - scaledHeight) / 2;
+              ctx.drawImage(img, offsetX, offsetY, scaledWidth, scaledHeight);
+            }
+            
+            URL.revokeObjectURL(blobUrl);
+            console.log('Image drawn to canvas');
+            resolve();
+          };
+          img.onerror = (error) => {
+            console.error('Image load error:', error);
+            URL.revokeObjectURL(blobUrl);
+            reject(new Error('Failed to load image'));
+          };
+          img.src = blobUrl;
+        });
+      } catch (error) {
+        console.error('Error loading image for banner:', error);
+        // Continue without image - banner will still be generated with text only
+      }
+    }
+
+    // Draw text background
+    if (settings.textBackground && settings.textBackgroundOpacity > 0) {
+      ctx.save();
+      ctx.fillStyle = settings.textBackground;
+      ctx.globalAlpha = settings.textBackgroundOpacity;
+      ctx.fillRect(textAreaX, textAreaY, textAreaWidth, height);
+      ctx.globalAlpha = 1.0;
+      ctx.restore();
+    }
+
+    // Draw text
+    ctx.fillStyle = settings.textColor || '#2C1810';
+    ctx.textBaseline = 'top';
+    
+    const padding = settings.padding || 30;
+    const centerX = textAreaX + textAreaWidth / 2;
+    const leftX = textAreaX + padding;
+    const rightX = textAreaX + textAreaWidth - padding;
+    const maxTextWidth = textAreaWidth - (padding * 2);
+    let currentY = height * 0.2;
+
+    // Title (English)
+    if (lot.title) {
+      const fontSize = settings.titleEnglishFontSize || 48;
+      const textAlign = settings.titleEnglishAlign || settings.textAlign || 'center';
+      const textX = textAlign === 'center' ? centerX : 
+                    textAlign === 'right' ? rightX : leftX;
+      
+      ctx.font = `bold ${fontSize}px ${settings.fontFamily || 'Cormorant Garamond, Times New Roman, serif'}`;
+      ctx.textAlign = textAlign;
+      
+      // Word wrap text
+      const words = lot.title.split(' ');
+      let line = '';
+      const lineHeight = fontSize * 1.3;
+      
+      for (let n = 0; n < words.length; n++) {
+        const testLine = line + words[n] + ' ';
+        const metrics = ctx.measureText(testLine);
+        if (metrics.width > maxTextWidth && n > 0) {
+          ctx.fillText(line, textX, currentY, maxTextWidth);
+          line = words[n] + ' ';
+          currentY += lineHeight;
+        } else {
+          line = testLine;
+        }
+      }
+      ctx.fillText(line, textX, currentY, maxTextWidth);
+      currentY += lineHeight * 1.5;
+    }
+
+    // Subtitle/Description (English)
+    if (lot.description) {
+      const fontSize = settings.subtitleEnglishFontSize || 28;
+      const textAlign = settings.subtitleEnglishAlign || settings.textAlign || 'center';
+      const textX = textAlign === 'center' ? centerX : 
+                    textAlign === 'right' ? rightX : leftX;
+      
+      ctx.font = `${fontSize}px ${settings.fontFamily || 'Cormorant Garamond, Times New Roman, serif'}`;
+      ctx.textAlign = textAlign;
+      
+      // Word wrap description
+      const words = lot.description.split(' ');
+      let line = '';
+      const lineHeight = fontSize * 1.2;
+      const maxLines = 4;
+      let lineCount = 0;
+      
+      for (let n = 0; n < words.length && lineCount < maxLines; n++) {
+        const testLine = line + words[n] + ' ';
+        const metrics = ctx.measureText(testLine);
+        if (metrics.width > maxTextWidth && n > 0) {
+          ctx.fillText(line, textX, currentY, maxTextWidth);
+          line = words[n] + ' ';
+          currentY += lineHeight;
+          lineCount++;
+        } else {
+          line = testLine;
+        }
+      }
+      if (lineCount < maxLines) {
+        ctx.fillText(line, textX, currentY, maxTextWidth);
+      }
+    }
+
+    return canvas.toDataURL('image/png');
+  }
+
+  // Save banner to lot
+  async function saveBannerToLot(lotId, bannerDataUrl) {
+    try {
+      // Convert base64 to Blob
+      const base64Data = bannerDataUrl.split(',')[1];
+      if (!base64Data) {
+        throw new Error('Invalid banner data URL');
+      }
+      
+      const binaryString = atob(base64Data);
+      const bytes = new Uint8Array(binaryString.length);
+      for (let i = 0; i < binaryString.length; i++) {
+        bytes[i] = binaryString.charCodeAt(i);
+      }
+      const blob = new Blob([bytes], { type: 'image/png' });
+      const file = new File([blob], `banner-${lotId}-${Date.now()}.png`, { type: 'image/png' });
+
+      console.log(`Uploading banner file for lot ${lotId}, size: ${file.size} bytes`);
+
+      // Upload the banner image
+      const uploadFormData = new FormData();
+      uploadFormData.append('files', file);
+      uploadFormData.append('lotId', lotId);
+
+      const uploadResponse = await fetch('/api/upload/image', {
+        method: 'POST',
+        body: uploadFormData
+      });
+
+      if (!uploadResponse.ok) {
+        const errorText = await uploadResponse.text();
+        console.error('Upload response error:', errorText);
+        throw new Error(`Failed to upload banner image: ${uploadResponse.status} ${errorText}`);
+      }
+
+      const uploadResult = await uploadResponse.json();
+      console.log('Upload result:', uploadResult);
+      
+      const uploadedImages = uploadResult.images;
+      if (!uploadedImages || uploadedImages.length === 0) {
+        throw new Error('No images returned from upload');
+      }
+
+      console.log(`Uploaded ${uploadedImages.length} image(s), saving to database...`);
+
+      // Create image record in database
+      const imageResponse = await fetch(`/api/lots/${lotId}/images`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          images: uploadedImages.map((img) => ({
+            url: img.url,
+            key: img.key,
+            displayOrder: 0,
+            isPrimary: false
+          }))
+        })
+      });
+
+      if (!imageResponse.ok) {
+        const errorText = await imageResponse.text();
+        console.error('Image save response error:', errorText);
+        throw new Error(`Failed to save image record: ${imageResponse.status} ${errorText}`);
+      }
+
+      const saveResult = await imageResponse.json();
+      console.log('Image save result:', saveResult);
+    } catch (error) {
+      console.error(`Error in saveBannerToLot for lot ${lotId}:`, error);
+      throw error;
+    }
+  }
+
   function openImageModal(lotId) {
     const lot = lots.find(l => l.id === lotId);
     if (!lot) return;
@@ -906,7 +1852,8 @@
       const updatedImages = images.map((img, index) => ({
         id: img.id,
         displayOrder: index,
-        isPrimary: img.isPrimary || false
+        isPrimary: img.isPrimary || false,
+        isHidden: img.isHidden || false
       }));
       
       // Save to database
@@ -1014,6 +1961,37 @@
     }
   }
   
+  async function toggleImageHidden(lotId, imageId, currentHiddenState) {
+    try {
+      const lot = lots.find(l => l.id === lotId);
+      if (!lot || !lot.images) return;
+      
+      const images = lot.images.map(img => ({
+        id: img.id,
+        displayOrder: img.displayOrder || 0,
+        isPrimary: img.isPrimary || false,
+        isHidden: img.id === imageId ? !currentHiddenState : (img.isHidden || false)
+      }));
+      
+      // Save to database
+      const response = await fetch(`/api/lots/${lotId}/images`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ images })
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to update image');
+      }
+
+      // Reload lot data to get updated images
+      await loadData();
+    } catch (error) {
+      console.error('Error toggling image hidden state:', error);
+      alert('Failed to update image. Please try again.');
+    }
+  }
+  
   async function setFeaturedImage(lotId, imageId) {
     try {
       const lot = lots.find(l => l.id === lotId);
@@ -1027,7 +2005,8 @@
       const images = lot.images.map(img => ({
         id: img.id,
         displayOrder: img.displayOrder || 0,
-        isPrimary: img.id === imageId ? !isCurrentlyPrimary : false
+        isPrimary: img.id === imageId ? !isCurrentlyPrimary : false,
+        isHidden: img.isHidden || false
       }));
       
       // Save to database
@@ -1338,7 +2317,7 @@
   <title>Advanced Lot Management - {auction?.title || 'Loading...'}</title>
 </svelte:head>
 
-<div class="min-h-screen bg-gray-50 py-6">
+<div class="min-h-screen bg-gray-50 py-6 print:bg-white">
   <div class="max-w-[95vw] mx-auto px-4">
     {#if loading}
       <div class="text-center py-12">
@@ -1347,7 +2326,7 @@
       </div>
     {:else if auction}
       <!-- Header -->
-      <div class="bg-white rounded-lg shadow-lg p-6 mb-6">
+      <div class="bg-white rounded-lg shadow-lg p-6 mb-6 print:hidden">
         <div class="flex items-center justify-between mb-4">
           <div>
             <h1 class="text-3xl font-bold text-gray-900">Advanced Lot Management</h1>
@@ -1410,6 +2389,14 @@
             </button>
             {#if selectedLots.size > 0}
               <button
+                onclick={openBannerTemplateSelector}
+                disabled={generatingBanners}
+                class="px-4 py-2 text-sm font-medium text-white bg-purple-600 rounded-lg hover:bg-purple-700 disabled:opacity-50 disabled:cursor-not-allowed"
+                title="Generate banners for selected lots using a template"
+              >
+                {generatingBanners ? '⏳ Generating...' : '🎨 Generate Banners (' + selectedLots.size + ')'}
+              </button>
+              <button
                 onclick={deleteLots}
                 class="px-4 py-2 text-sm font-medium text-white bg-red-600 rounded-lg hover:bg-red-700"
               >
@@ -1438,10 +2425,120 @@
             <span>Valid</span>
           </div>
         </div>
+
+        <!-- Column Visibility & View Management -->
+        <div class="flex items-center gap-2">
+          <div class="relative">
+            <button
+              type="button"
+              onclick={(e) => { e.stopPropagation(); showColumnSettings = !showColumnSettings; }}
+              class="px-3 py-1.5 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 flex items-center gap-2"
+            >
+              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"></path>
+              </svg>
+              Columns
+            </button>
+            {#if showColumnSettings}
+              <div class="absolute left-0 mt-2 w-64 bg-white border border-gray-300 rounded-lg shadow-lg z-50 p-3" onclick={(e) => e.stopPropagation()}>
+                <div class="text-xs font-semibold text-gray-700 mb-2">Show/Hide Columns</div>
+                <div class="space-y-1 max-h-64 overflow-y-auto">
+                  {#each columnDefinitions as col}
+                    <label class="flex items-center gap-2 p-1 hover:bg-gray-50 rounded cursor-pointer {col.alwaysVisible ? 'opacity-50' : ''}">
+                      <input
+                        type="checkbox"
+                        checked={columnVisibility[col.key]}
+                        disabled={col.alwaysVisible}
+                        onchange={() => toggleColumn(col.key)}
+                        class="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
+                      />
+                      <span class="text-xs text-gray-700">{col.label}</span>
+                    </label>
+                  {/each}
+                </div>
+              </div>
+            {/if}
+          </div>
+
+          <div class="relative">
+            <button
+              type="button"
+              onclick={(e) => { e.stopPropagation(); showViewManager = !showViewManager; }}
+              class="px-3 py-1.5 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 flex items-center gap-2"
+            >
+              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
+              </svg>
+              {currentViewName}
+            </button>
+            {#if showViewManager}
+              <div class="absolute left-0 mt-2 w-72 bg-white border border-gray-300 rounded-lg shadow-lg z-50 p-3" onclick={(e) => e.stopPropagation()}>
+                <div class="text-xs font-semibold text-gray-700 mb-2">Saved Views</div>
+                <div class="space-y-2 mb-3 max-h-48 overflow-y-auto">
+                  {#each savedViews as view}
+                    <div class="flex items-center justify-between p-2 bg-gray-50 rounded hover:bg-gray-100">
+                      <div class="flex items-center gap-2 flex-1">
+                        {#if view.isDefault}
+                          <span class="text-xs font-semibold text-blue-600">★</span>
+                        {/if}
+                        <button
+                          onclick={() => loadView(view)}
+                          class="text-xs text-gray-700 hover:text-blue-600 flex-1 text-left"
+                        >
+                          {view.name}
+                        </button>
+                      </div>
+                      <div class="flex items-center gap-1">
+                        {#if !view.isDefault}
+                          <button
+                            onclick={() => setDefaultView(view.id)}
+                            class="text-xs text-gray-500 hover:text-blue-600"
+                            title="Set as default"
+                          >
+                            ⭐
+                          </button>
+                        {/if}
+                        <button
+                          onclick={() => deleteView(view.id)}
+                          class="text-xs text-red-500 hover:text-red-700"
+                          title="Delete view"
+                        >
+                          ✕
+                        </button>
+                      </div>
+                    </div>
+                  {/each}
+                </div>
+                <div class="border-t border-gray-200 pt-3">
+                  <div class="text-xs font-semibold text-gray-700 mb-2">Save Current View</div>
+                  <div class="flex gap-2">
+                    <input
+                      type="text"
+                      bind:value={newViewName}
+                      placeholder="View name..."
+                      class="flex-1 px-2 py-1 text-xs border border-gray-300 rounded focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                      onkeydown={(e) => {
+                        if (e.key === 'Enter') {
+                          saveCurrentView();
+                        }
+                      }}
+                    />
+                    <button
+                      onclick={saveCurrentView}
+                      class="px-3 py-1 text-xs font-medium text-white bg-blue-600 rounded hover:bg-blue-700"
+                    >
+                      Save
+                    </button>
+                  </div>
+                </div>
+              </div>
+            {/if}
+          </div>
+        </div>
       </div>
 
       <!-- Spreadsheet Table -->
-      <div class="bg-white rounded-lg shadow-lg overflow-hidden">
+      <div class="bg-white rounded-lg shadow-lg overflow-hidden print:hidden">
         {#if lots.length === 0}
           <div class="p-12 text-center">
             <p class="text-gray-600 text-lg mb-4">No lots found for this auction.</p>
@@ -1457,7 +2554,7 @@
             <table class="min-w-full divide-y divide-gray-200">
             <thead class="bg-gray-50 sticky top-0 z-10">
               <tr>
-                <th class="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-12">
+                <th class="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-12 {columnVisibility.checkbox ? '' : 'hidden'}">
                   <input
                     type="checkbox"
                     checked={selectedLots.size === lots.length && lots.length > 0}
@@ -1465,31 +2562,35 @@
                     class="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
                   />
                 </th>
-                <th class="px-1 py-1 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-8">Pos</th>
-                <th class="px-1 py-1 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-8">Lot</th>
-                <th class="px-2 py-1 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-20">Images</th>
-                <th class="px-2 py-1 text-left text-xs font-medium text-gray-500 uppercase tracking-wider min-w-[250px]">Title & Description</th>
-                <th class="px-2 py-1 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-40">Category</th>
-                <th class="px-2 py-1 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-28">Bids</th>
-                <th class="px-2 py-1 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-28 {editingCell && (editingCell.field === 'startingBid' || editingCell.field === 'currentBid' || editingCell.field === 'bidIncrement') ? '' : 'hidden'}">Increment</th>
-                <th class="px-2 py-1 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-16">Status</th>
-                <th class="px-2 py-1 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-20">Watchers</th>
-                <th class="px-2 py-1 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-16">Ready</th>
-                <th class="px-2 py-1 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-32">End Time</th>
-                <th class="px-2 py-1 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-24">Actions</th>
+                <th class="px-1 py-1 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-8 {columnVisibility.dragHandle ? '' : 'hidden'}"></th>
+                <th class="px-1 py-1 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-8 {columnVisibility.position ? '' : 'hidden'}">Pos</th>
+                <th class="px-1 py-1 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-8 {columnVisibility.lotNumber ? '' : 'hidden'}">Lot</th>
+                <th class="px-2 py-1 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-20 {columnVisibility.images ? '' : 'hidden'}">Images</th>
+                <th class="px-2 py-1 text-left text-xs font-medium text-gray-500 uppercase tracking-wider min-w-[200px] {columnVisibility.title ? '' : 'hidden'}">Title</th>
+                <th class="px-2 py-1 text-left text-xs font-medium text-gray-500 uppercase tracking-wider min-w-[200px] {columnVisibility.description ? '' : 'hidden'}">Description</th>
+                <th class="px-2 py-1 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-40 {columnVisibility.hebrewTitle ? '' : 'hidden'}">Hebrew Title</th>
+                <th class="px-2 py-1 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-40 {columnVisibility.hebrewDescription ? '' : 'hidden'}">Hebrew Description</th>
+                <th class="px-2 py-1 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-24 {columnVisibility.yearEnglish ? '' : 'hidden'}">Year (EN)</th>
+                <th class="px-2 py-1 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-24 {columnVisibility.yearHebrew ? '' : 'hidden'}">Year (HE)</th>
+                <th class="px-2 py-1 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-40 {columnVisibility.category ? '' : 'hidden'}">Category</th>
+                <th class="px-2 py-1 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-28 {columnVisibility.bids ? '' : 'hidden'}">Bids</th>
+                <th class="px-2 py-1 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-28 {columnVisibility.increment && (editingCell && (editingCell.field === 'startingBid' || editingCell.field === 'currentBid' || editingCell.field === 'bidIncrement')) ? '' : 'hidden'}">Increment</th>
+                <th class="px-2 py-1 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-16 {columnVisibility.status ? '' : 'hidden'}">Status</th>
+                <th class="px-2 py-1 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-20 {columnVisibility.watchers ? '' : 'hidden'}">Watchers</th>
+                <th class="px-2 py-1 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-16 {columnVisibility.ready ? '' : 'hidden'}">Ready</th>
+                <th class="px-2 py-1 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-32 {columnVisibility.endTime ? '' : 'hidden'}">End Time</th>
+                <th class="px-2 py-1 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-24 {columnVisibility.actions ? '' : 'hidden'}">Actions</th>
               </tr>
             </thead>
             <tbody class="bg-white divide-y divide-gray-200">
               {#each lots as lot, index (lot.id)}
                 <tr 
-                  class="{getLotRowClass(lot)} hover:bg-gray-50 transition-colors cursor-move"
-                  draggable="true"
-                  ondragstart={() => handleDragStart(lot)}
+                  class="{getLotRowClass(lot)} hover:bg-gray-50 transition-colors"
                   ondragover={(e) => handleDragOver(e, lot)}
                   ondragend={handleDragEnd}
                 >
                   <!-- Checkbox -->
-                  <td class="px-2 py-1 whitespace-nowrap">
+                  <td class="px-2 py-1 whitespace-nowrap {columnVisibility.checkbox ? '' : 'hidden'}">
                     <input
                       type="checkbox"
                       checked={selectedLots.has(lot.id)}
@@ -1499,8 +2600,22 @@
                     />
                   </td>
                   
+                  <!-- Drag Handle -->
+                  <td class="px-1 py-1 whitespace-nowrap {columnVisibility.dragHandle ? '' : 'hidden'}">
+                    <div
+                      draggable="true"
+                      ondragstart={(e) => handleDragStart(e, lot)}
+                      class="cursor-move text-gray-400 hover:text-gray-600 flex items-center justify-center"
+                      title="Drag to reorder"
+                    >
+                      <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 8h16M4 16h16"></path>
+                      </svg>
+                    </div>
+                  </td>
+                  
                   <!-- Position -->
-                  <td class="px-1 py-1 whitespace-nowrap">
+                  <td class="px-1 py-1 whitespace-nowrap {columnVisibility.position ? '' : 'hidden'}">
                     <div class="flex items-center gap-0.5">
                       <span class="text-xs font-semibold text-blue-600">{lot.position || index + 1}</span>
                       <div class="flex flex-col">
@@ -1525,7 +2640,7 @@
                   </td>
                   
                   <!-- Lot Number -->
-                  <td class="px-1 py-1 whitespace-nowrap">
+                  <td class="px-1 py-1 whitespace-nowrap {columnVisibility.lotNumber ? '' : 'hidden'}">
                     {#if editingCell?.lotId === lot.id && editingCell?.field === 'lotNumber'}
                       <input
                         type="number"
@@ -1546,10 +2661,12 @@
                   </td>
                   
                   <!-- Images -->
-                  <td class="px-2 py-1">
+                  <td class="px-2 py-1 {columnVisibility.images ? '' : 'hidden'}">
+                    {#if true}
+                      {@const visibleImages = getLotImages(lot, false)}
                     <div class="flex items-center gap-1">
                       <div class="flex items-center gap-1 overflow-x-auto max-w-[80px]">
-                        {#each (lot._images || []).slice(0, 1) as image, i}
+                          {#each visibleImages.slice(0, 1) as image, i}
                           <img
                             src={image}
                             alt="Lot image {i + 1}"
@@ -1557,14 +2674,14 @@
                             onclick={() => toggleImageRow(lot.id)}
                           />
                         {/each}
-                        {#if (lot._images || []).length === 0}
+                        {#if visibleImages.length === 0}
                           <div class="w-8 h-8 bg-gray-100 rounded border border-gray-300 flex items-center justify-center text-[10px] text-gray-400 flex-shrink-0">
                             -
                           </div>
                         {/if}
-                        {#if (lot._images || []).length > 2}
-                          <div class="w-8 h-8 bg-gray-800 bg-opacity-75 rounded border border-gray-300 flex items-center justify-center text-[10px] text-white flex-shrink-0" title="+{(lot._images || []).length - 2} more">
-                            +{(lot._images || []).length - 2}
+                          {#if visibleImages.length > 2}
+                            <div class="w-8 h-8 bg-gray-800 bg-opacity-75 rounded border border-gray-300 flex items-center justify-center text-[10px] text-white flex-shrink-0" title="+{visibleImages.length - 2} more">
+                              +{visibleImages.length - 2}
                           </div>
                         {/if}
                       </div>
@@ -1576,13 +2693,11 @@
                         {expandedImageRows.has(lot.id) ? '✕' : '⋯'}
                       </button>
                     </div>
+                    {/if}
                   </td>
                   
-                  <!-- Title & Description -->
-                  <td class="px-2 py-1">
-                    <div class="space-y-0.5">
                       <!-- Title -->
-                      <div>
+                  <td class="px-2 py-1 {columnVisibility.title ? '' : 'hidden'}">
                         {#if editingCell?.lotId === lot.id && editingCell?.field === 'title'}
                           <input
                             type="text"
@@ -1604,9 +2719,10 @@
                             {/if}
                           </span>
                         {/if}
-                      </div>
+                  </td>
+                  
                       <!-- Description -->
-                      <div>
+                  <td class="px-2 py-1 {columnVisibility.description ? '' : 'hidden'}">
                         {#if editingCell?.lotId === lot.id && editingCell?.field === 'description'}
                           <textarea
                             bind:value={editingCell.value}
@@ -1628,12 +2744,123 @@
                             {/if}
                           </span>
                         {/if}
-                      </div>
-                    </div>
+                  </td>
+                  
+                  <!-- Hebrew Title -->
+                  <td class="px-2 py-1 {columnVisibility.hebrewTitle ? '' : 'hidden'}">
+                    {#if editingCell?.lotId === lot.id && editingCell?.field === 'hebrewTitle'}
+                      <input
+                        type="text"
+                        bind:value={editingCell.value}
+                        onblur={() => saveCell(lot.id, 'hebrewTitle', editingCell.value)}
+                        onkeydown={(e) => handleKeydown(e, lot.id, 'hebrewTitle', editingCell.value)}
+                        class="w-full px-1 py-0.5 text-xs border-2 border-blue-500 rounded focus:outline-none"
+                        autofocus
+                      />
+                    {:else}
+                      <span
+                        ondblclick={() => startEdit(lot.id, 'hebrewTitle', lot.hebrewTitle || lot.HebrewTitle || '')}
+                        class="cursor-pointer hover:bg-blue-50 px-1 py-0.5 rounded block text-xs font-medium"
+                        style="direction: rtl; text-align: right;"
+                      >
+                        {#if lot.hebrewTitle || lot.HebrewTitle}
+                          {lot.hebrewTitle || lot.HebrewTitle}
+                        {:else}
+                          <span class="text-gray-400 italic">Double-click to edit</span>
+                        {/if}
+                      </span>
+                    {/if}
+                  </td>
+                  
+                  <!-- Hebrew Description -->
+                  <td class="px-2 py-1 {columnVisibility.hebrewDescription ? '' : 'hidden'}">
+                    {#if editingCell?.lotId === lot.id && editingCell?.field === 'hebrewDescription'}
+                      <textarea
+                        bind:value={editingCell.value}
+                        onblur={() => saveCell(lot.id, 'hebrewDescription', editingCell.value)}
+                        onkeydown={(e) => { if (e.key === 'Escape') cancelEdit(); }}
+                        class="w-full px-1 py-1 text-xs border-2 border-blue-500 rounded focus:outline-none"
+                        rows="2"
+                        autofocus
+                        style="direction: rtl; text-align: right;"
+                      ></textarea>
+                    {:else}
+                      <span
+                        ondblclick={() => startEdit(lot.id, 'hebrewDescription', lot.hebrewDescription || lot.HebrewDescription || '')}
+                        class="cursor-pointer hover:bg-blue-50 px-1 py-1 rounded block text-xs text-gray-500"
+                        style="direction: rtl; text-align: right;"
+                      >
+                        {#if lot.hebrewDescription || lot.HebrewDescription}
+                          {lot.hebrewDescription || lot.HebrewDescription}
+                        {:else}
+                          <span class="text-gray-400 italic">Double-click to edit</span>
+                        {/if}
+                      </span>
+                    {/if}
+                  </td>
+                  
+                  <!-- Year English -->
+                  <td class="px-2 py-1 whitespace-nowrap {columnVisibility.yearEnglish ? '' : 'hidden'}">
+                    {#if editingCell?.lotId === lot.id && editingCell?.field === 'yearEnglish'}
+                      <input
+                        type="text"
+                        bind:value={editingCell.value}
+                        onblur={() => saveCell(lot.id, 'yearEnglish', editingCell.value)}
+                        onkeydown={(e) => handleKeydown(e, lot.id, 'yearEnglish', editingCell.value)}
+                        class="w-full px-1 py-0.5 text-xs border-2 border-blue-500 rounded focus:outline-none"
+                        autofocus
+                      />
+                    {:else}
+                      <span
+                        ondblclick={() => {
+                          const yearMatch = lot.title?.match(/\b(18|19|20)\d{2}\b/);
+                          const year = yearMatch ? yearMatch[0] : '';
+                          startEdit(lot.id, 'yearEnglish', year);
+                        }}
+                        class="cursor-pointer hover:bg-blue-50 px-1 py-0.5 rounded text-xs"
+                      >
+                        {#if lot.yearEnglish}
+                          {lot.yearEnglish}
+                        {:else}
+                          <span class="text-gray-400 italic">-</span>
+                        {/if}
+                      </span>
+                    {/if}
+                  </td>
+                  
+                  <!-- Year Hebrew -->
+                  <td class="px-2 py-1 whitespace-nowrap {columnVisibility.yearHebrew ? '' : 'hidden'}">
+                    {#if editingCell?.lotId === lot.id && editingCell?.field === 'yearHebrew'}
+                      <input
+                        type="text"
+                        bind:value={editingCell.value}
+                        onblur={() => saveCell(lot.id, 'yearHebrew', editingCell.value)}
+                        onkeydown={(e) => handleKeydown(e, lot.id, 'yearHebrew', editingCell.value)}
+                        class="w-full px-1 py-0.5 text-xs border-2 border-blue-500 rounded focus:outline-none"
+                        autofocus
+                        style="direction: rtl; text-align: right;"
+                      />
+                    {:else}
+                      <span
+                        ondblclick={() => {
+                          const yearMatch = lot.title?.match(/\b(18|19|20)\d{2}\b/);
+                          const year = yearMatch ? convertToHebrewYear(yearMatch[0]) : '';
+                          startEdit(lot.id, 'yearHebrew', year);
+                        }}
+                        class="cursor-pointer hover:bg-blue-50 px-1 py-0.5 rounded text-xs"
+                        style="direction: rtl; text-align: right;"
+                      >
+                        {#if lot.yearHebrew}
+                          {lot.yearHebrew}
+                        {:else}
+                          <span class="text-gray-400 italic">-</span>
+                        {/if}
+                      </span>
+                    {/if}
                   </td>
                   
                   <!-- Category with Tags below -->
-                  <td class="px-2 py-1">
+                  <td class="px-2 py-1 {columnVisibility.category ? '' : 'hidden'}">
                     <div class="space-y-1">
                       <!-- Category -->
                       <div>
@@ -1817,7 +3044,7 @@
                   </td>
                   
                   <!-- Bids (Start & Current stacked) -->
-                  <td class="px-2 py-1">
+                  <td class="px-2 py-1 {columnVisibility.bids ? '' : 'hidden'}">
                     <div class="space-y-0.5">
                       <!-- Starting Bid -->
                       <div>
@@ -1865,7 +3092,7 @@
                   </td>
                   
                   <!-- Bid Increment (hidden unless editing pricing) -->
-                  <td class="px-2 py-1 whitespace-nowrap {editingCell?.lotId === lot.id && (editingCell?.field === 'startingBid' || editingCell?.field === 'currentBid' || editingCell?.field === 'bidIncrement') ? '' : 'hidden'}">
+                  <td class="px-2 py-1 whitespace-nowrap {columnVisibility.increment && editingCell?.lotId === lot.id && (editingCell?.field === 'startingBid' || editingCell?.field === 'currentBid' || editingCell?.field === 'bidIncrement') ? '' : 'hidden'}">
                     {#if editingCell?.lotId === lot.id && editingCell?.field === 'bidIncrement'}
                       <input
                         type="number"
@@ -1887,7 +3114,7 @@
                   </td>
                   
                   <!-- Status -->
-                  <td class="px-2 py-1 whitespace-nowrap">
+                  <td class="px-2 py-1 whitespace-nowrap {columnVisibility.status ? '' : 'hidden'}">
                     {#if editingCell?.lotId === lot.id && editingCell?.field === 'status'}
                       <select
                         bind:value={editingCell.value}
@@ -1912,14 +3139,14 @@
                   </td>
                   
                   <!-- Watchers -->
-                  <td class="px-2 py-1 whitespace-nowrap text-center">
+                  <td class="px-2 py-1 whitespace-nowrap text-center {columnVisibility.watchers ? '' : 'hidden'}">
                     <span class="px-1 py-0.5 rounded text-xs font-medium text-gray-700">
                       {lot.watchersCount || 0}
                     </span>
                   </td>
                   
                   <!-- Ready Status -->
-                  <td class="px-2 py-1 whitespace-nowrap">
+                  <td class="px-2 py-1 whitespace-nowrap {columnVisibility.ready ? '' : 'hidden'}">
                     {#if editingCell?.lotId === lot.id && editingCell?.field === 'isReady'}
                       <select
                         bind:value={editingCell.value}
@@ -1953,7 +3180,7 @@
                   </td>
                   
                   <!-- End Time -->
-                  <td class="px-2 py-1 whitespace-nowrap">
+                  <td class="px-2 py-1 whitespace-nowrap {columnVisibility.endTime ? '' : 'hidden'}">
                     {#if editingCell?.lotId === lot.id && editingCell?.field === 'endTime'}
                       <input
                         type="datetime-local"
@@ -1981,7 +3208,7 @@
                   </td>
                   
                   <!-- Actions -->
-                  <td class="px-2 py-1">
+                  <td class="px-2 py-1 {columnVisibility.actions ? '' : 'hidden'}">
                     <div class="flex items-center gap-1">
                       <QuickVoiceRecorder
                         lotId={lot.id}
@@ -2000,10 +3227,33 @@
                         onclick={(e) => {
                           e.preventDefault();
                           e.stopPropagation();
+                          cleanupLot(lot.id);
+                        }}
+                        disabled={cleaningUp[lot.id]}
+                        class="p-1.5 text-blue-600 hover:text-blue-700 hover:bg-blue-50 rounded transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                        title="AI Cleanup - Clean and organize all fields"
+                        aria-label="AI Cleanup"
+                      >
+                        {#if cleaningUp[lot.id]}
+                          <svg class="w-4 h-4 animate-spin" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                          </svg>
+                        {:else}
+                          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                          </svg>
+                        {/if}
+                      </button>
+                      <button
+                        type="button"
+                        onclick={(e) => {
+                          e.preventDefault();
+                          e.stopPropagation();
                           toggleAIRow(lot.id);
                         }}
                         class="p-1.5 text-purple-600 hover:text-purple-700 hover:bg-purple-50 rounded transition-colors"
                         title="AI Tools"
+                        aria-label="AI Tools"
                       >
                         <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" />
@@ -2018,9 +3268,25 @@
                         }}
                         class="p-1.5 text-green-600 hover:text-green-700 hover:bg-green-50 rounded transition-colors"
                         title="Create Banner Image"
+                        aria-label="Create Banner Image"
                       >
                         <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                        </svg>
+                      </button>
+                      <button
+                        type="button"
+                        onclick={(e) => {
+                          e.preventDefault();
+                          e.stopPropagation();
+                          showConsignmentPDF = { lotId: lot.id };
+                        }}
+                        class="p-1.5 text-orange-600 hover:text-orange-700 hover:bg-orange-50 rounded transition-colors"
+                        title="Print Consignment Agreement"
+                        aria-label="Print Consignment Agreement"
+                      >
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z" />
                         </svg>
                       </button>
                     </div>
@@ -2122,12 +3388,31 @@
                       <div class="bg-white rounded-lg border border-gray-200 p-4">
                         <div class="flex items-center justify-between mb-4">
                           <h3 class="text-lg font-semibold text-gray-900">Image Management - Lot #{lot.lotNumber}</h3>
-                          <button
-                            onclick={() => toggleImageRow(lot.id)}
-                            class="text-gray-500 hover:text-gray-700 text-sm"
-                          >
-                            Collapse
-                          </button>
+                          <div class="flex items-center gap-3">
+                            {#if (lot.images || []).length > 0}
+                              <button
+                                onclick={() => removeBackgroundFromAllImages(lot.id)}
+                                disabled={removingBackgroundFromAll[lot.id]}
+                                class="px-3 py-1.5 text-sm font-medium bg-purple-500 text-white rounded hover:bg-purple-600 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                                title="Remove background from all images in this lot"
+                              >
+                                {removingBackgroundFromAll[lot.id] ? '⏳ Processing All...' : '🎨 Remove BG from All'}
+                              </button>
+                              <button
+                                onclick={() => deleteAllImages(lot.id)}
+                                class="px-3 py-1.5 text-sm font-medium bg-red-500 text-white rounded hover:bg-red-600 transition-colors"
+                                title="Delete all images for this lot"
+                              >
+                                🗑️ Delete All Images
+                              </button>
+                            {/if}
+                            <button
+                              onclick={() => toggleImageRow(lot.id)}
+                              class="text-gray-500 hover:text-gray-700 text-sm"
+                            >
+                              Collapse
+                            </button>
+                          </div>
                         </div>
                         
                         <!-- Current Images Grid -->
@@ -2138,8 +3423,15 @@
                             if (!a.isPrimary && b.isPrimary) return 1;
                             return (a.displayOrder || 0) - (b.displayOrder || 0);
                           })}
-                          <div class="flex flex-wrap gap-2 mb-4">
-                            {#each sortedImages as imageObj, index}
+                          {@const visibleImages = sortedImages.filter(img => !img.isHidden)}
+                          {@const hiddenImages = sortedImages.filter(img => img.isHidden)}
+                          
+                          <!-- Visible Images -->
+                          {#if visibleImages.length > 0}
+                            <div class="mb-4">
+                              <h4 class="text-sm font-medium text-gray-700 mb-2">Visible Images</h4>
+                              <div class="flex flex-wrap gap-2">
+                                {#each visibleImages as imageObj, index}
                               <div
                                 class="flex items-center gap-2 p-2 bg-white rounded border border-gray-200 hover:border-blue-400 transition-all flex-shrink-0"
                                 draggable="true"
@@ -2265,6 +3557,16 @@
                                   {imageObj.isPrimary ? '⭐ Featured' : 'Set Featured'}
                                 </button>
                                 
+                                <!-- Hide/Show Toggle -->
+                                <button
+                                  type="button"
+                                  onclick={() => toggleImageHidden(lot.id, imageObj.id, imageObj.isHidden || false)}
+                                  class="px-2 py-1 text-xs bg-gray-200 text-gray-700 rounded hover:bg-gray-300"
+                                  title="Hide image"
+                                >
+                                  🙈 Hide
+                                </button>
+                                
                                 <!-- Remove Button -->
                                 <button
                                   type="button"
@@ -2277,6 +3579,51 @@
                               </div>
                             {/each}
                           </div>
+                            </div>
+                          {/if}
+                          
+                          <!-- Hidden Images -->
+                          {#if hiddenImages.length > 0}
+                            <div class="mb-4">
+                              <h4 class="text-sm font-medium text-gray-500 mb-2">Hidden Images</h4>
+                              <div class="flex flex-wrap gap-2">
+                                {#each hiddenImages as imageObj, index}
+                                  <div
+                                    class="flex items-center gap-2 p-2 bg-gray-100 rounded border border-gray-300 hover:border-gray-400 transition-all flex-shrink-0 opacity-60"
+                                  >
+                                    <!-- Image Thumbnail -->
+                                    <div class="relative">
+                                      <img
+                                        src={imageObj.url} 
+                                        alt="Hidden image {index + 1}" 
+                                        class="w-16 h-16 object-cover rounded border border-gray-300"
+                                      />
+                                    </div>
+                                    
+                                    <!-- Hide/Show Toggle -->
+                                    <button
+                                      type="button"
+                                      onclick={() => toggleImageHidden(lot.id, imageObj.id, imageObj.isHidden || false)}
+                                      class="px-2 py-1 text-xs bg-gray-400 text-white rounded hover:bg-gray-500"
+                                      title="Show image"
+                                    >
+                                      👁️ Show
+                                    </button>
+                                    
+                                    <!-- Remove Button -->
+                                    <button
+                                      type="button"
+                                      onclick={() => removeImage(lot.id, imageObj.id)}
+                                      class="px-2 py-1 text-xs bg-red-500 text-white rounded hover:bg-red-600"
+                                      title="Remove image"
+                                    >
+                                      ✕
+                                    </button>
+                                  </div>
+                                {/each}
+                              </div>
+                            </div>
+                          {/if}
                         {:else}
                           <div class="text-center py-8 text-gray-400">
                             <p>No images uploaded yet</p>
@@ -2325,7 +3672,7 @@
 
       <!-- Image Management Modal -->
       {#if showImageModal}
-        <div class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+        <div class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4 print:hidden">
           <div class="bg-white rounded-lg shadow-xl max-w-4xl w-full max-h-[90vh] overflow-y-auto">
             <div class="p-6">
               <div class="flex items-center justify-between mb-4">
@@ -2412,7 +3759,7 @@
       <!-- Image Hover Preview -->
       {#if hoveredImage}
         <div
-          class="fixed z-[100] pointer-events-none"
+          class="fixed z-[100] pointer-events-none print:hidden"
           style="left: {hoveredImage.x}px; top: {hoveredImage.y}px; transform: translate(-50%, -100%); margin-top: -10px;"
         >
           <div class="bg-white rounded-lg shadow-2xl border-2 border-gray-300 p-2 max-w-md">
@@ -2426,9 +3773,22 @@
         </div>
       {/if}
 
+      <!-- Consignment PDF Modal -->
+      {#if showConsignmentPDF}
+        {@const selectedLot = lots.find(l => l.id === showConsignmentPDF.lotId)}
+        {#if selectedLot}
+          <ConsignmentPDF
+            lot={selectedLot}
+            {auction}
+            auctionHouse={auction?.auctionHouse || null}
+            onClose={() => showConsignmentPDF = null}
+          />
+        {/if}
+      {/if}
+
       <!-- Import Lots Modal -->
       {#if showImportModal}
-        <div class="fixed inset-0 z-50 flex items-center justify-center bg-black/40 px-4">
+        <div class="fixed inset-0 z-50 flex items-center justify-center bg-black/40 px-4 print:hidden">
           <div class="bg-white rounded-lg shadow-2xl max-w-5xl w-full max-h-[90vh] overflow-y-auto p-6 space-y-4">
             <div class="flex items-start justify-between gap-4">
               <div>
@@ -2601,6 +3961,72 @@
           }}
         />
       {/if}
+    {/if}
+
+    <!-- Banner Template Selector Modal -->
+    {#if showBannerTemplateSelector}
+      <div class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+        <div class="bg-white rounded-lg shadow-xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
+          <div class="p-6">
+            <div class="flex items-center justify-between mb-4">
+              <h2 class="text-2xl font-bold text-gray-900">Select Template for Banner Generation</h2>
+              <button
+                onclick={() => showBannerTemplateSelector = false}
+                class="text-gray-500 hover:text-gray-700"
+              >
+                ✕
+              </button>
+            </div>
+
+            <p class="text-sm text-gray-600 mb-4">
+              Generate banners for {selectedLots.size} selected lot(s) using a template. Each lot will use its featured image.
+            </p>
+
+            <div class="grid grid-cols-2 gap-4">
+              <!-- No Template / Default Option -->
+              <button
+                onclick={() => generateBannersForSelectedLots(null)}
+                class="p-4 border-2 rounded-lg hover:border-purple-500 hover:bg-purple-50 transition-colors text-left border-gray-200"
+              >
+                <h3 class="font-semibold text-gray-900 mb-1">Default Settings</h3>
+                <p class="text-xs text-gray-500">
+                  Use default banner settings (image on right, text on left)
+                </p>
+              </button>
+
+              <!-- Saved Templates -->
+              {#each savedBannerTemplates as template}
+                <button
+                  onclick={() => generateBannersForSelectedLots(template)}
+                  class="p-4 border-2 rounded-lg hover:border-purple-500 hover:bg-purple-50 transition-colors text-left {selectedBannerTemplate?.id === template.id ? 'border-purple-500 bg-purple-50' : 'border-gray-200'}"
+                >
+                  <h3 class="font-semibold text-gray-900 mb-1">{template.name}</h3>
+                  {#if template.createdAt}
+                    <p class="text-xs text-gray-500">
+                      Created: {new Date(template.createdAt).toLocaleDateString()}
+                    </p>
+                  {/if}
+                </button>
+              {/each}
+            </div>
+            
+            {#if savedBannerTemplates.length === 0}
+              <div class="mt-4 text-center text-sm text-gray-500">
+                <p>No saved templates. Create templates in the Banner Generator to use them here.</p>
+              </div>
+            {/if}
+
+            <div class="mt-6 flex justify-end gap-3">
+              <button
+                onclick={() => showBannerTemplateSelector = false}
+                class="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200"
+              >
+                Cancel
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
     {/if}
   </div>
 </div>

@@ -1,6 +1,7 @@
 import { json, error } from '@sveltejs/kit';
 import { db } from '$lib/db.js';
 import prisma from '$lib/prisma.js';
+import { deleteFile } from '$lib/services/cloudStorage.js';
 
 export async function GET({ params }) {
   const lot = await db.lots.getById(params.id);
@@ -14,6 +15,12 @@ export async function PATCH({ params, request }) {
   try {
     const updates = await request.json();
     
+    // Get existing lot to merge metaFields if needed
+    const existingLot = await db.lots.getById(params.id);
+    if (!existingLot) {
+      throw error(404, 'Lot not found');
+    }
+    
     // Handle imageUrls - if it's a string, keep it; if array, stringify it
     if (updates.imageUrls && Array.isArray(updates.imageUrls)) {
       updates.imageUrls = JSON.stringify(updates.imageUrls);
@@ -26,6 +33,53 @@ export async function PATCH({ params, request }) {
       } else if (updates.tags === '' || updates.tags === null) {
         updates.tags = null;
       }
+    }
+    
+    // Handle metaFields - merge with existing metaFields if updating
+    if (updates.metaFields !== undefined) {
+      let mergedMetaFields = {};
+      
+      // Parse existing metaFields
+      if (existingLot.metaFields) {
+        try {
+          mergedMetaFields = typeof existingLot.metaFields === 'string' 
+            ? JSON.parse(existingLot.metaFields) 
+            : existingLot.metaFields;
+        } catch (e) {
+          console.error('Error parsing existing metaFields:', e);
+          mergedMetaFields = {};
+        }
+      }
+      
+      // Parse new metaFields and merge
+      if (typeof updates.metaFields === 'string') {
+        try {
+          const newMetaFields = JSON.parse(updates.metaFields);
+          mergedMetaFields = { ...mergedMetaFields, ...newMetaFields };
+        } catch (e) {
+          console.error('Invalid metaFields JSON:', e);
+          // If invalid, keep existing metaFields
+        }
+      } else if (typeof updates.metaFields === 'object' && updates.metaFields !== null) {
+        mergedMetaFields = { ...mergedMetaFields, ...updates.metaFields };
+      } else if (updates.metaFields === '' || updates.metaFields === null) {
+        mergedMetaFields = null;
+      }
+      
+      // Convert merged metaFields back to JSON string
+      if (mergedMetaFields && Object.keys(mergedMetaFields).length > 0) {
+        updates.metaFields = JSON.stringify(mergedMetaFields);
+      } else {
+        updates.metaFields = null;
+      }
+    }
+    
+    // Handle empty strings for optional fields
+    if (updates.hebrewTitle === '') {
+      updates.hebrewTitle = null;
+    }
+    if (updates.hebrewDescription === '') {
+      updates.hebrewDescription = null;
     }
     
     // Transform status to uppercase
@@ -62,6 +116,24 @@ export async function DELETE({ params }) {
       throw error(404, 'Lot not found');
     }
     
+    // Get all images for this lot before deleting
+    const images = await prisma.lotImage.findMany({
+      where: { lotId: params.id }
+    });
+    
+    // Delete image files from cloud storage
+    for (const image of images) {
+      if (image.cloudKey) {
+        try {
+          await deleteFile(image.cloudKey, 'lots');
+        } catch (deleteError) {
+          console.warn(`Failed to delete image file ${image.cloudKey} from cloud storage:`, deleteError);
+          // Continue with deletion even if file deletion fails
+        }
+      }
+    }
+    
+    // Delete the lot (this will cascade delete all LotImage records from database)
     await prisma.lot.delete({
       where: { id: params.id }
     });

@@ -73,15 +73,30 @@
     { name: 'Playfair Display (Serif)', value: 'Playfair Display, serif' },
     { name: 'Times New Roman (Serif)', value: 'Times New Roman, serif' },
     { name: 'Georgia (Serif)', value: 'Georgia, serif' },
-    { name: 'Arial', value: 'Arial, sans-serif' }
+    { name: 'Arial (Sans-serif)', value: 'Arial, sans-serif' }
   ];
   
   const hebrewFonts = [
-    { name: 'Frank Ruhl Libre (Recommended)', value: 'Frank Ruhl Libre, serif' },
-    { name: 'Cardo (Recommended)', value: 'Cardo, serif' },
-    { name: 'David', value: 'David, Arial, sans-serif' },
-    { name: 'Heebo', value: 'Heebo, sans-serif' },
-    { name: 'Rubik', value: 'Rubik, sans-serif' }
+    { name: 'Frank Ruhl Libre (Serif, Recommended)', value: 'Frank Ruhl Libre, Times New Roman, serif' },
+    { name: 'Cardo (Serif, Recommended)', value: 'Cardo, Times New Roman, serif' },
+    { name: 'David Libre (Serif)', value: 'David Libre, Times New Roman, serif' },
+    { name: 'Noto Serif Hebrew (Serif)', value: 'Noto Serif Hebrew, Georgia, serif' },
+    { name: 'Tinos (Serif)', value: 'Tinos, Times New Roman, serif' },
+    { name: 'Suez One (Serif)', value: 'Suez One, Times New Roman, serif' },
+    { name: 'Times New Roman (Serif)', value: 'Times New Roman, serif' },
+    { name: 'Georgia (Serif)', value: 'Georgia, serif' },
+    { name: 'David (Serif)', value: 'David, Times New Roman, serif' },
+    { name: 'Miriam (Serif)', value: 'Miriam, Times New Roman, serif' },
+    { name: 'Noto Sans Hebrew (Sans-serif)', value: 'Noto Sans Hebrew, Arial, sans-serif' },
+    { name: 'Heebo (Sans-serif)', value: 'Heebo, Arial, sans-serif' },
+    { name: 'Rubik (Sans-serif)', value: 'Rubik, Arial, sans-serif' },
+    { name: 'Alef (Sans-serif)', value: 'Alef, Arial, sans-serif' },
+    { name: 'Assistant (Sans-serif)', value: 'Assistant, Arial, sans-serif' },
+    { name: 'Varela Round (Sans-serif)', value: 'Varela Round, Arial, sans-serif' },
+    { name: 'Secular One (Sans-serif)', value: 'Secular One, Arial, sans-serif' },
+    { name: 'Miriam Libre (Sans-serif)', value: 'Miriam Libre, Arial, sans-serif' },
+    { name: 'Arimo (Sans-serif)', value: 'Arimo, Arial, sans-serif' },
+    { name: 'Arial Hebrew (Sans-serif)', value: 'Arial Hebrew, Arial, sans-serif' }
   ];
   
   // Convert Gregorian year to Hebrew year format

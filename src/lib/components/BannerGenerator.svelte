@@ -4,6 +4,7 @@
   import LayoutSettings from './banner/LayoutSettings.svelte';
   import BackgroundSettings from './banner/BackgroundSettings.svelte';
   import TextContentSettings from './banner/TextContentSettings.svelte';
+  import TextElementSettings from './banner/TextElementSettings.svelte';
   import TypographySettings from './banner/TypographySettings.svelte';
   import ImageShadowSettings from './banner/ImageShadowSettings.svelte';
   import BannerPreview from './banner/BannerPreview.svelte';
@@ -29,7 +30,111 @@
   let setAsPrimaryImage = $state(false); // Checkbox to set banner as primary image
   let savingToLot = $state(false); // Track if saving banner to lot
   let bannerSettings = $state({
-    // Content
+    // Flexible Text Elements System
+    useFlexibleTextElements: false, // Toggle between old and new system
+    textElements: [
+      {
+        id: 'text1',
+        label: 'Text Element 1',
+        content: '',
+        mappedField: 'title', // Maps to lot.title, lot.hebrewTitle, etc.
+        enabled: true,
+        order: 1,
+        // Styling
+        fontSize: 66,
+        fontFamily: 'Cormorant Garamond, Times New Roman, serif',
+        language: 'english', // 'english' or 'hebrew' - determines which font family to use
+        fontWeight: 'bold', // 'normal', 'bold', '300', '400', '500', '600', '700'
+        color: '#2C1810',
+        align: 'center', // 'left', 'center', 'right'
+        // Spacing
+        marginTop: 0,
+        marginBottom: 20,
+        marginLeft: 0,
+        marginRight: 0,
+        paddingTop: 0,
+        paddingBottom: 0,
+        paddingLeft: 0,
+        paddingRight: 0,
+        lineHeight: 1.2,
+        // Position (optional - if not set, uses order)
+        positionY: null, // null = auto position by order, or specific Y position
+      },
+      {
+        id: 'text2',
+        label: 'Text Element 2',
+        content: '',
+        mappedField: 'titleHebrew',
+        enabled: true,
+        order: 2,
+        fontSize: 66,
+        fontFamily: 'Frank Ruhl Libre, Cardo, serif',
+        language: 'hebrew',
+        fontWeight: 'bold',
+        color: '#2C1810',
+        align: 'center',
+        marginTop: 0,
+        marginBottom: 20,
+        marginLeft: 0,
+        marginRight: 0,
+        paddingTop: 0,
+        paddingBottom: 0,
+        paddingLeft: 0,
+        paddingRight: 0,
+        lineHeight: 1.2,
+        positionY: null,
+      },
+      {
+        id: 'text3',
+        label: 'Text Element 3',
+        content: '',
+        mappedField: 'subtitle',
+        enabled: true,
+        order: 3,
+        fontSize: 56,
+        fontFamily: 'Cormorant Garamond, Times New Roman, serif',
+        language: 'english',
+        fontWeight: 'normal',
+        color: '#2C1810',
+        align: 'center',
+        marginTop: 0,
+        marginBottom: 10,
+        marginLeft: 0,
+        marginRight: 0,
+        paddingTop: 0,
+        paddingBottom: 0,
+        paddingLeft: 0,
+        paddingRight: 0,
+        lineHeight: 1.2,
+        positionY: null,
+      },
+      {
+        id: 'text4',
+        label: 'Text Element 4',
+        content: '',
+        mappedField: 'subtitleHebrew',
+        enabled: true,
+        order: 4,
+        fontSize: 56,
+        fontFamily: 'Frank Ruhl Libre, Cardo, serif',
+        language: 'hebrew',
+        fontWeight: 'normal',
+        color: '#2C1810',
+        align: 'center',
+        marginTop: 0,
+        marginBottom: 0,
+        marginLeft: 0,
+        marginRight: 0,
+        paddingTop: 0,
+        paddingBottom: 0,
+        paddingLeft: 0,
+        paddingRight: 0,
+        lineHeight: 1.2,
+        positionY: null,
+      },
+    ],
+    
+    // Legacy Content (for backward compatibility)
     title: '',
     titleHebrew: '',
     subtitle: '',
@@ -74,7 +179,7 @@
       colors: ['#F5F1E8', '#E8E0D0'],
       stops: [0, 100]
     },
-    backgroundPattern: 'none', // 'none', 'dots', 'lines', 'grid', 'diagonal'
+    backgroundPattern: 'none', // 'none', 'dots', 'lines', 'grid', 'diagonal', 'waves', 'circles', 'hexagons', 'crosshatch', 'herringbone', 'stars', 'noise'
     
     // Text
     fontSize: 42,
@@ -87,17 +192,17 @@
     textBackgroundOpacity: 0.95,
     
     // Per-field text settings
-    titleEnglishFontSize: 48,
+    titleEnglishFontSize: 66,
     titleEnglishAlign: 'center',
-    titleHebrewFontSize: 48,
+    titleHebrewFontSize: 66,
     titleHebrewAlign: 'center',
-    subtitleEnglishFontSize: 28,
+    subtitleEnglishFontSize: 56,
     subtitleEnglishAlign: 'center',
-    subtitleHebrewFontSize: 28,
+    subtitleHebrewFontSize: 56,
     subtitleHebrewAlign: 'center',
-    yearEnglishFontSize: 76,
+    yearEnglishFontSize: 66,
     yearEnglishAlign: 'center',
-    yearHebrewFontSize: 76,
+    yearHebrewFontSize: 66,
     yearHebrewAlign: 'center',
     
     // Ribbon
@@ -130,6 +235,46 @@
     logoSize: 100, // Logo size in pixels (width, height will maintain aspect ratio)
     logoOpacity: 1.0, // Logo opacity (0.0 to 1.0)
     logoMargin: 20, // Margin from edges in pixels
+    
+    // Watermark settings
+    showWatermark: false, // Enable background watermark
+    watermarkUseLogo: true, // If true, use logo as watermark; if false, use custom URL
+    watermarkUrl: '', // Custom watermark URL (only used if watermarkUseLogo is false)
+    watermarkSize: 300, // Watermark size in pixels
+    watermarkOpacity: 0.1, // Watermark opacity (0.0 to 1.0)
+    watermarkPosition: 'center', // 'center', 'top-left', 'top-right', 'bottom-left', 'bottom-right', 'tile'
+    watermarkRotation: 0, // Rotation in degrees
+    
+    // Separator line settings
+    separatorStyle: 'line', // 'line', 'diamond', 'circle', 'square', 'dotted', 'double'
+    separatorAlignment: 'center', // 'left', 'center', 'right'
+    separatorWidth: 60, // Width of separator in percentage of text area
+    separatorThickness: 2, // Thickness of line separator
+    separatorColor: '', // If empty, uses textColor
+    separatorMarginTop: 15, // Margin above separator in pixels
+    separatorMarginBottom: 15, // Margin below separator in pixels
+    
+    // Text separator settings
+    textSeparatorEnabled: false, // Enable text separator
+    textSeparatorStyle: 'line', // 'line', 'diamond', 'circle', 'square', 'dotted', 'double' - uses same styles as main separator
+    textSeparatorPosition: 'below-english', // 'below-english' or 'below-hebrew'
+    textSeparatorWidth: 60, // Width of separator in percentage of text area
+    textSeparatorThickness: 2, // Thickness of line separator
+    textSeparatorAlign: 'center', // 'left', 'center', 'right'
+    textSeparatorColor: '', // If empty, uses textColor
+    textSeparatorMarginTop: 10, // Margin above text separator in pixels
+    textSeparatorMarginBottom: 15, // Margin below text separator in pixels
+    
+    // Overlay stamp settings
+    showOverlayStamp: false,
+    overlayStampUrl: '', // URL or library image
+    overlayStampPosition: 'center', // 'top-left', 'top-center', 'top-right', 'center', 'bottom-left', 'bottom-center', 'bottom-right', 'custom'
+    overlayStampX: 50, // Custom X position in percentage (0-100)
+    overlayStampY: 50, // Custom Y position in percentage (0-100)
+    overlayStampSize: 200, // Size in pixels
+    overlayStampRotation: 0, // Rotation in degrees
+    overlayStampOpacity: 0.5, // Opacity (0.0 to 1.0)
+    overlayStampAlignment: 'center', // 'top-left', 'top-center', 'top-right', 'center', 'bottom-left', 'bottom-center', 'bottom-right'
   });
   
   let generatedBannerUrl = $state(null);
@@ -155,56 +300,68 @@
     background: true,
     textContent: true,
     typography: true,
+    separator: true,
+    overlayStamp: true,
     imageShadows: true,
-    logo: true
+    logo: true,
+    watermark: true
   });
+  
+  let overlayStampSource = $state('url'); // 'url' or 'library'
 
   // Available fonts
   const fonts = [
-    { name: 'Cormorant Garamond', value: 'Cormorant Garamond, Times New Roman, serif' },
-    { name: 'Playfair Display', value: 'Playfair Display, serif' },
-    { name: 'Lora', value: 'Lora, serif' },
-    { name: 'Merriweather', value: 'Merriweather, serif' },
-    { name: 'Georgia', value: 'Georgia, serif' },
-    { name: 'Times New Roman', value: 'Times New Roman, serif' },
-    { name: 'Crimson Text', value: 'Crimson Text, serif' },
-    { name: 'Libre Baskerville', value: 'Libre Baskerville, serif' },
-    { name: 'EB Garamond', value: 'EB Garamond, serif' },
-    { name: 'Bitter', value: 'Bitter, serif' },
-    { name: 'Cinzel', value: 'Cinzel, serif' },
-    { name: 'Raleway', value: 'Raleway, sans-serif' },
-    { name: 'Open Sans', value: 'Open Sans, sans-serif' },
-    { name: 'Roboto', value: 'Roboto, sans-serif' },
-    { name: 'Lato', value: 'Lato, sans-serif' },
-    { name: 'Montserrat', value: 'Montserrat, sans-serif' },
-    { name: 'Poppins', value: 'Poppins, sans-serif' },
-    { name: 'Inter', value: 'Inter, sans-serif' },
-    { name: 'Source Sans Pro', value: 'Source Sans Pro, sans-serif' },
-    { name: 'Nunito', value: 'Nunito, sans-serif' },
-    { name: 'Oswald', value: 'Oswald, sans-serif' },
-    { name: 'Roboto Slab', value: 'Roboto Slab, serif' },
-    { name: 'PT Serif', value: 'PT Serif, serif' },
-    { name: 'Abril Fatface', value: 'Abril Fatface, cursive' },
-    { name: 'Pacifico', value: 'Pacifico, cursive' }
+    { name: 'Cormorant Garamond (Serif)', value: 'Cormorant Garamond, Times New Roman, serif' },
+    { name: 'Playfair Display (Serif)', value: 'Playfair Display, serif' },
+    { name: 'Lora (Serif)', value: 'Lora, serif' },
+    { name: 'Merriweather (Serif)', value: 'Merriweather, serif' },
+    { name: 'Georgia (Serif)', value: 'Georgia, serif' },
+    { name: 'Times New Roman (Serif)', value: 'Times New Roman, serif' },
+    { name: 'Crimson Text (Serif)', value: 'Crimson Text, serif' },
+    { name: 'Libre Baskerville (Serif)', value: 'Libre Baskerville, serif' },
+    { name: 'EB Garamond (Serif)', value: 'EB Garamond, serif' },
+    { name: 'Bitter (Serif)', value: 'Bitter, serif' },
+    { name: 'Cinzel (Serif)', value: 'Cinzel, serif' },
+    { name: 'Roboto Slab (Serif)', value: 'Roboto Slab, serif' },
+    { name: 'PT Serif (Serif)', value: 'PT Serif, serif' },
+    { name: 'Raleway (Sans-serif)', value: 'Raleway, sans-serif' },
+    { name: 'Open Sans (Sans-serif)', value: 'Open Sans, sans-serif' },
+    { name: 'Roboto (Sans-serif)', value: 'Roboto, sans-serif' },
+    { name: 'Lato (Sans-serif)', value: 'Lato, sans-serif' },
+    { name: 'Montserrat (Sans-serif)', value: 'Montserrat, sans-serif' },
+    { name: 'Poppins (Sans-serif)', value: 'Poppins, sans-serif' },
+    { name: 'Inter (Sans-serif)', value: 'Inter, sans-serif' },
+    { name: 'Source Sans Pro (Sans-serif)', value: 'Source Sans Pro, sans-serif' },
+    { name: 'Nunito (Sans-serif)', value: 'Nunito, sans-serif' },
+    { name: 'Oswald (Sans-serif)', value: 'Oswald, sans-serif' },
+    { name: 'Abril Fatface (Cursive)', value: 'Abril Fatface, cursive' },
+    { name: 'Pacifico (Cursive)', value: 'Pacifico, cursive' }
   ];
 
   const hebrewFonts = [
-    { name: 'Frank Ruhl Libre', value: 'Frank Ruhl Libre, Cardo, serif' },
-    { name: 'David Libre', value: 'David Libre, serif' },
-    { name: 'Noto Sans Hebrew', value: 'Noto Sans Hebrew, sans-serif' },
-    { name: 'Rubik', value: 'Rubik' },
-    { name: 'Heebo', value: 'Heebo' },
-    { name: 'Alef', value: 'Alef' },
-    { name: 'Assistant', value: 'Assistant' },
-    { name: 'Varela Round', value: 'Varela Round, sans-serif' },
-    { name: 'Secular One', value: 'Secular One, sans-serif' },
-    { name: 'Suez One', value: 'Suez One, serif' },
-    { name: 'Miriam Libre', value: 'Miriam Libre, sans-serif' },
-    { name: 'Arimo', value: 'Arimo, sans-serif' },
-    { name: 'Cousine', value: 'Cousine, monospace' },
-    { name: 'Tinos', value: 'Tinos, serif' },
-    { name: 'Cardo', value: 'Cardo, serif' },
-    { name: 'Arial Hebrew', value: 'Arial Hebrew, sans-serif' }
+    { name: 'Frank Ruhl Libre (Serif)', value: 'Frank Ruhl Libre, Times New Roman, serif' },
+    { name: 'Cardo (Serif)', value: 'Cardo, Times New Roman, serif' },
+    { name: 'David Libre (Serif)', value: 'David Libre, Times New Roman, serif' },
+    { name: 'Noto Serif Hebrew (Serif)', value: 'Noto Serif Hebrew, Georgia, serif' },
+    { name: 'Tinos (Serif)', value: 'Tinos, Times New Roman, serif' },
+    { name: 'Suez One (Serif)', value: 'Suez One, Times New Roman, serif' },
+    { name: 'Miriam Libre (Serif)', value: 'Miriam Libre, Times New Roman, serif' },
+    { name: 'Noto Rashi Hebrew (Traditional)', value: 'Noto Rashi Hebrew, Times New Roman, serif' },
+    { name: 'Rashi (Traditional)', value: 'Rashi, Times New Roman, serif' },
+    { name: 'Stam (Traditional)', value: 'Stam, Times New Roman, serif' },
+    { name: 'Modeledet (Traditional)', value: 'Modeledet, Times New Roman, serif' },
+    { name: 'Plasti (Traditional)', value: 'Plasti, Times New Roman, serif' },
+    { name: 'Times New Roman (Serif)', value: 'Times New Roman, serif' },
+    { name: 'Georgia (Serif)', value: 'Georgia, serif' },
+    { name: 'Noto Sans Hebrew (Sans-serif)', value: 'Noto Sans Hebrew, Arial, sans-serif' },
+    { name: 'Heebo (Sans-serif)', value: 'Heebo, Arial, sans-serif' },
+    { name: 'Rubik (Sans-serif)', value: 'Rubik, Arial, sans-serif' },
+    { name: 'Alef (Sans-serif)', value: 'Alef, Arial, sans-serif' },
+    { name: 'Assistant (Sans-serif)', value: 'Assistant, Arial, sans-serif' },
+    { name: 'Varela Round (Sans-serif)', value: 'Varela Round, Arial, sans-serif' },
+    { name: 'Secular One (Sans-serif)', value: 'Secular One, Arial, sans-serif' },
+    { name: 'Arimo (Sans-serif)', value: 'Arimo, Arial, sans-serif' },
+    { name: 'Cousine (Block)', value: 'Cousine, Courier New, monospace' }
   ];
 
   // Apply preset positions for 3 images in collage layout
@@ -597,6 +754,266 @@
     { value: 'pattern', label: 'Pattern' }
   ];
 
+  // Background design presets
+  const backgroundPresets = [
+    {
+      id: 'antique-paper',
+      name: 'Antique Paper',
+      description: 'Warm beige with subtle texture',
+      settings: {
+        backgroundType: 'pattern',
+        backgroundColor: '#F5F1E8',
+        backgroundPattern: 'noise'
+      }
+    },
+    {
+      id: 'elegant-cream',
+      name: 'Elegant Cream',
+      description: 'Soft cream gradient',
+      settings: {
+        backgroundType: 'gradient',
+        backgroundGradient: {
+          type: 'linear',
+          direction: 'to bottom right',
+          colors: ['#F5F1E8', '#E8E0D0'],
+          stops: [0, 100]
+        }
+      }
+    },
+    {
+      id: 'royal-purple',
+      name: 'Royal Purple',
+      description: 'Rich purple gradient',
+      settings: {
+        backgroundType: 'gradient',
+        backgroundColor: '#4A148C',
+        backgroundGradient: {
+          type: 'linear',
+          direction: 'to right',
+          colors: ['#4A148C', '#6A1B9A'],
+          stops: [0, 100]
+        },
+        textColor: '#FFFFFF',
+        textBackground: 'rgba(0, 0, 0, 0.3)',
+        textBackgroundOpacity: 0.6
+      }
+    },
+    {
+      id: 'golden-sunset',
+      name: 'Golden Sunset',
+      description: 'Warm gold to orange gradient',
+      settings: {
+        backgroundType: 'gradient',
+        backgroundGradient: {
+          type: 'radial',
+          direction: 'center',
+          colors: ['#FFD700', '#FF8C00'],
+          stops: [0, 100]
+        },
+        textColor: '#2C1810',
+        textBackground: 'rgba(255, 255, 255, 0.8)',
+        textBackgroundOpacity: 0.8
+      }
+    },
+    {
+      id: 'ocean-blue',
+      name: 'Ocean Blue',
+      description: 'Calming blue gradient',
+      settings: {
+        backgroundType: 'gradient',
+        backgroundGradient: {
+          type: 'linear',
+          direction: 'to bottom',
+          colors: ['#87CEEB', '#4682B4'],
+          stops: [0, 100]
+        },
+        textColor: '#FFFFFF',
+        textBackground: 'rgba(0, 0, 0, 0.4)',
+        textBackgroundOpacity: 0.7
+      }
+    },
+    {
+      id: 'forest-green',
+      name: 'Forest Green',
+      description: 'Deep green gradient',
+      settings: {
+        backgroundType: 'gradient',
+        backgroundGradient: {
+          type: 'linear',
+          direction: 'to right',
+          colors: ['#2D5016', '#3D6B1F'],
+          stops: [0, 100]
+        },
+        textColor: '#FFFFFF',
+        textBackground: 'rgba(0, 0, 0, 0.3)',
+        textBackgroundOpacity: 0.6
+      }
+    },
+    {
+      id: 'vintage-dots',
+      name: 'Vintage Dots',
+      description: 'Beige with dot pattern',
+      settings: {
+        backgroundType: 'pattern',
+        backgroundColor: '#F5F1E8',
+        backgroundPattern: 'dots'
+      }
+    },
+    {
+      id: 'geometric-grid',
+      name: 'Geometric Grid',
+      description: 'Clean grid pattern',
+      settings: {
+        backgroundType: 'pattern',
+        backgroundColor: '#FFFFFF',
+        backgroundPattern: 'grid'
+      }
+    },
+    {
+      id: 'wave-texture',
+      name: 'Wave Texture',
+      description: 'Subtle wave pattern',
+      settings: {
+        backgroundType: 'pattern',
+        backgroundColor: '#F0F0F0',
+        backgroundPattern: 'waves'
+      }
+    },
+    {
+      id: 'hexagon-modern',
+      name: 'Hexagon Modern',
+      description: 'Modern hexagon pattern',
+      settings: {
+        backgroundType: 'pattern',
+        backgroundColor: '#FAFAFA',
+        backgroundPattern: 'hexagons'
+      }
+    },
+    {
+      id: 'herringbone-classic',
+      name: 'Herringbone Classic',
+      description: 'Classic herringbone pattern',
+      settings: {
+        backgroundType: 'pattern',
+        backgroundColor: '#F5F1E8',
+        backgroundPattern: 'herringbone'
+      }
+    },
+    {
+      id: 'starry-night',
+      name: 'Starry Night',
+      description: 'Dark with star pattern',
+      settings: {
+        backgroundType: 'pattern',
+        backgroundColor: '#1A1A2E',
+        backgroundPattern: 'stars',
+        textColor: '#FFFFFF',
+        textBackground: 'rgba(0, 0, 0, 0.5)',
+        textBackgroundOpacity: 0.7
+      }
+    },
+    {
+      id: 'elegant-lines',
+      name: 'Elegant Lines',
+      description: 'Subtle horizontal lines',
+      settings: {
+        backgroundType: 'pattern',
+        backgroundColor: '#F8F8F8',
+        backgroundPattern: 'lines'
+      }
+    },
+    {
+      id: 'crosshatch-texture',
+      name: 'Crosshatch Texture',
+      description: 'Diagonal crosshatch pattern',
+      settings: {
+        backgroundType: 'pattern',
+        backgroundColor: '#F5F1E8',
+        backgroundPattern: 'crosshatch'
+      }
+    },
+    {
+      id: 'circle-mosaic',
+      name: 'Circle Mosaic',
+      description: 'Overlapping circles pattern',
+      settings: {
+        backgroundType: 'pattern',
+        backgroundColor: '#FFFFFF',
+        backgroundPattern: 'circles'
+      }
+    },
+    {
+      id: 'warm-terracotta',
+      name: 'Warm Terracotta',
+      description: 'Terracotta solid color',
+      settings: {
+        backgroundType: 'solid',
+        backgroundColor: '#E07A5F',
+        textColor: '#FFFFFF',
+        textBackground: 'rgba(0, 0, 0, 0.3)',
+        textBackgroundOpacity: 0.6
+      }
+    },
+    {
+      id: 'deep-navy',
+      name: 'Deep Navy',
+      description: 'Rich navy blue',
+      settings: {
+        backgroundType: 'solid',
+        backgroundColor: '#1E3A5F',
+        textColor: '#FFFFFF',
+        textBackground: 'rgba(0, 0, 0, 0.4)',
+        textBackgroundOpacity: 0.7
+      }
+    },
+    {
+      id: 'ivory-white',
+      name: 'Ivory White',
+      description: 'Clean ivory background',
+      settings: {
+        backgroundType: 'solid',
+        backgroundColor: '#FFFFF0'
+      }
+    },
+    {
+      id: 'charcoal-dark',
+      name: 'Charcoal Dark',
+      description: 'Dark charcoal background',
+      settings: {
+        backgroundType: 'solid',
+        backgroundColor: '#36454F',
+        textColor: '#FFFFFF',
+        textBackground: 'rgba(0, 0, 0, 0.5)',
+        textBackgroundOpacity: 0.8
+      }
+    },
+    {
+      id: 'sunset-gradient',
+      name: 'Sunset Gradient',
+      description: 'Pink to orange gradient',
+      settings: {
+        backgroundType: 'gradient',
+        backgroundGradient: {
+          type: 'linear',
+          direction: 'to bottom',
+          colors: ['#FF6B6B', '#FFA07A'],
+          stops: [0, 100]
+        },
+        textColor: '#FFFFFF',
+        textBackground: 'rgba(0, 0, 0, 0.3)',
+        textBackgroundOpacity: 0.6
+      }
+    }
+  ];
+
+  // Apply a background preset
+  function applyBackgroundPreset(preset) {
+    bannerSettings = {
+      ...bannerSettings,
+      ...preset.settings
+    };
+  }
+
   // Load saved templates from localStorage
   function loadSavedTemplates() {
     try {
@@ -752,12 +1169,18 @@
     const backgroundColor = bannerSettings.backgroundColor;
     const backgroundImageUrl = bannerSettings.backgroundImageUrl;
     const backgroundPattern = bannerSettings.backgroundPattern;
+    const backgroundGradient = bannerSettings.backgroundGradient;
     const fontSize = bannerSettings.fontSize;
     const fontFamily = bannerSettings.fontFamily;
     const hebrewFontFamily = bannerSettings.hebrewFontFamily;
     const textColor = bannerSettings.textColor;
     const textAlign = bannerSettings.textAlign;
     const textImageRatio = bannerSettings.textImageRatio;
+    const padding = bannerSettings.padding;
+    const width = bannerSettings.width;
+    const height = bannerSettings.height;
+    const textBackground = bannerSettings.textBackground;
+    const textBackgroundOpacity = bannerSettings.textBackgroundOpacity;
     const ribbonColor = bannerSettings.ribbonColor;
     const ribbonPosition = bannerSettings.ribbonPosition;
     const showBottomBorder = bannerSettings.showBottomBorder;
@@ -782,6 +1205,49 @@
     const logoSize = bannerSettings.logoSize;
     const logoOpacity = bannerSettings.logoOpacity;
     const logoMargin = bannerSettings.logoMargin;
+    
+    // Track watermark settings
+    const showWatermark = bannerSettings.showWatermark;
+    const watermarkUseLogo = bannerSettings.watermarkUseLogo;
+    const watermarkUrl = bannerSettings.watermarkUrl;
+    const watermarkSize = bannerSettings.watermarkSize;
+    const watermarkOpacity = bannerSettings.watermarkOpacity;
+    const watermarkPosition = bannerSettings.watermarkPosition;
+    const watermarkRotation = bannerSettings.watermarkRotation;
+    
+    // Track separator settings
+    const separatorStyle = bannerSettings.separatorStyle;
+    const separatorAlignment = bannerSettings.separatorAlignment;
+    const separatorWidth = bannerSettings.separatorWidth;
+    const separatorThickness = bannerSettings.separatorThickness;
+    const separatorColor = bannerSettings.separatorColor;
+    const separatorMarginTop = bannerSettings.separatorMarginTop;
+    const separatorMarginBottom = bannerSettings.separatorMarginBottom;
+    
+    // Track text separator settings
+    const textSeparatorEnabled = bannerSettings.textSeparatorEnabled;
+    const textSeparatorStyle = bannerSettings.textSeparatorStyle;
+    const textSeparatorPosition = bannerSettings.textSeparatorPosition;
+    const textSeparatorWidth = bannerSettings.textSeparatorWidth;
+    const textSeparatorThickness = bannerSettings.textSeparatorThickness;
+    const textSeparatorAlign = bannerSettings.textSeparatorAlign;
+    const textSeparatorColor = bannerSettings.textSeparatorColor;
+    const textSeparatorMarginTop = bannerSettings.textSeparatorMarginTop;
+    const textSeparatorMarginBottom = bannerSettings.textSeparatorMarginBottom;
+    
+    // Track overlay stamp settings
+    const showOverlayStamp = bannerSettings.showOverlayStamp;
+    const overlayStampUrl = bannerSettings.overlayStampUrl;
+    const overlayStampPosition = bannerSettings.overlayStampPosition;
+    const overlayStampX = bannerSettings.overlayStampX;
+    const overlayStampY = bannerSettings.overlayStampY;
+    const overlayStampSize = bannerSettings.overlayStampSize;
+    const overlayStampRotation = bannerSettings.overlayStampRotation;
+    const overlayStampOpacity = bannerSettings.overlayStampOpacity;
+    
+    // Track flexible text elements
+    const useFlexibleTextElements = bannerSettings.useFlexibleTextElements;
+    const textElements = bannerSettings.textElements;
     
     // Track per-field text settings
     const titleEnglishFontSize = bannerSettings.titleEnglishFontSize;
@@ -813,8 +1279,8 @@
     }
     
     // Debounce preview generation to avoid excessive regenerations
-    // Only generate if we have at least a title or images or logo enabled
-    const shouldGenerate = title || imageCount > 0 || backgroundImageUrl || showLogo || (type === 'auction' && auction) || (type === 'auctionHouse' && auctionHouse);
+    // Only generate if we have at least a title or images or logo enabled or overlay stamp or watermark
+    const shouldGenerate = title || imageCount > 0 || backgroundImageUrl || showLogo || showOverlayStamp || showWatermark || (type === 'auction' && auction) || (type === 'auctionHouse' && auctionHouse);
     
     if (shouldGenerate) {
       previewGenerationTimeout = setTimeout(() => {
@@ -834,24 +1300,46 @@
     };
   });
 
-  // Helper function to wrap text
+  // Helper function to wrap text (respects manual line breaks and auto-wraps)
   function wrapText(ctx, text, maxWidth) {
-    const words = text.split(' ');
-    const lines = [];
-    let currentLine = words[0];
+    if (!text) return [];
+    
+    // First, split by manual line breaks (newlines)
+    const manualLines = text.split(/\r?\n/);
+    const allLines = [];
+    
+    // For each manual line, apply word wrapping
+    for (const manualLine of manualLines) {
+      if (manualLine.trim() === '') {
+        // Empty line - add it as a blank line
+        allLines.push('');
+        continue;
+      }
+      
+      const words = manualLine.split(' ');
+      let currentLine = words[0] || '';
 
-    for (let i = 1; i < words.length; i++) {
-      const word = words[i];
-      const width = ctx.measureText(currentLine + ' ' + word).width;
-      if (width < maxWidth) {
-        currentLine += ' ' + word;
-      } else {
-        lines.push(currentLine);
-        currentLine = word;
+      for (let i = 1; i < words.length; i++) {
+        const word = words[i];
+        const testLine = currentLine + ' ' + word;
+        const width = ctx.measureText(testLine).width;
+        
+        if (width < maxWidth) {
+          currentLine = testLine;
+        } else {
+          if (currentLine) {
+            allLines.push(currentLine);
+          }
+          currentLine = word;
+        }
+      }
+      
+      if (currentLine) {
+        allLines.push(currentLine);
       }
     }
-    lines.push(currentLine);
-    return lines;
+    
+    return allLines;
   }
 
   // Draw background pattern
@@ -904,6 +1392,128 @@
           ctx.moveTo(i, 0);
           ctx.lineTo(i + height, height);
           ctx.stroke();
+        }
+        break;
+      case 'waves':
+        ctx.strokeStyle = 'rgba(0, 0, 0, 0.08)';
+        ctx.lineWidth = 2;
+        const waveAmplitude = 15;
+        const waveFrequency = 0.02;
+        for (let y = 0; y < height; y += 40) {
+          ctx.beginPath();
+          ctx.moveTo(0, y);
+          for (let x = 0; x < width; x += 2) {
+            const waveY = y + Math.sin(x * waveFrequency) * waveAmplitude;
+            ctx.lineTo(x, waveY);
+          }
+          ctx.stroke();
+        }
+        break;
+      case 'circles':
+        ctx.strokeStyle = 'rgba(0, 0, 0, 0.05)';
+        ctx.lineWidth = 1;
+        const circleSpacing = 60;
+        for (let x = 0; x < width + circleSpacing; x += circleSpacing) {
+          for (let y = 0; y < height + circleSpacing; y += circleSpacing) {
+            ctx.beginPath();
+            ctx.arc(x, y, 25, 0, Math.PI * 2);
+            ctx.stroke();
+          }
+        }
+        break;
+      case 'hexagons':
+        ctx.strokeStyle = 'rgba(0, 0, 0, 0.05)';
+        ctx.lineWidth = 1;
+        const hexSize = 30;
+        const hexHeight = hexSize * Math.sqrt(3);
+        for (let y = 0; y < height + hexHeight; y += hexHeight) {
+          const offset = (y / hexHeight) % 2 === 0 ? 0 : hexSize;
+          for (let x = -hexSize + offset; x < width + hexSize; x += hexSize * 2) {
+            ctx.beginPath();
+            for (let i = 0; i < 6; i++) {
+              const angle = (Math.PI / 3) * i;
+              const hx = x + hexSize * Math.cos(angle);
+              const hy = y + hexSize * Math.sin(angle);
+              if (i === 0) ctx.moveTo(hx, hy);
+              else ctx.lineTo(hx, hy);
+            }
+            ctx.closePath();
+            ctx.stroke();
+          }
+        }
+        break;
+      case 'crosshatch':
+        ctx.strokeStyle = 'rgba(0, 0, 0, 0.05)';
+        ctx.lineWidth = 1;
+        const hatchSpacing = 20;
+        // Diagonal lines going one way
+        for (let i = -height; i < width + height; i += hatchSpacing) {
+          ctx.beginPath();
+          ctx.moveTo(i, 0);
+          ctx.lineTo(i + height, height);
+          ctx.stroke();
+        }
+        // Diagonal lines going the other way
+        for (let i = 0; i < width + height; i += hatchSpacing) {
+          ctx.beginPath();
+          ctx.moveTo(i, 0);
+          ctx.lineTo(i - height, height);
+          ctx.stroke();
+        }
+        break;
+      case 'herringbone':
+        ctx.strokeStyle = 'rgba(0, 0, 0, 0.06)';
+        ctx.lineWidth = 1;
+        const herringboneSize = 40;
+        for (let y = 0; y < height + herringboneSize; y += herringboneSize) {
+          for (let x = 0; x < width + herringboneSize; x += herringboneSize) {
+            const isEven = (x / herringboneSize + y / herringboneSize) % 2 === 0;
+            ctx.beginPath();
+            if (isEven) {
+              ctx.moveTo(x, y);
+              ctx.lineTo(x + herringboneSize, y);
+              ctx.lineTo(x + herringboneSize / 2, y + herringboneSize);
+            } else {
+              ctx.moveTo(x, y + herringboneSize);
+              ctx.lineTo(x + herringboneSize, y + herringboneSize);
+              ctx.lineTo(x + herringboneSize / 2, y);
+            }
+            ctx.closePath();
+            ctx.stroke();
+          }
+        }
+        break;
+      case 'stars':
+        ctx.fillStyle = 'rgba(0, 0, 0, 0.08)';
+        const starSpacing = 80;
+        for (let x = 0; x < width + starSpacing; x += starSpacing) {
+          for (let y = 0; y < height + starSpacing; y += starSpacing) {
+            ctx.beginPath();
+            const spikes = 5;
+            const outerRadius = 8;
+            const innerRadius = 4;
+            for (let i = 0; i < spikes * 2; i++) {
+              const radius = i % 2 === 0 ? outerRadius : innerRadius;
+              const angle = (Math.PI * i) / spikes;
+              const sx = x + radius * Math.cos(angle);
+              const sy = y + radius * Math.sin(angle);
+              if (i === 0) ctx.moveTo(sx, sy);
+              else ctx.lineTo(sx, sy);
+            }
+            ctx.closePath();
+            ctx.fill();
+          }
+        }
+        break;
+      case 'noise':
+        // Create a noise texture using random dots
+        ctx.fillStyle = 'rgba(0, 0, 0, 0.03)';
+        const noiseDensity = 0.3; // dots per pixel
+        const totalDots = Math.floor(width * height * noiseDensity);
+        for (let i = 0; i < totalDots; i++) {
+          const x = Math.random() * width;
+          const y = Math.random() * height;
+          ctx.fillRect(x, y, 1, 1);
         }
         break;
     }
@@ -1027,12 +1637,88 @@
     }
   }
 
+  // Wait for fonts to load
+  async function waitForFonts(fontFamilies) {
+    if (!document.fonts || !document.fonts.check) {
+      // Fallback if Font Loading API not available
+      await new Promise(resolve => setTimeout(resolve, 500));
+      return;
+    }
+    
+    // First, wait for all fonts to be ready
+    try {
+      await document.fonts.ready;
+    } catch (e) {
+      console.warn('document.fonts.ready failed:', e);
+    }
+    
+    const fontsToLoad = [...new Set(fontFamilies.filter(Boolean))];
+    console.log('Waiting for fonts to load:', fontsToLoad);
+    
+    const fontPromises = fontsToLoad.map(fontFamily => {
+      // Extract font name (before comma if fallbacks exist, remove quotes)
+      let fontName = fontFamily.split(',')[0].trim();
+      fontName = fontName.replace(/['"]/g, ''); // Remove quotes if present
+      
+      // Try different weights - focus on common weights first
+      const weights = ['400', '700', '500', '600'];
+      
+      return Promise.all(
+        weights.map(weight => {
+          const fontSpec = `${weight} 12px "${fontName}"`;
+          
+          // Check if font is already loaded
+          if (document.fonts.check(fontSpec)) {
+            console.log(`Font already loaded: ${fontSpec}`);
+            return Promise.resolve();
+          }
+          
+          // Try to load the font
+          console.log(`Loading font: ${fontSpec}`);
+          return document.fonts.load(fontSpec).then(() => {
+            // Verify it's actually loaded
+            if (document.fonts.check(fontSpec)) {
+              console.log(`Font successfully loaded: ${fontSpec}`);
+            } else {
+              console.warn(`Font loaded but not available: ${fontSpec}`);
+            }
+          }).catch((err) => {
+            console.warn(`Font load failed for ${fontSpec}:`, err);
+            // Font might not be available, that's okay
+            return Promise.resolve();
+          });
+        })
+      );
+    });
+    
+    await Promise.all(fontPromises);
+    
+    // Wait for fonts to be fully ready
+    try {
+      await document.fonts.ready;
+    } catch (e) {
+      console.warn('document.fonts.ready failed after loading:', e);
+    }
+    
+    // Give browser extra time to apply fonts to canvas
+    await new Promise(resolve => setTimeout(resolve, 200));
+    console.log('Fonts ready');
+  }
+
   // Generate banner
   async function generateQuickBanner() {
     generatingBanner = true;
     generatedBannerUrl = null;
     
     try {
+      // Wait for fonts to load before drawing
+      const fontsToLoad = [
+        bannerSettings.fontFamily,
+        bannerSettings.hebrewFontFamily
+      ].filter(Boolean);
+      
+      await waitForFonts(fontsToLoad);
+      
       const canvas = document.createElement('canvas');
       canvas.width = bannerSettings.width;
       canvas.height = bannerSettings.height;
@@ -1040,6 +1726,11 @@
       
       // Draw background
       await drawBackground(ctx, canvas.width, canvas.height);
+      
+      // Draw watermark if enabled (after background, before images)
+      if (bannerSettings.showWatermark) {
+        await drawWatermark(ctx, canvas.width, canvas.height);
+      }
       
       // Draw images based on layout
       await drawImages(ctx, canvas.width, canvas.height);
@@ -1050,6 +1741,11 @@
       // Draw logo if enabled (draw last so it appears on top)
       if (bannerSettings.showLogo) {
         await drawLogo(ctx, canvas.width, canvas.height);
+      }
+      
+      // Draw overlay stamp if enabled (draw last so it appears on top)
+      if (bannerSettings.showOverlayStamp && bannerSettings.overlayStampUrl) {
+        await drawOverlayStamp(ctx, canvas.width, canvas.height);
       }
       
       generatedBannerUrl = canvas.toDataURL('image/png');
@@ -1089,62 +1785,48 @@
       case 'image':
         // Draw background image first
         if (bannerSettings.backgroundImageUrl) {
-          await new Promise((resolve) => {
-            const img = new Image();
-            img.crossOrigin = 'anonymous';
-            img.onload = () => {
-              // Draw background image to fill entire canvas
-              if (bannerSettings.imagePosition === 'cover') {
-                const scale = Math.max(width / img.width, height / img.height);
-                const x = (width - img.width * scale) / 2;
-                const y = (height - img.height * scale) / 2;
-                ctx.drawImage(img, x, y, img.width * scale, img.height * scale);
-              } else {
-                const scale = Math.min(width / img.width, height / img.height);
-                const x = (width - img.width * scale) / 2;
-                const y = (height - img.height * scale) / 2;
-                ctx.drawImage(img, x, y, img.width * scale, img.height * scale);
-              }
-              resolve();
-            };
-            img.onerror = () => {
-              // Fallback to solid color if image fails
-              ctx.fillStyle = bannerSettings.backgroundColor || '#F5F1E8';
-              ctx.fillRect(0, 0, width, height);
-              resolve();
-            };
-            // Get presigned URL if it's S3
-            let imageUrl = bannerSettings.backgroundImageUrl;
-            if (imageUrl.includes('.s3.') || imageUrl.includes('s3.amazonaws.com')) {
-              try {
-                const match = imageUrl.match(/s3[^/]*\.amazonaws\.com\/(.+?)(?:\?|$)/);
-                if (match) {
-                  const key = match[1];
-                  fetch('/api/images/presigned', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ keys: [key] })
-                  }).then(async (response) => {
-                    if (response.ok) {
-                      const { urls } = await response.json();
-                      if (urls[key]) {
-                        imageUrl = urls[key];
-                      }
-                    }
-                    img.src = imageUrl;
-                  }).catch(() => {
-                    img.src = imageUrl;
-                  });
+          try {
+            // Use loadImageForCanvas to handle CORS and S3 URLs
+            const imageSrc = await loadImageForCanvas(bannerSettings.backgroundImageUrl);
+            
+            await new Promise((resolve) => {
+              const img = new Image();
+              img.crossOrigin = 'anonymous';
+              img.onload = () => {
+                // Draw background image to fill entire canvas
+                if (bannerSettings.imagePosition === 'cover') {
+                  const scale = Math.max(width / img.width, height / img.height);
+                  const x = (width - img.width * scale) / 2;
+                  const y = (height - img.height * scale) / 2;
+                  ctx.drawImage(img, x, y, img.width * scale, img.height * scale);
                 } else {
-                  img.src = imageUrl;
+                  const scale = Math.min(width / img.width, height / img.height);
+                  const x = (width - img.width * scale) / 2;
+                  const y = (height - img.height * scale) / 2;
+                  ctx.drawImage(img, x, y, img.width * scale, img.height * scale);
                 }
-              } catch (error) {
-                img.src = imageUrl;
-              }
-            } else {
-              img.src = imageUrl;
-            }
-          });
+                if (imageSrc.startsWith('blob:')) {
+                  URL.revokeObjectURL(imageSrc);
+                }
+                resolve();
+              };
+              img.onerror = () => {
+                // Fallback to solid color if image fails
+                ctx.fillStyle = bannerSettings.backgroundColor || '#F5F1E8';
+                ctx.fillRect(0, 0, width, height);
+                if (imageSrc.startsWith('blob:')) {
+                  URL.revokeObjectURL(imageSrc);
+                }
+                resolve();
+              };
+              img.src = imageSrc;
+            });
+          } catch (error) {
+            console.error('Error loading background image:', error);
+            // Fallback to solid color
+            ctx.fillStyle = bannerSettings.backgroundColor || '#F5F1E8';
+            ctx.fillRect(0, 0, width, height);
+          }
         } else {
           // Fallback to solid color if no background image URL
           ctx.fillStyle = bannerSettings.backgroundColor || '#F5F1E8';
@@ -1687,6 +2369,169 @@
   }
 
   // Draw logo on banner
+  async function drawWatermark(ctx, width, height) {
+    if (!bannerSettings.showWatermark) {
+      return;
+    }
+    
+    // Determine watermark URL
+    let watermarkUrl = null;
+    if (bannerSettings.watermarkUseLogo) {
+      // Use logo as watermark
+      watermarkUrl = bannerSettings.useCustomLogo && bannerSettings.logoUrl 
+        ? bannerSettings.logoUrl 
+        : (auctionHouse?.logoUrl);
+    } else {
+      // Use custom watermark URL
+      watermarkUrl = bannerSettings.watermarkUrl;
+    }
+    
+    if (!watermarkUrl) {
+      return;
+    }
+    
+    // Get the actual image URL (handles S3 keys)
+    const imageUrl = await getLogoImageUrl(watermarkUrl);
+    if (!imageUrl) {
+      return;
+    }
+    
+    return new Promise(async (resolve) => {
+      // Use the same image loading approach as other images (with proxy for CORS)
+      let srcUrl = imageUrl;
+      
+      // For S3 URLs, use proxy to avoid CORS issues
+      if (imageUrl.includes('.s3.') || imageUrl.includes('s3.amazonaws.com') || imageUrl.includes('?X-Amz-')) {
+        try {
+          const proxyUrl = `/api/images/proxy?url=${encodeURIComponent(imageUrl)}`;
+          const response = await fetch(proxyUrl);
+          if (response.ok) {
+            const blob = await response.blob();
+            srcUrl = URL.createObjectURL(blob);
+          }
+        } catch (error) {
+          console.warn('[Watermark] Error using proxy, trying direct URL:', error);
+        }
+      }
+      
+      const img = new Image();
+      if (!srcUrl.startsWith('blob:') && !srcUrl.includes('/api/images/proxy')) {
+        img.crossOrigin = 'anonymous';
+      }
+      
+      img.onload = () => {
+        // For tile mode, save context and ensure full canvas access
+        ctx.save();
+        
+        // Set opacity
+        ctx.globalAlpha = bannerSettings.watermarkOpacity || 0.1;
+        
+        // Calculate watermark size maintaining aspect ratio
+        const watermarkSize = bannerSettings.watermarkSize || 300;
+        const aspectRatio = img.width / img.height;
+        let watermarkWidth = watermarkSize;
+        let watermarkHeight = watermarkSize / aspectRatio;
+        
+        // If height would be too large, scale down
+        if (watermarkHeight > watermarkSize) {
+          watermarkHeight = watermarkSize;
+          watermarkWidth = watermarkSize * aspectRatio;
+        }
+        
+        // Handle tile mode separately to ensure full canvas coverage
+        if (bannerSettings.watermarkPosition === 'tile') {
+          // Reset clipping to full canvas for tile mode
+          ctx.beginPath();
+          ctx.rect(0, 0, width, height);
+          ctx.clip();
+          
+          // Tile the watermark across the entire banner
+          // Use spacing that ensures good coverage
+          const spacing = watermarkWidth * 1.5;
+          // Start from negative offset to ensure coverage at edges, extend beyond canvas
+          const startX = -watermarkWidth;
+          const startY = -watermarkHeight;
+          const endX = width + watermarkWidth;
+          const endY = height + watermarkHeight;
+          
+          for (let tileX = startX; tileX < endX; tileX += spacing) {
+            for (let tileY = startY; tileY < endY; tileY += spacing) {
+              ctx.save();
+              ctx.translate(tileX + watermarkWidth / 2, tileY + watermarkHeight / 2);
+              ctx.rotate((bannerSettings.watermarkRotation || 0) * Math.PI / 180);
+              ctx.drawImage(img, -watermarkWidth / 2, -watermarkHeight / 2, watermarkWidth, watermarkHeight);
+              ctx.restore();
+            }
+          }
+          ctx.restore();
+          if (srcUrl.startsWith('blob:')) {
+            URL.revokeObjectURL(srcUrl);
+          }
+          resolve();
+          return;
+        }
+        
+        // Calculate position based on watermarkPosition setting (non-tile modes)
+        let x = 0;
+        let y = 0;
+        
+        switch (bannerSettings.watermarkPosition) {
+          case 'center':
+            x = (width - watermarkWidth) / 2;
+            y = (height - watermarkHeight) / 2;
+            break;
+          case 'top-left':
+            x = 0;
+            y = 0;
+            break;
+          case 'top-right':
+            x = width - watermarkWidth;
+            y = 0;
+            break;
+          case 'bottom-left':
+            x = 0;
+            y = height - watermarkHeight;
+            break;
+          case 'bottom-right':
+            x = width - watermarkWidth;
+            y = height - watermarkHeight;
+            break;
+        }
+        
+        // Apply rotation if specified
+        if (bannerSettings.watermarkRotation) {
+          ctx.translate(x + watermarkWidth / 2, y + watermarkHeight / 2);
+          ctx.rotate((bannerSettings.watermarkRotation || 0) * Math.PI / 180);
+          ctx.translate(-watermarkWidth / 2, -watermarkHeight / 2);
+          x = 0;
+          y = 0;
+        }
+        
+        // Draw watermark
+        ctx.drawImage(img, x, y, watermarkWidth, watermarkHeight);
+        
+        ctx.restore();
+        
+        // Clean up blob URL if it was created
+        if (srcUrl.startsWith('blob:')) {
+          URL.revokeObjectURL(srcUrl);
+        }
+        
+        resolve();
+      };
+      
+      img.onerror = () => {
+        console.warn('[Watermark] Failed to load watermark image');
+        if (srcUrl.startsWith('blob:')) {
+          URL.revokeObjectURL(srcUrl);
+        }
+        resolve();
+      };
+      
+      img.src = srcUrl;
+    });
+  }
+
   async function drawLogo(ctx, width, height) {
     if (!bannerSettings.showLogo) {
       console.log('[Logo] showLogo is false, skipping');
@@ -1838,6 +2683,233 @@
       console.log('[Logo] Setting image source to:', srcUrl);
       img.src = srcUrl;
     });
+  }
+
+  // Format font string for canvas (quotes font names with spaces)
+  function formatFontForCanvas(fontFamily, fontSize, weight = 'normal') {
+    // Split by comma to get primary font and fallbacks
+    const parts = fontFamily.split(',').map(p => p.trim());
+    const primaryFont = parts[0];
+    const fallbacks = parts.slice(1);
+    
+    // Quote the primary font name if it contains spaces
+    const quotedPrimary = primaryFont.includes(' ') ? `"${primaryFont}"` : primaryFont;
+    
+    // Combine with fallbacks
+    const fullFamily = fallbacks.length > 0 
+      ? `${quotedPrimary}, ${fallbacks.join(', ')}`
+      : quotedPrimary;
+    
+    return `${weight} ${fontSize}px ${fullFamily}`;
+  }
+
+  // Draw separator with different styles
+  function drawSeparator(ctx, x, y, width, settings, isVertical = false) {
+    ctx.save();
+    const separatorColor = settings.separatorColor || settings.textColor;
+    ctx.strokeStyle = separatorColor;
+    ctx.fillStyle = separatorColor;
+    ctx.lineWidth = settings.separatorThickness || 2;
+    
+    const size = isVertical ? width : width; // For vertical separators, width is the size
+    
+    switch (settings.separatorStyle) {
+      case 'line':
+        ctx.beginPath();
+        if (isVertical) {
+          ctx.moveTo(x + size / 2, y - size / 2);
+          ctx.lineTo(x + size / 2, y + size / 2);
+        } else {
+          ctx.moveTo(x, y);
+          ctx.lineTo(x + width, y);
+        }
+        ctx.stroke();
+        break;
+      case 'dotted':
+        ctx.setLineDash([5, 5]);
+        ctx.beginPath();
+        if (isVertical) {
+          ctx.moveTo(x + size / 2, y - size / 2);
+          ctx.lineTo(x + size / 2, y + size / 2);
+        } else {
+          ctx.moveTo(x, y);
+          ctx.lineTo(x + width, y);
+        }
+        ctx.stroke();
+        ctx.setLineDash([]);
+        break;
+      case 'double':
+        ctx.beginPath();
+        if (isVertical) {
+          ctx.moveTo(x + size / 2 - 3, y - size / 2);
+          ctx.lineTo(x + size / 2 - 3, y + size / 2);
+          ctx.moveTo(x + size / 2 + 3, y - size / 2);
+          ctx.lineTo(x + size / 2 + 3, y + size / 2);
+        } else {
+          ctx.moveTo(x, y - 3);
+          ctx.lineTo(x + width, y - 3);
+          ctx.moveTo(x, y + 3);
+          ctx.lineTo(x + width, y + 3);
+        }
+        ctx.stroke();
+        break;
+      case 'diamond':
+        const diamondSize = isVertical ? size : Math.min(size, width * 0.1); // For horizontal, use reasonable size
+        ctx.save();
+        ctx.translate(x + (isVertical ? size / 2 : width / 2), y);
+        ctx.rotate(Math.PI / 4);
+        ctx.fillRect(-diamondSize / 2, -diamondSize / 2, diamondSize, diamondSize);
+        ctx.restore();
+        break;
+      case 'circle':
+        const circleSize = isVertical ? size : Math.min(size, width * 0.1); // For horizontal, use reasonable size
+        ctx.beginPath();
+        ctx.arc(x + (isVertical ? size / 2 : width / 2), y, circleSize / 2, 0, Math.PI * 2);
+        ctx.fill();
+        break;
+      case 'square':
+        const squareSize = isVertical ? size : Math.min(size, width * 0.1); // For horizontal, use reasonable size
+        ctx.fillRect(x + (isVertical ? size / 2 - squareSize / 2 : (width - squareSize) / 2), y - squareSize / 2, squareSize, squareSize);
+        break;
+    }
+    ctx.restore();
+  }
+
+  // Draw overlay stamp
+  async function drawOverlayStamp(ctx, width, height) {
+    if (!bannerSettings.showOverlayStamp || !bannerSettings.overlayStampUrl) {
+      console.log('[Overlay Stamp] Not drawing - showOverlayStamp:', bannerSettings.showOverlayStamp, 'url:', bannerSettings.overlayStampUrl);
+      return;
+    }
+    
+    console.log('[Overlay Stamp] Drawing stamp:', bannerSettings.overlayStampUrl);
+    
+    try {
+      const imageSrc = await loadImageForCanvas(bannerSettings.overlayStampUrl);
+      console.log('[Overlay Stamp] Loaded image source:', imageSrc);
+      
+      return new Promise((resolve) => {
+        const img = new Image();
+        img.crossOrigin = 'anonymous';
+        
+        img.onload = () => {
+          console.log('[Overlay Stamp] Image loaded, dimensions:', img.width, 'x', img.height);
+          ctx.save();
+          
+          // Calculate position
+          let x, y;
+          const stampSize = bannerSettings.overlayStampSize || 200;
+          const margin = 20;
+          
+          if (bannerSettings.overlayStampPosition === 'custom') {
+            x = (bannerSettings.overlayStampX / 100) * width;
+            y = (bannerSettings.overlayStampY / 100) * height;
+          } else {
+            switch (bannerSettings.overlayStampPosition) {
+              case 'top-left':
+                x = margin;
+                y = margin;
+                break;
+              case 'top-center':
+                x = (width - stampSize) / 2;
+                y = margin;
+                break;
+              case 'top-right':
+                x = width - stampSize - margin;
+                y = margin;
+                break;
+              case 'center':
+                x = (width - stampSize) / 2;
+                y = (height - stampSize) / 2;
+                break;
+              case 'bottom-left':
+                x = margin;
+                y = height - stampSize - margin;
+                break;
+              case 'bottom-center':
+                x = (width - stampSize) / 2;
+                y = height - stampSize - margin;
+                break;
+              case 'bottom-right':
+                x = width - stampSize - margin;
+                y = height - stampSize - margin;
+                break;
+              default:
+                x = (width - stampSize) / 2;
+                y = (height - stampSize) / 2;
+            }
+          }
+          
+          // Apply alignment offset
+          const aspectRatio = img.width / img.height;
+          let drawWidth = stampSize;
+          let drawHeight = stampSize / aspectRatio;
+          
+          switch (bannerSettings.overlayStampAlignment) {
+            case 'top-left':
+              // x, y already set
+              break;
+            case 'top-center':
+              x -= drawWidth / 2;
+              break;
+            case 'top-right':
+              x -= drawWidth;
+              break;
+            case 'center':
+              x -= drawWidth / 2;
+              y -= drawHeight / 2;
+              break;
+            case 'bottom-left':
+              y -= drawHeight;
+              break;
+            case 'bottom-center':
+              x -= drawWidth / 2;
+              y -= drawHeight;
+              break;
+            case 'bottom-right':
+              x -= drawWidth;
+              y -= drawHeight;
+              break;
+          }
+          
+          // Set opacity
+          ctx.globalAlpha = bannerSettings.overlayStampOpacity !== undefined ? bannerSettings.overlayStampOpacity : 0.5;
+          
+          // Apply rotation
+          const centerX = x + drawWidth / 2;
+          const centerY = y + drawHeight / 2;
+          ctx.translate(centerX, centerY);
+          ctx.rotate((bannerSettings.overlayStampRotation || 0) * Math.PI / 180);
+          ctx.translate(-centerX, -centerY);
+          
+          // Draw stamp
+          console.log('[Overlay Stamp] Drawing at:', x, y, 'size:', drawWidth, 'x', drawHeight, 'opacity:', ctx.globalAlpha, 'rotation:', bannerSettings.overlayStampRotation);
+          ctx.drawImage(img, x, y, drawWidth, drawHeight);
+          
+          ctx.globalAlpha = 1.0; // Reset opacity
+          ctx.restore();
+          
+          console.log('[Overlay Stamp] Stamp drawn successfully');
+          if (imageSrc.startsWith('blob:')) {
+            URL.revokeObjectURL(imageSrc);
+          }
+          resolve();
+        };
+        
+        img.onerror = (error) => {
+          console.error('[Overlay Stamp] Failed to load image:', error, 'src:', imageSrc);
+          if (imageSrc.startsWith('blob:')) {
+            URL.revokeObjectURL(imageSrc);
+          }
+          resolve();
+        };
+        
+        console.log('[Overlay Stamp] Setting image source to:', imageSrc);
+        img.src = imageSrc;
+      });
+    } catch (error) {
+      console.error('Error loading overlay stamp:', error);
+    }
   }
 
   async function drawCollage(ctx, width, height, images) {
@@ -2558,7 +3630,77 @@
     const rightX = textAreaX + textAreaWidth - padding;
     const maxTextWidth = textAreaWidth - (padding * 2);
     
-    // Title (English)
+    // Use flexible text elements if enabled
+    if (bannerSettings.useFlexibleTextElements && bannerSettings.textElements) {
+      // Sync content from mapped fields
+      const enabledElements = bannerSettings.textElements
+        .filter(el => el.enabled)
+        .sort((a, b) => a.order - b.order);
+      
+      for (const element of enabledElements) {
+        // Sync content from mapped field if not custom
+        if (element.mappedField !== 'custom') {
+          const fieldMap = {
+            title: bannerSettings.title,
+            titleHebrew: bannerSettings.titleHebrew,
+            subtitle: bannerSettings.subtitle,
+            subtitleHebrew: bannerSettings.subtitleHebrew,
+            yearEnglish: bannerSettings.yearEnglish,
+            yearHebrew: bannerSettings.yearHebrew,
+            category: bannerSettings.category,
+            categoryHebrew: bannerSettings.categoryHebrew,
+          };
+          if (fieldMap[element.mappedField] !== undefined) {
+            element.content = fieldMap[element.mappedField] || '';
+          }
+        }
+        
+        if (!element.content) continue;
+        
+        // Apply margins
+        currentY += element.marginTop || 0;
+        
+        // Calculate position
+        const elementY = element.positionY !== null ? element.positionY : currentY;
+        const elementX = element.align === 'center' ? centerX :
+                        element.align === 'right' ? rightX : leftX;
+        
+        // Calculate available width (accounting for padding)
+        const availableWidth = maxTextWidth - (element.paddingLeft || 0) - (element.paddingRight || 0);
+        
+        // Set font
+        const fontFamily = element.language === 'hebrew' 
+          ? (element.fontFamily || bannerSettings.hebrewFontFamily || 'Frank Ruhl Libre, Cardo, serif')
+          : (element.fontFamily || bannerSettings.fontFamily || 'Cormorant Garamond, Times New Roman, serif');
+        
+        const fontWeight = element.fontWeight === 'bold' ? 'bold' : element.fontWeight || 'normal';
+        ctx.font = formatFontForCanvas(fontFamily, element.fontSize, fontWeight);
+        ctx.fillStyle = element.color || bannerSettings.textColor;
+        ctx.textAlign = element.align || 'center';
+        
+        // Wrap text
+        const textLines = wrapText(ctx, element.content, availableWidth);
+        const lineHeight = element.lineHeight || 1.2;
+        const fontSize = element.fontSize;
+        
+        // Apply padding
+        const textStartX = elementX + (element.paddingLeft || 0) - (element.paddingRight || 0);
+        const textStartY = elementY + (element.paddingTop || 0);
+        
+        // Draw text lines
+        textLines.forEach((line, index) => {
+          if (line.trim()) { // Only draw non-empty lines
+            ctx.fillText(line, textStartX, textStartY + (index * fontSize * lineHeight));
+          }
+        });
+        
+        // Update currentY for next element
+        const textHeight = textLines.length * fontSize * lineHeight;
+        currentY = elementY + textHeight + (element.paddingTop || 0) + (element.paddingBottom || 0) + (element.marginBottom || 0);
+      }
+    } else {
+      // Legacy text rendering
+      // Title (English)
     if (bannerSettings.title) {
       const fontSize = bannerSettings.titleEnglishFontSize || bannerSettings.fontSize * 1.2;
       const textAlign = bannerSettings.titleEnglishAlign || bannerSettings.textAlign;
@@ -2566,28 +3708,73 @@
                     textAlign === 'right' ? rightX : leftX;
       
       const lineHeight = bannerSettings.textLineHeight ?? 1.2;
-      ctx.font = `bold ${fontSize}px ${bannerSettings.fontFamily}`;
+      ctx.font = formatFontForCanvas(bannerSettings.fontFamily, fontSize, 'bold');
       ctx.textAlign = textAlign;
       const titleLines = wrapText(ctx, bannerSettings.title, maxTextWidth);
       titleLines.forEach((line, index) => {
         ctx.fillText(line, textX, currentY + (index * fontSize * lineHeight));
       });
       currentY += titleLines.length * fontSize * lineHeight + (bannerSettings.textSpacingTitle ?? 20);
+      
+      // Text separator below English title
+      if (bannerSettings.textSeparatorEnabled && bannerSettings.textSeparatorPosition === 'below-english') {
+        // Add margin above separator
+        const marginTop = bannerSettings.textSeparatorMarginTop || 10;
+        currentY += marginTop;
+        
+        const separatorY = currentY;
+        const separatorWidth = maxTextWidth * (bannerSettings.textSeparatorWidth / 100 || 0.6);
+        
+        // Calculate separator X position based on alignment
+        let separatorX;
+        if (bannerSettings.textSeparatorAlign === 'left') {
+          separatorX = leftX;
+        } else if (bannerSettings.textSeparatorAlign === 'right') {
+          separatorX = rightX - separatorWidth;
+        } else {
+          separatorX = centerX - (separatorWidth / 2);
+        }
+        
+        // Create settings object for separator drawing
+        const separatorSettings = {
+          separatorStyle: bannerSettings.textSeparatorStyle || 'line',
+          separatorThickness: bannerSettings.textSeparatorThickness || 2,
+          separatorColor: bannerSettings.textSeparatorColor || bannerSettings.textColor,
+          textColor: bannerSettings.textColor
+        };
+        
+        drawSeparator(ctx, separatorX, separatorY, separatorWidth, separatorSettings);
+        
+        // Add margin below separator
+        const marginBottom = bannerSettings.textSeparatorMarginBottom || 15;
+        currentY += marginBottom;
+      }
     }
     
-    // Decorative line between English and Hebrew
+    // Decorative separator between English and Hebrew title
     if (bannerSettings.title && bannerSettings.titleHebrew) {
-      const lineY = currentY - 10;
-      const lineWidth = maxTextWidth * 0.6;
-      const lineX = centerX - (lineWidth / 2);
+      // Add margin above separator
+      const marginTop = bannerSettings.separatorMarginTop || 15;
+      currentY += marginTop;
       
-      ctx.strokeStyle = bannerSettings.textColor;
-      ctx.lineWidth = 2;
-      ctx.beginPath();
-      ctx.moveTo(lineX, lineY);
-      ctx.lineTo(lineX + lineWidth, lineY);
-      ctx.stroke();
-      currentY += 20;
+      const separatorY = currentY;
+      const separatorWidth = maxTextWidth * (bannerSettings.separatorWidth / 100 || 0.6);
+      
+      // Calculate separator X position based on alignment
+      let separatorX;
+      if (bannerSettings.separatorAlignment === 'left') {
+        separatorX = leftX;
+      } else if (bannerSettings.separatorAlignment === 'right') {
+        separatorX = rightX - separatorWidth;
+      } else {
+        separatorX = centerX - (separatorWidth / 2);
+      }
+      
+      drawSeparator(ctx, separatorX, separatorY, separatorWidth, bannerSettings);
+      
+      // Add margin below separator
+      const marginBottom = bannerSettings.separatorMarginBottom || 15;
+      currentY += marginBottom;
     }
     
     // Title (Hebrew)
@@ -2598,13 +3785,56 @@
                     textAlign === 'right' ? rightX : leftX;
       
       const lineHeight = bannerSettings.textLineHeight ?? 1.2;
-      ctx.font = `bold ${fontSize}px ${bannerSettings.hebrewFontFamily}`;
+      // Ensure font is properly formatted - extract primary font name
+      const hebrewFont = bannerSettings.hebrewFontFamily || 'Frank Ruhl Libre, Cardo, serif';
+      // Canvas requires font names with spaces to be quoted
+      const fontString = formatFontForCanvas(hebrewFont, fontSize, 'bold');
+      console.log('Setting Hebrew title font:', fontString, 'Current hebrewFontFamily:', bannerSettings.hebrewFontFamily);
+      ctx.font = fontString;
       ctx.textAlign = textAlign;
+      
+      // Verify font was set correctly
+      const actualFont = ctx.font;
+      console.log('Actual canvas font after setting:', actualFont);
       const titleHebrewLines = wrapText(ctx, bannerSettings.titleHebrew, maxTextWidth);
       titleHebrewLines.forEach((line, index) => {
         ctx.fillText(line, textX, currentY + (index * fontSize * lineHeight));
       });
       currentY += titleHebrewLines.length * fontSize * lineHeight + (bannerSettings.textSpacingTitle ?? 20);
+      
+      // Text separator below Hebrew title
+      if (bannerSettings.textSeparatorEnabled && bannerSettings.textSeparatorPosition === 'below-hebrew') {
+        // Add margin above separator
+        const marginTop = bannerSettings.textSeparatorMarginTop || 10;
+        currentY += marginTop;
+        
+        const separatorY = currentY;
+        const separatorWidth = maxTextWidth * (bannerSettings.textSeparatorWidth / 100 || 0.6);
+        
+        // Calculate separator X position based on alignment
+        let separatorX;
+        if (bannerSettings.textSeparatorAlign === 'left') {
+          separatorX = leftX;
+        } else if (bannerSettings.textSeparatorAlign === 'right') {
+          separatorX = rightX - separatorWidth;
+        } else {
+          separatorX = centerX - (separatorWidth / 2);
+        }
+        
+        // Create settings object for separator drawing
+        const separatorSettings = {
+          separatorStyle: bannerSettings.textSeparatorStyle || 'line',
+          separatorThickness: bannerSettings.textSeparatorThickness || 2,
+          separatorColor: bannerSettings.textSeparatorColor || bannerSettings.textColor,
+          textColor: bannerSettings.textColor
+        };
+        
+        drawSeparator(ctx, separatorX, separatorY, separatorWidth, separatorSettings);
+        
+        // Add margin below separator
+        const marginBottom = bannerSettings.textSeparatorMarginBottom || 15;
+        currentY += marginBottom;
+      }
     }
     
     // Year (English and Hebrew) - Larger and more prominent, on same line with separator
@@ -2619,10 +3849,10 @@
       // If both years exist, draw them separately with a decorative separator
       if (bannerSettings.yearEnglish && bannerSettings.yearHebrew) {
         // Measure text widths
-        ctx.font = `bold ${englishFontSize}px ${bannerSettings.fontFamily}`;
+        ctx.font = formatFontForCanvas(bannerSettings.fontFamily, englishFontSize, 'bold');
         const englishWidth = ctx.measureText(bannerSettings.yearEnglish).width;
         
-        ctx.font = `bold ${hebrewFontSize}px ${bannerSettings.hebrewFontFamily}`;
+        ctx.font = formatFontForCanvas(bannerSettings.hebrewFontFamily, hebrewFontSize, 'bold');
         const hebrewWidth = ctx.measureText(bannerSettings.yearHebrew).width;
         
         // Even spacing on both sides of separator
@@ -2641,21 +3871,17 @@
         }
         
         // Draw English year
-        ctx.font = `bold ${englishFontSize}px ${bannerSettings.fontFamily}`;
+        ctx.font = formatFontForCanvas(bannerSettings.fontFamily, englishFontSize, 'bold');
         ctx.textAlign = 'right';
         ctx.fillText(bannerSettings.yearEnglish, startX + englishWidth, yearY);
         
-        // Draw decorative separator (diamond) - centered between the two years
+        // Draw decorative separator between the two years
         const separatorX = startX + englishWidth + spacing + separatorSize / 2;
-        ctx.fillStyle = bannerSettings.textColor;
-        ctx.save();
-        ctx.translate(separatorX, yearY);
-        ctx.rotate(Math.PI / 4); // Rotate 45 degrees for diamond
-        ctx.fillRect(-separatorSize / 2, -separatorSize / 2, separatorSize, separatorSize);
-        ctx.restore();
+        drawSeparator(ctx, separatorX - separatorSize / 2, yearY, separatorSize, bannerSettings, true);
         
         // Draw Hebrew year
-        ctx.font = `bold ${hebrewFontSize}px ${bannerSettings.hebrewFontFamily}`;
+        const hebrewFont = bannerSettings.hebrewFontFamily || 'Frank Ruhl Libre, Cardo, serif';
+        ctx.font = formatFontForCanvas(hebrewFont, hebrewFontSize, 'bold');
         ctx.textAlign = 'left';
         ctx.fillText(bannerSettings.yearHebrew, startX + englishWidth + spacing + separatorSize + spacing, yearY);
       } else {
@@ -2666,7 +3892,7 @@
         const textX = yearAlign === 'center' ? centerX : 
                       yearAlign === 'right' ? rightX : leftX;
         
-        ctx.font = `bold ${fontSize}px ${fontFamily}`;
+        ctx.font = formatFontForCanvas(fontFamily, fontSize, 'bold');
         ctx.textAlign = yearAlign;
         ctx.fillText(yearText, textX, yearY);
       }
@@ -2685,7 +3911,7 @@
                     textAlign === 'right' ? rightX : leftX;
       const lineHeight = bannerSettings.textLineHeight ?? 1.2;
       
-      ctx.font = `${fontSize}px ${bannerSettings.fontFamily}`;
+      ctx.font = formatFontForCanvas(bannerSettings.fontFamily, fontSize, 'normal');
       ctx.textAlign = textAlign;
       const subtitleLines = wrapText(ctx, bannerSettings.subtitle, maxTextWidth);
       subtitleLines.forEach((line, index) => {
@@ -2702,13 +3928,18 @@
                     textAlign === 'right' ? rightX : leftX;
       const lineHeight = bannerSettings.textLineHeight ?? 1.2;
       
-      ctx.font = `${fontSize}px ${bannerSettings.hebrewFontFamily}`;
+      // Ensure font is properly formatted
+      const hebrewFont = bannerSettings.hebrewFontFamily || 'Frank Ruhl Libre, Cardo, serif';
+      const fontString = formatFontForCanvas(hebrewFont, fontSize, 'normal');
+      console.log('Setting Hebrew subtitle font:', fontString);
+      ctx.font = fontString;
       ctx.textAlign = textAlign;
       const subtitleHebrewLines = wrapText(ctx, bannerSettings.subtitleHebrew, maxTextWidth);
       subtitleHebrewLines.forEach((line, index) => {
         ctx.fillText(line, textX, currentY + (index * fontSize * lineHeight));
       });
     }
+    } // End of legacy text rendering
     
     // Ribbon in top corner (left or right)
     if (bannerSettings.category || bannerSettings.categoryHebrew) {
@@ -3248,18 +4479,33 @@
       
       <!-- Background Settings -->
       <BackgroundSettings
+        backgroundPresets={backgroundPresets}
+        applyBackgroundPreset={applyBackgroundPreset}
         bind:bannerSettings
         {backgroundTypes}
         {updateGradientColor}
         bind:isCollapsed={collapsedSections.background}
+        {selectedLotImages}
+        {type}
       />
       
-      <!-- Text Content -->
-      <TextContentSettings
+      <!-- Flexible Text Elements -->
+      <TextElementSettings
         bind:bannerSettings
+        {fonts}
+        {hebrewFonts}
         {convertToHebrewYear}
         bind:isCollapsed={collapsedSections.textContent}
       />
+      
+      <!-- Legacy Text Content (shown when flexible elements disabled) -->
+      {#if !bannerSettings.useFlexibleTextElements}
+        <TextContentSettings
+          bind:bannerSettings
+          {convertToHebrewYear}
+          bind:isCollapsed={collapsedSections.textContent}
+        />
+      {/if}
       
       <!-- Typography Settings -->
       <TypographySettings
@@ -3269,6 +4515,350 @@
         {convertToHebrewYear}
         bind:isCollapsed={collapsedSections.typography}
       />
+      
+      <!-- Separator Settings -->
+      <CollapsibleSection
+        title="Separator Design"
+        bind:isCollapsed={collapsedSections.separator}
+        bgColor="bg-indigo-50"
+        borderColor="border-indigo-200"
+        hoverColor="hover:bg-indigo-100"
+      >
+        <div class="space-y-3">
+          <div>
+            <label for="separator-style" class="block text-xs font-medium text-gray-700 mb-1">
+              Separator Style
+            </label>
+            <select
+              id="separator-style"
+              bind:value={bannerSettings.separatorStyle}
+              class="w-full px-2 py-1.5 text-sm border border-gray-300 rounded focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+            >
+              <option value="line">Line</option>
+              <option value="dotted">Dotted</option>
+              <option value="double">Double Line</option>
+              <option value="diamond">Diamond</option>
+              <option value="circle">Circle</option>
+              <option value="square">Square</option>
+            </select>
+          </div>
+          
+          <div>
+            <label for="separator-alignment" class="block text-xs font-medium text-gray-700 mb-1">
+              Alignment
+            </label>
+            <select
+              id="separator-alignment"
+              bind:value={bannerSettings.separatorAlignment}
+              class="w-full px-2 py-1.5 text-sm border border-gray-300 rounded focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+            >
+              <option value="left">Left</option>
+              <option value="center">Center</option>
+              <option value="right">Right</option>
+            </select>
+          </div>
+          
+          <div>
+            <label for="separator-width" class="block text-xs font-medium text-gray-700 mb-1">
+              Width: {bannerSettings.separatorWidth || 60}%
+            </label>
+            <input
+              id="separator-width"
+              type="range"
+              min="20"
+              max="100"
+              step="5"
+              bind:value={bannerSettings.separatorWidth}
+              class="w-full"
+            />
+          </div>
+          
+          <div>
+            <label for="separator-thickness" class="block text-xs font-medium text-gray-700 mb-1">
+              Thickness: {bannerSettings.separatorThickness || 2}px
+            </label>
+            <input
+              id="separator-thickness"
+              type="range"
+              min="1"
+              max="10"
+              step="1"
+              bind:value={bannerSettings.separatorThickness}
+              class="w-full"
+            />
+          </div>
+          
+          <div>
+            <label for="separator-color" class="block text-xs font-medium text-gray-700 mb-1">
+              Color (leave empty to use text color)
+            </label>
+            <div class="flex gap-2">
+              <input
+                id="separator-color"
+                type="color"
+                value={bannerSettings.separatorColor || bannerSettings.textColor}
+                oninput={(e) => bannerSettings.separatorColor = e.target.value}
+                class="h-10 w-20 border border-gray-300 rounded-lg cursor-pointer"
+              />
+              <input
+                type="text"
+                bind:value={bannerSettings.separatorColor}
+                placeholder="Uses text color if empty"
+                class="flex-1 px-2 py-1.5 text-sm border border-gray-300 rounded focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+              />
+              <button
+                type="button"
+                onclick={() => bannerSettings.separatorColor = ''}
+                class="px-2 py-1.5 text-xs bg-gray-200 text-gray-700 rounded hover:bg-gray-300"
+              >
+                Reset
+              </button>
+            </div>
+          </div>
+          
+          <div class="grid grid-cols-2 gap-3">
+            <div>
+              <label for="separator-margin-top" class="block text-xs font-medium text-gray-700 mb-1">
+                Margin Above: {bannerSettings.separatorMarginTop || 15}px
+              </label>
+              <input
+                id="separator-margin-top"
+                type="range"
+                min="0"
+                max="50"
+                step="5"
+                bind:value={bannerSettings.separatorMarginTop}
+                class="w-full"
+              />
+            </div>
+            
+            <div>
+              <label for="separator-margin-bottom" class="block text-xs font-medium text-gray-700 mb-1">
+                Margin Below: {bannerSettings.separatorMarginBottom || 15}px
+              </label>
+              <input
+                id="separator-margin-bottom"
+                type="range"
+                min="0"
+                max="50"
+                step="5"
+                bind:value={bannerSettings.separatorMarginBottom}
+                class="w-full"
+              />
+            </div>
+          </div>
+        </div>
+      </CollapsibleSection>
+      
+      <!-- Overlay Stamp Settings -->
+      <CollapsibleSection
+        title="Overlay Stamp"
+        bind:isCollapsed={collapsedSections.overlayStamp}
+        bgColor="bg-yellow-50"
+        borderColor="border-yellow-200"
+        hoverColor="hover:bg-yellow-100"
+      >
+        <div class="space-y-3">
+          <label class="flex items-center">
+            <input
+              type="checkbox"
+              bind:checked={bannerSettings.showOverlayStamp}
+              class="mr-2 h-4 w-4 text-yellow-600 focus:ring-yellow-500 border-gray-300 rounded"
+            />
+            <span class="text-xs font-medium text-gray-700">Show Overlay Stamp</span>
+          </label>
+          
+          {#if bannerSettings.showOverlayStamp}
+            {#if type === 'lot' && selectedLotImages.length > 0}
+              <div class="mb-2">
+                <div class="block text-xs font-medium text-gray-700 mb-2">Image Source</div>
+                <div class="flex gap-2 mb-2">
+                  <button
+                    type="button"
+                    onclick={() => overlayStampSource = 'library'}
+                    class="flex-1 px-3 py-1.5 text-xs rounded border transition-colors {overlayStampSource === 'library' ? 'bg-yellow-600 text-white border-yellow-600' : 'bg-white text-gray-700 border-gray-300 hover:bg-gray-50'}"
+                  >
+                    From Library
+                  </button>
+                  <button
+                    type="button"
+                    onclick={() => overlayStampSource = 'url'}
+                    class="flex-1 px-3 py-1.5 text-xs rounded border transition-colors {overlayStampSource === 'url' ? 'bg-yellow-600 text-white border-yellow-600' : 'bg-white text-gray-700 border-gray-300 hover:bg-gray-50'}"
+                  >
+                    Custom URL
+                  </button>
+                </div>
+              </div>
+            {/if}
+            
+            {#if overlayStampSource === 'library' && type === 'lot' && selectedLotImages.length > 0}
+              <div>
+                <div class="block text-xs font-medium text-gray-700 mb-2">Select from Library</div>
+                <div class="grid grid-cols-3 gap-2 max-h-32 overflow-y-auto">
+                  {#each selectedLotImages as image}
+                    {@const isSelected = bannerSettings.overlayStampUrl === (image.displayUrl || image.url)}
+                    <div
+                      class="relative cursor-pointer border-2 rounded-lg overflow-hidden transition-all {isSelected ? 'border-yellow-600 ring-2 ring-yellow-300' : 'border-gray-300 hover:border-yellow-400'}"
+                      role="button"
+                      tabindex="0"
+                      onclick={() => {
+                        bannerSettings.overlayStampUrl = image.displayUrl || image.url;
+                      }}
+                      onkeydown={(e) => {
+                        if (e.key === 'Enter' || e.key === ' ') {
+                          e.preventDefault();
+                          bannerSettings.overlayStampUrl = image.displayUrl || image.url;
+                        }
+                      }}
+                    >
+                      <img
+                        src={image.displayUrl || image.url}
+                        alt=""
+                        class="w-full h-16 object-cover"
+                      />
+                      {#if isSelected}
+                        <div class="absolute top-1 right-1 bg-yellow-600 text-white rounded-full w-4 h-4 flex items-center justify-center text-xs font-bold">
+                          ✓
+                        </div>
+                      {/if}
+                    </div>
+                  {/each}
+                </div>
+              </div>
+            {:else}
+              <div>
+                <label for="overlay-stamp-url" class="block text-xs font-medium text-gray-700 mb-1">
+                  Stamp Image URL
+                </label>
+                <input
+                  id="overlay-stamp-url"
+                  type="text"
+                  bind:value={bannerSettings.overlayStampUrl}
+                  placeholder="https://example.com/stamp.png"
+                  class="w-full px-2 py-1.5 text-sm border border-gray-300 rounded focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                />
+              </div>
+            {/if}
+            
+            <div>
+              <label for="overlay-stamp-position" class="block text-xs font-medium text-gray-700 mb-1">
+                Position
+              </label>
+              <select
+                id="overlay-stamp-position"
+                bind:value={bannerSettings.overlayStampPosition}
+                class="w-full px-2 py-1.5 text-sm border border-gray-300 rounded focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+              >
+                <option value="top-left">Top Left</option>
+                <option value="top-center">Top Center</option>
+                <option value="top-right">Top Right</option>
+                <option value="center">Center</option>
+                <option value="bottom-left">Bottom Left</option>
+                <option value="bottom-center">Bottom Center</option>
+                <option value="bottom-right">Bottom Right</option>
+                <option value="custom">Custom</option>
+              </select>
+            </div>
+            
+            {#if bannerSettings.overlayStampPosition === 'custom'}
+              <div class="grid grid-cols-2 gap-2">
+                <div>
+                  <label for="overlay-stamp-x" class="block text-xs font-medium text-gray-700 mb-1">
+                    X: {bannerSettings.overlayStampX || 50}%
+                  </label>
+                  <input
+                    id="overlay-stamp-x"
+                    type="range"
+                    min="0"
+                    max="100"
+                    step="1"
+                    bind:value={bannerSettings.overlayStampX}
+                    class="w-full"
+                  />
+                </div>
+                <div>
+                  <label for="overlay-stamp-y" class="block text-xs font-medium text-gray-700 mb-1">
+                    Y: {bannerSettings.overlayStampY || 50}%
+                  </label>
+                  <input
+                    id="overlay-stamp-y"
+                    type="range"
+                    min="0"
+                    max="100"
+                    step="1"
+                    bind:value={bannerSettings.overlayStampY}
+                    class="w-full"
+                  />
+                </div>
+              </div>
+            {/if}
+            
+            <div>
+              <label for="overlay-stamp-size" class="block text-xs font-medium text-gray-700 mb-1">
+                Size: {bannerSettings.overlayStampSize || 200}px
+              </label>
+              <input
+                id="overlay-stamp-size"
+                type="range"
+                min="50"
+                max="500"
+                step="10"
+                bind:value={bannerSettings.overlayStampSize}
+                class="w-full"
+              />
+            </div>
+            
+            <div>
+              <label for="overlay-stamp-rotation" class="block text-xs font-medium text-gray-700 mb-1">
+                Rotation: {bannerSettings.overlayStampRotation || 0}°
+              </label>
+              <input
+                id="overlay-stamp-rotation"
+                type="range"
+                min="-180"
+                max="180"
+                step="5"
+                bind:value={bannerSettings.overlayStampRotation}
+                class="w-full"
+              />
+            </div>
+            
+            <div>
+              <label for="overlay-stamp-opacity" class="block text-xs font-medium text-gray-700 mb-1">
+                Opacity: {Math.round((bannerSettings.overlayStampOpacity || 0.5) * 100)}%
+              </label>
+              <input
+                id="overlay-stamp-opacity"
+                type="range"
+                min="0"
+                max="1"
+                step="0.1"
+                bind:value={bannerSettings.overlayStampOpacity}
+                class="w-full"
+              />
+            </div>
+            
+            <div>
+              <label for="overlay-stamp-alignment" class="block text-xs font-medium text-gray-700 mb-1">
+                Alignment
+              </label>
+              <select
+                id="overlay-stamp-alignment"
+                bind:value={bannerSettings.overlayStampAlignment}
+                class="w-full px-2 py-1.5 text-sm border border-gray-300 rounded focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+              >
+                <option value="top-left">Top Left</option>
+                <option value="top-center">Top Center</option>
+                <option value="top-right">Top Right</option>
+                <option value="center">Center</option>
+                <option value="bottom-left">Bottom Left</option>
+                <option value="bottom-center">Bottom Center</option>
+                <option value="bottom-right">Bottom Right</option>
+              </select>
+            </div>
+          {/if}
+        </div>
+      </CollapsibleSection>
         
       <!-- Image Shadow Settings -->
       <ImageShadowSettings
@@ -3511,6 +5101,123 @@
                 max="100"
                 step="5"
                 bind:value={bannerSettings.logoMargin}
+                class="w-full"
+              />
+            </div>
+          {/if}
+        </div>
+      </CollapsibleSection>
+      
+      <!-- Watermark Settings -->
+      <CollapsibleSection
+        title="Watermark"
+        bind:isCollapsed={collapsedSections.watermark}
+        bgColor="bg-cyan-50"
+        borderColor="border-cyan-200"
+        hoverColor="hover:bg-cyan-100"
+      >
+        <div class="space-y-3">
+          <div>
+            <label class="flex items-center gap-2">
+              <input
+                type="checkbox"
+                bind:checked={bannerSettings.showWatermark}
+                class="w-4 h-4 text-purple-600 border-gray-300 rounded focus:ring-purple-500"
+              />
+              <span class="text-xs font-medium text-gray-700">Show Watermark</span>
+            </label>
+            <p class="text-xs text-gray-500 mt-1 ml-6">Add a subtle watermark to the background</p>
+          </div>
+          
+          {#if bannerSettings.showWatermark}
+            <div>
+              <label class="flex items-center gap-2 mb-2">
+                <input
+                  type="checkbox"
+                  bind:checked={bannerSettings.watermarkUseLogo}
+                  class="w-4 h-4 text-purple-600 border-gray-300 rounded focus:ring-purple-500"
+                />
+                <span class="text-xs font-medium text-gray-700">Use Logo as Watermark</span>
+              </label>
+            </div>
+            
+            {#if !bannerSettings.watermarkUseLogo}
+              <div>
+                <label for="watermark-url" class="block text-xs font-medium text-gray-700 mb-1">
+                  Custom Watermark URL
+                </label>
+                <input
+                  id="watermark-url"
+                  type="text"
+                  bind:value={bannerSettings.watermarkUrl}
+                  placeholder="Enter watermark image URL"
+                  class="w-full px-2 py-1.5 text-sm border border-gray-300 rounded focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                />
+              </div>
+            {/if}
+            
+            <div>
+              <label for="watermark-position" class="block text-xs font-medium text-gray-700 mb-1">
+                Position
+              </label>
+              <select
+                id="watermark-position"
+                bind:value={bannerSettings.watermarkPosition}
+                class="w-full px-2 py-1.5 text-sm border border-gray-300 rounded focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+              >
+                <option value="center">Center</option>
+                <option value="top-left">Top Left</option>
+                <option value="top-right">Top Right</option>
+                <option value="bottom-left">Bottom Left</option>
+                <option value="bottom-right">Bottom Right</option>
+                <option value="tile">Tile (Repeat)</option>
+              </select>
+            </div>
+            
+            <div class="grid grid-cols-2 gap-3">
+              <div>
+                <label for="watermark-size" class="block text-xs font-medium text-gray-700 mb-1">
+                  Size: {bannerSettings.watermarkSize || 300}px
+                </label>
+                <input
+                  id="watermark-size"
+                  type="range"
+                  min="50"
+                  max="800"
+                  step="50"
+                  bind:value={bannerSettings.watermarkSize}
+                  class="w-full"
+                />
+              </div>
+              
+              <div>
+                <label for="watermark-opacity" class="block text-xs font-medium text-gray-700 mb-1">
+                  Opacity: {Math.round((bannerSettings.watermarkOpacity || 0.1) * 100)}%
+                </label>
+                <input
+                  id="watermark-opacity"
+                  type="range"
+                  min="0"
+                  max="100"
+                  step="5"
+                  value={bannerSettings.watermarkOpacity ? bannerSettings.watermarkOpacity * 100 : 10}
+                  oninput={(e) => bannerSettings.watermarkOpacity = e.target.value / 100}
+                  class="w-full"
+                />
+              </div>
+            </div>
+            
+            <div>
+              <label for="watermark-rotation" class="block text-xs font-medium text-gray-700 mb-1">
+                Rotation: {bannerSettings.watermarkRotation || 0}°
+              </label>
+              <input
+                id="watermark-rotation"
+                type="range"
+                min="-180"
+                max="180"
+                step="15"
+                bind:value={bannerSettings.watermarkRotation}
                 class="w-full"
               />
             </div>

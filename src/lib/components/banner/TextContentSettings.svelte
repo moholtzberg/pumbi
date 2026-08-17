@@ -22,13 +22,13 @@
         Title (English)
       </label>
       <div class="grid grid-cols-3 gap-2">
-        <input
+        <textarea
           id="title-en"
-          type="text"
           bind:value={bannerSettings.title}
-          placeholder="Banner title"
-          class="col-span-2 px-2 py-1.5 text-sm border border-gray-300 rounded focus:ring-2 focus:ring-purple-500 focus:border-transparent"
-        />
+          placeholder="Banner title (press Enter for new line)"
+          rows="2"
+          class="col-span-2 px-2 py-1.5 text-sm border border-gray-300 rounded focus:ring-2 focus:ring-purple-500 focus:border-transparent resize-y"
+        ></textarea>
         <div class="flex gap-1">
           <input
             type="number"
@@ -50,6 +50,7 @@
           </select>
         </div>
       </div>
+      <p class="text-xs text-gray-500">Press Enter to create a new line</p>
     </div>
     
     <!-- Title Hebrew -->
@@ -58,14 +59,14 @@
         Title (Hebrew)
       </label>
       <div class="grid grid-cols-3 gap-2">
-        <input
+        <textarea
           id="title-he"
-          type="text"
           bind:value={bannerSettings.titleHebrew}
-          placeholder="כותרת בעברית"
+          placeholder="כותרת בעברית (לחץ Enter לשורה חדשה)"
+          rows="2"
           dir="rtl"
-          class="col-span-2 px-2 py-1.5 text-sm border border-gray-300 rounded focus:ring-2 focus:ring-purple-500 focus:border-transparent"
-        />
+          class="col-span-2 px-2 py-1.5 text-sm border border-gray-300 rounded focus:ring-2 focus:ring-purple-500 focus:border-transparent resize-y"
+        ></textarea>
         <div class="flex gap-1">
           <input
             type="number"
@@ -87,6 +88,162 @@
           </select>
         </div>
       </div>
+      <p class="text-xs text-gray-500">Press Enter to create a new line</p>
+    </div>
+    
+    <!-- Text Separator -->
+    <div class="pt-2 border-t border-gray-200 space-y-2">
+      <label class="flex items-center gap-2 cursor-pointer">
+        <input
+          type="checkbox"
+          bind:checked={bannerSettings.textSeparatorEnabled}
+          class="w-4 h-4 text-purple-600 border-gray-300 rounded focus:ring-purple-500"
+        />
+        <span class="text-xs font-medium text-gray-700">Enable Text Separator</span>
+      </label>
+      
+      {#if bannerSettings.textSeparatorEnabled}
+        <div class="space-y-2 pl-6">
+          <div>
+            <label for="text-separator-style" class="block text-xs font-medium text-gray-700 mb-1">
+              Separator Style
+            </label>
+            <select
+              id="text-separator-style"
+              bind:value={bannerSettings.textSeparatorStyle}
+              class="w-full px-2 py-1.5 text-sm border border-gray-300 rounded focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+            >
+              <option value="line">Line</option>
+              <option value="dotted">Dotted</option>
+              <option value="double">Double Line</option>
+              <option value="diamond">Diamond</option>
+              <option value="circle">Circle</option>
+              <option value="square">Square</option>
+            </select>
+          </div>
+          
+          <div>
+            <label for="text-separator-position" class="block text-xs font-medium text-gray-700 mb-1">
+              Position
+            </label>
+            <select
+              id="text-separator-position"
+              bind:value={bannerSettings.textSeparatorPosition}
+              class="w-full px-2 py-1.5 text-sm border border-gray-300 rounded focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+            >
+              <option value="below-english">Below English Title</option>
+              <option value="below-hebrew">Below Hebrew Title</option>
+            </select>
+          </div>
+          
+          <div>
+            <label for="text-separator-width" class="block text-xs font-medium text-gray-700 mb-1">
+              Width: {bannerSettings.textSeparatorWidth || 60}%
+            </label>
+            <input
+              id="text-separator-width"
+              type="range"
+              min="20"
+              max="100"
+              step="5"
+              bind:value={bannerSettings.textSeparatorWidth}
+              class="w-full"
+            />
+          </div>
+          
+          <div>
+            <label for="text-separator-thickness" class="block text-xs font-medium text-gray-700 mb-1">
+              Thickness: {bannerSettings.textSeparatorThickness || 2}px
+            </label>
+            <input
+              id="text-separator-thickness"
+              type="range"
+              min="1"
+              max="10"
+              step="1"
+              bind:value={bannerSettings.textSeparatorThickness}
+              class="w-full"
+            />
+          </div>
+          
+          <div>
+            <label for="text-separator-align" class="block text-xs font-medium text-gray-700 mb-1">
+              Alignment
+            </label>
+            <select
+              id="text-separator-align"
+              bind:value={bannerSettings.textSeparatorAlign}
+              class="w-full px-2 py-1.5 text-sm border border-gray-300 rounded focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+            >
+              <option value="left">Left</option>
+              <option value="center">Center</option>
+              <option value="right">Right</option>
+            </select>
+          </div>
+          
+          <div class="grid grid-cols-2 gap-3">
+            <div>
+              <label for="text-separator-margin-top" class="block text-xs font-medium text-gray-700 mb-1">
+                Margin Above: {bannerSettings.textSeparatorMarginTop || 10}px
+              </label>
+              <input
+                id="text-separator-margin-top"
+                type="range"
+                min="0"
+                max="50"
+                step="5"
+                bind:value={bannerSettings.textSeparatorMarginTop}
+                class="w-full"
+              />
+            </div>
+            
+            <div>
+              <label for="text-separator-margin-bottom" class="block text-xs font-medium text-gray-700 mb-1">
+                Margin Below: {bannerSettings.textSeparatorMarginBottom || 15}px
+              </label>
+              <input
+                id="text-separator-margin-bottom"
+                type="range"
+                min="0"
+                max="50"
+                step="5"
+                bind:value={bannerSettings.textSeparatorMarginBottom}
+                class="w-full"
+              />
+            </div>
+          </div>
+          
+          <div>
+            <label for="text-separator-color" class="block text-xs font-medium text-gray-700 mb-1">
+              Color
+            </label>
+            <div class="flex gap-2">
+              <input
+                id="text-separator-color"
+                type="color"
+                value={bannerSettings.textSeparatorColor || bannerSettings.textColor}
+                oninput={(e) => bannerSettings.textSeparatorColor = e.target.value}
+                class="h-10 w-20 border border-gray-300 rounded-lg cursor-pointer"
+              />
+              <input
+                type="text"
+                bind:value={bannerSettings.textSeparatorColor}
+                placeholder="Uses text color if empty"
+                class="flex-1 px-2 py-1.5 text-sm border border-gray-300 rounded focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+              />
+              <button
+                type="button"
+                onclick={() => bannerSettings.textSeparatorColor = ''}
+                class="px-3 py-1.5 text-xs bg-gray-100 hover:bg-gray-200 border border-gray-300 rounded focus:ring-2 focus:ring-purple-500"
+                title="Reset to text color"
+              >
+                Reset
+              </button>
+            </div>
+            <p class="text-xs text-gray-500 mt-1">Leave empty to use the main text color</p>
+          </div>
+        </div>
+      {/if}
     </div>
     
     <!-- Subtitle English -->

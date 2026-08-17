@@ -43,9 +43,13 @@
   }
   
   // Get lot images (supporting both new images array and legacy fields)
+  // Filters out hidden images by default
   function getLotImages(lot) {
     if (lot.images && Array.isArray(lot.images) && lot.images.length > 0) {
-      return lot.images.map(img => img.url || img);
+      // Filter out hidden images
+      return lot.images
+        .filter(img => !img.isHidden)
+        .map(img => img.url || img);
     }
     if (lot.imageUrls) {
       try {
@@ -64,8 +68,12 @@
   function getPrimaryImage(lot) {
     const images = getLotImages(lot);
     if (lot.images && Array.isArray(lot.images)) {
-      const primary = lot.images.find(img => img.isPrimary);
+      // Find primary image that is not hidden
+      const primary = lot.images.find(img => img.isPrimary && !img.isHidden);
       if (primary) return primary.url;
+      // If no visible primary, get first visible image
+      const firstVisible = lot.images.find(img => !img.isHidden);
+      if (firstVisible) return firstVisible.url;
     }
     return images[0] || '/placeholder-lot.jpg';
   }

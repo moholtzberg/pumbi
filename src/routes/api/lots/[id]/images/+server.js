@@ -52,7 +52,8 @@ export async function POST({ params, request }) {
             url: img.url,
             cloudKey: img.key,
             displayOrder: img.displayOrder ?? index,
-            isPrimary: img.isPrimary ?? false
+            isPrimary: img.isPrimary ?? false,
+            isHidden: img.isHidden ?? false
           }
         })
       )
@@ -101,7 +102,8 @@ export async function PATCH({ params, request }) {
           where: { id: img.id },
           data: {
             displayOrder: img.displayOrder,
-            ...(img.isPrimary !== undefined ? { isPrimary: img.isPrimary } : {})
+            ...(img.isPrimary !== undefined ? { isPrimary: img.isPrimary } : {}),
+            ...(img.isHidden !== undefined ? { isHidden: img.isHidden } : {})
           }
         })
       )
