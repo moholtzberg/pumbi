@@ -72,13 +72,48 @@ export async function getPresignedUrl(key, expiresIn = 3600) {
 }
 
 // ===== S3 Implementation =====
+
+// DigitalOcean Spaces region identifiers (non-AWS regions)
+const DO_REGIONS = new Set(['nyc3', 'nyc2', 'ams3', 'sgp1', 'lon1', 'fra1', 'tor1', 'blr1', 'sfo2', 'sfo3', 'syd1']);
+
+/**
+ * Build S3Client config, with DigitalOcean Spaces endpoint support.
+ * The endpoint is resolved in this order:
+ *   1. DO_SPACES_ENDPOINT env var (explicit override)
+ *   2. Auto-constructed from AWS_REGION when it is a known DO region (e.g. nyc3)
+ *   3. Standard AWS S3 (no endpoint override)
+ */
+function getS3Config() {
+  const accessKeyId = env.AWS_ACCESS_KEY_ID || process.env.AWS_ACCESS_KEY_ID;
+  const secretAccessKey = env.AWS_SECRET_ACCESS_KEY || process.env.AWS_SECRET_ACCESS_KEY;
+  const bucket = env.AWS_S3_BUCKET || process.env.AWS_S3_BUCKET;
+  const region = env.AWS_REGION || process.env.AWS_REGION || 'us-east-1';
+
+  let endpoint = env.DO_SPACES_ENDPOINT || process.env.DO_SPACES_ENDPOINT || null;
+
+  // Auto-detect DigitalOcean Spaces: if the region is a DO region and no explicit
+  // endpoint was provided, construct the endpoint automatically so that the AWS SDK
+  // does not try to reach <bucket>.s3.<do-region>.amazonaws.com (which does not exist).
+  if (!endpoint && DO_REGIONS.has(region)) {
+    endpoint = `https://${region}.digitaloceanspaces.com`;
+  }
+
+  const clientConfig = {
+    region,
+    credentials: { accessKeyId, secretAccessKey }
+  };
+
+  if (endpoint) {
+    clientConfig.endpoint = endpoint;
+    clientConfig.forcePathStyle = false; // DigitalOcean uses virtual-hosted-style URLs
+  }
+
+  return { accessKeyId, secretAccessKey, bucket, region, endpoint, clientConfig };
+}
+
 async function uploadToS3(buffer, filename, folder, contentTypeOverride = null) {
   try {
-    // Validate required environment variables (try SvelteKit env first, then process.env)
-    const accessKeyId = env.AWS_ACCESS_KEY_ID || process.env.AWS_ACCESS_KEY_ID;
-    const secretAccessKey = env.AWS_SECRET_ACCESS_KEY || process.env.AWS_SECRET_ACCESS_KEY;
-    const bucket = env.AWS_S3_BUCKET || process.env.AWS_S3_BUCKET;
-    const region = env.AWS_REGION || process.env.AWS_REGION || 'us-east-1';
+    const { accessKeyId, secretAccessKey, bucket, clientConfig } = getS3Config();
     
     if (!accessKeyId || !secretAccessKey || !bucket) {
       console.error('S3 Configuration Check:');
@@ -86,7 +121,6 @@ async function uploadToS3(buffer, filename, folder, contentTypeOverride = null) 
       console.error('  AWS_ACCESS_KEY_ID:', accessKeyId ? '***SET***' : 'NOT SET');
       console.error('  AWS_SECRET_ACCESS_KEY:', secretAccessKey ? '***SET***' : 'NOT SET');
       console.error('  AWS_S3_BUCKET:', bucket || 'NOT SET');
-      console.error('  AWS_REGION:', region);
       throw new Error('Missing required S3 configuration: AWS_ACCESS_KEY_ID, AWS_SECRET_ACCESS_KEY, and AWS_S3_BUCKET must be set');
     }
     
@@ -98,13 +132,7 @@ async function uploadToS3(buffer, filename, folder, contentTypeOverride = null) 
     });
     const { S3Client, PutObjectCommand } = s3Module;
     
-    const s3Client = new S3Client({
-      region: region,
-      credentials: {
-        accessKeyId: accessKeyId,
-        secretAccessKey: secretAccessKey
-      }
-    });
+    const s3Client = new S3Client(clientConfig);
 
     const ext = filename.split('.').pop() || 'jpg';
     const key = `${folder}/${Date.now()}-${Math.random().toString(36).substring(7)}.${ext}`;
@@ -151,11 +179,7 @@ async function uploadToS3(buffer, filename, folder, contentTypeOverride = null) 
 
 async function deleteFromS3(key, folder) {
   try {
-    // Validate required environment variables (try SvelteKit env first, then process.env)
-    const accessKeyId = env.AWS_ACCESS_KEY_ID || process.env.AWS_ACCESS_KEY_ID;
-    const secretAccessKey = env.AWS_SECRET_ACCESS_KEY || process.env.AWS_SECRET_ACCESS_KEY;
-    const bucket = env.AWS_S3_BUCKET || process.env.AWS_S3_BUCKET;
-    const region = env.AWS_REGION || process.env.AWS_REGION || 'us-east-1';
+    const { accessKeyId, secretAccessKey, bucket, clientConfig } = getS3Config();
     
     if (!accessKeyId || !secretAccessKey || !bucket) {
       throw new Error('Missing required S3 configuration: AWS_ACCESS_KEY_ID, AWS_SECRET_ACCESS_KEY, and AWS_S3_BUCKET must be set');
@@ -168,13 +192,7 @@ async function deleteFromS3(key, folder) {
     });
     const { S3Client, DeleteObjectCommand } = s3Module;
     
-    const s3Client = new S3Client({
-      region: region,
-      credentials: {
-        accessKeyId: accessKeyId,
-        secretAccessKey: secretAccessKey
-      }
-    });
+    const s3Client = new S3Client(clientConfig);
 
     await s3Client.send(new DeleteObjectCommand({
       Bucket: bucket,
@@ -191,11 +209,7 @@ async function deleteFromS3(key, folder) {
 
 async function getS3PresignedUrl(key, expiresIn = 3600) {
   try {
-    // Validate required environment variables
-    const accessKeyId = env.AWS_ACCESS_KEY_ID || process.env.AWS_ACCESS_KEY_ID;
-    const secretAccessKey = env.AWS_SECRET_ACCESS_KEY || process.env.AWS_SECRET_ACCESS_KEY;
-    const bucket = env.AWS_S3_BUCKET || process.env.AWS_S3_BUCKET;
-    const region = env.AWS_REGION || process.env.AWS_REGION || 'us-east-1';
+    const { accessKeyId, secretAccessKey, bucket, clientConfig } = getS3Config();
     
     if (!accessKeyId || !secretAccessKey || !bucket) {
       throw new Error('Missing required S3 configuration');
@@ -223,13 +237,7 @@ async function getS3PresignedUrl(key, expiresIn = 3600) {
       throw error;
     }
     
-    const s3Client = new S3Client({
-      region: region,
-      credentials: {
-        accessKeyId: accessKeyId,
-        secretAccessKey: secretAccessKey
-      }
-    });
+    const s3Client = new S3Client(clientConfig);
 
     const command = new GetObjectCommand({
       Bucket: bucket,
