@@ -53,6 +53,15 @@ export function assertHousePayoutReady(house) {
   }
 }
 
+export function assertSellerPayoutReady(user) {
+  if (user.identityVerificationStatus !== 'VERIFIED') {
+    throw error(409, 'Complete facial and ID verification before requesting payouts');
+  }
+  if (user.cardVerificationStatus !== 'VERIFIED') {
+    throw error(409, 'Link and verify a credit card before requesting payouts');
+  }
+}
+
 export function stripeErrorMessage(err) {
   const message = typeof err?.message === 'string' ? err.message : 'Stripe transfer failed';
   return message.slice(0, 2000);

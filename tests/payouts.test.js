@@ -1,6 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {
+  assertSellerPayoutReady,
   amountToMinorUnits,
   parsePayoutRequest
 } from '../src/lib/server/payouts.js';
@@ -30,4 +31,19 @@ test('payout amounts reject invalid or non-positive values', () => {
   for (const value of ['0', '-1', '1.234', '1e2', 'not-a-number']) {
     assert.throws(() => amountToMinorUnits(value));
   }
+});
+
+test('seller payout requests require identity and card verification', () => {
+  assert.throws(() => assertSellerPayoutReady({
+    identityVerificationStatus: 'PENDING',
+    cardVerificationStatus: 'VERIFIED'
+  }));
+  assert.throws(() => assertSellerPayoutReady({
+    identityVerificationStatus: 'VERIFIED',
+    cardVerificationStatus: 'PENDING'
+  }));
+  assert.doesNotThrow(() => assertSellerPayoutReady({
+    identityVerificationStatus: 'VERIFIED',
+    cardVerificationStatus: 'VERIFIED'
+  }));
 });
