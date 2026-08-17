@@ -119,7 +119,7 @@ function smtp2goConfig() {
   if (!env.SMTP2GO_API_KEY) throw error(503, 'Email and SMS verification is not configured');
   return {
     apiKey: env.SMTP2GO_API_KEY,
-    fromEmail: env.SMTP2GO_FROM_EMAIL || 'Pumbi <hello@pumbi.com>'
+    fromEmail: env.SMTP2GO_FROM_EMAIL || 'Pumbi <hello@pumbi.co>'
   };
 }
 
@@ -185,6 +185,9 @@ async function deliverVerificationCode(channel, target, code) {
 }
 
 export async function startContactVerification(user, channel) {
+  if (!prisma.contactVerificationCode) {
+    throw error(503, 'Verification storage is not loaded. Regenerate Prisma Client and restart the application.');
+  }
   const databaseChannel = otpChannel(channel);
   const target = channel === 'email' ? user.email : normalizePhone(user.phone);
   if (!target) throw error(400, channel === 'email' ? 'Add an email address first' : 'Add a phone number first');
@@ -230,6 +233,9 @@ export async function startContactVerification(user, channel) {
 }
 
 export async function checkContactVerification(user, channel, code) {
+  if (!prisma.contactVerificationCode) {
+    throw error(503, 'Verification storage is not loaded. Regenerate Prisma Client and restart the application.');
+  }
   const databaseChannel = otpChannel(channel);
   if (!/^\d{6}$/.test(code || '')) throw error(400, 'Enter the six-digit verification code');
   const target = channel === 'email' ? user.email : normalizePhone(user.phone);
