@@ -32,6 +32,9 @@ export async function POST({ request, locals }) {
   if (!lotId || !Number.isFinite(amount) || amount <= 0) {
     throw error(400, 'A valid lot ID and positive bid amount are required');
   }
+  if (!user.isVerifiedBuyer) {
+    throw error(403, 'Complete buyer verification before placing a bid');
+  }
 
   const bid = await prisma.$transaction(async (tx) => {
     const lot = await tx.lot.findUnique({
@@ -145,4 +148,3 @@ export async function POST({ request, locals }) {
 
   return json(bid, { status: 201 });
 }
-

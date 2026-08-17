@@ -10,20 +10,18 @@
     style: 'currency', currency: 'USD', maximumFractionDigits: 0
   }).format(Number(value || 0));
   const firstName = data.user.firstName || data.user.name?.trim().split(/\s+/)[0] || 'there';
-  const profileComplete = Boolean(data.user.firstName && data.user.lastName && data.user.phone && data.user.address);
   const tasks = [
     ...(!data.user.firstName ? [{ title: 'Add your first name', detail: 'Tell us how to address you.', href: '/dashboard/profile' }] : []),
     ...(!data.user.lastName ? [{ title: 'Add your last name', detail: 'Complete your account identity.', href: '/dashboard/profile' }] : []),
     ...(!data.user.phone ? [{ title: 'Add a phone number', detail: 'Auction teams may need to reach you.', href: '/dashboard/profile' }] : []),
     ...(!data.user.address ? [{ title: 'Add your address', detail: 'Required for buyer verification.', href: '/dashboard/profile' }] : []),
-    ...(!data.user.isVerifiedBuyer ? [{
-      title: profileComplete ? 'Buyer verification is pending' : 'Complete buyer verification',
-      detail: profileComplete ? 'Your completed profile is waiting for administrator review.' : 'Finish the profile items above to become eligible for review.',
-      href: '/dashboard/profile', pending: profileComplete
-    }] : []),
+    ...(!data.user.emailVerifiedAt ? [{ title: 'Verify your email', detail: 'Enter the one-time code sent to your inbox.', href: '/dashboard/verification' }] : []),
+    ...(!data.user.phoneVerifiedAt ? [{ title: 'Verify your phone', detail: 'Confirm your mobile number by SMS.', href: '/dashboard/verification' }] : []),
+    ...(data.user.identityVerificationStatus !== 'VERIFIED' ? [{ title: 'Verify photo ID and selfie', detail: 'Complete the secure Stripe Identity check.', href: '/dashboard/verification', pending: data.user.identityVerificationStatus === 'PENDING' }] : []),
+    ...(data.user.cardVerificationStatus !== 'VERIFIED' ? [{ title: 'Link a valid credit card', detail: 'Securely validate a card without a charge.', href: '/dashboard/verification', pending: data.user.cardVerificationStatus === 'PENDING' }] : []),
     ...(!data.user.isVerifiedBidder ? [{
       title: 'Bidder approval is still needed',
-      detail: data.user.isVerifiedBuyer ? 'An auction administrator must approve bidding access.' : 'Buyer verification must be completed first.',
+      detail: data.user.isVerifiedBuyer ? 'An auction administrator must approve bidding access.' : 'Complete all buyer verification checks first.',
       pending: data.user.isVerifiedBuyer
     }] : [])
   ];

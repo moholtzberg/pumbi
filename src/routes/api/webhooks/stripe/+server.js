@@ -4,6 +4,11 @@ import {
   getStripeWebhookSecret,
   syncConnectedAccount
 } from '$lib/server/stripe.js';
+import {
+  syncCardCheckoutSession,
+  syncIdentitySession,
+  syncSellerConnectedAccount
+} from '$lib/server/verification.js';
 
 export async function POST({ request }) {
   const signature = request.headers.get('stripe-signature');
@@ -24,7 +29,16 @@ export async function POST({ request }) {
 
   try {
     if (event.type === 'account.updated') {
-      await syncConnectedAccount(event.data.object);
+      await Promise.all([
+        syncConnectedAccount(event.data.object),
+        syncSellerConnectedAccount(event.data.object)
+      ]);
+    }
+    if (event.type === 'identity.verification_session.verified' || event.type === 'identity.verification_session.requires_input') {
+      await syncIdentitySession(event.data.object);
+    }
+    if (event.type === 'checkout.session.completed' && event.data.object.mode === 'setup') {
+      await syncCardCheckoutSession(event.data.object.id);
     }
     return json({ received: true });
   } catch (err) {

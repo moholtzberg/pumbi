@@ -20,7 +20,10 @@ const REQUIRED_FIELDS = {
 };
 
 export async function POST({ params, request, locals }) {
-  await requireHouseEditor(locals, params.id);
+  const { user } = await requireHouseEditor(locals, params.id);
+  if (!user.emailVerifiedAt || !user.phoneVerifiedAt || user.identityVerificationStatus !== 'VERIFIED') {
+    throw error(403, 'Verify your email, phone, and identity before submitting auction-house onboarding');
+  }
   const body = await parseJsonBody(request);
   if (!body || typeof body !== 'object' || Array.isArray(body)) {
     throw error(400, 'Request body must be a JSON object');
@@ -55,6 +58,8 @@ export async function POST({ params, request, locals }) {
       select: {
         id: true,
         onboardingStatus: true,
+        stripeConnectDetailsSubmitted: true,
+        stripeConnectPayoutsEnabled: true,
         ...Object.fromEntries(Object.keys(REQUIRED_FIELDS).map((field) => [field, true])),
         locations: { where: { isPrimary: true }, select: { id: true }, take: 1 },
         documents: {
@@ -66,6 +71,9 @@ export async function POST({ params, request, locals }) {
     if (!house) throw error(404, 'Auction house not found');
     if (!['DRAFT', 'REJECTED'].includes(house.onboardingStatus)) {
       throw error(409, 'Only draft or rejected onboarding can be submitted');
+    }
+    if (!house.stripeConnectDetailsSubmitted || !house.stripeConnectPayoutsEnabled) {
+      throw error(400, 'Complete Stripe tax and bank verification before submission');
     }
     for (const [field, label] of Object.entries(REQUIRED_FIELDS)) {
       if (typeof house[field] === 'string' ? !house[field].trim() : !house[field]) {

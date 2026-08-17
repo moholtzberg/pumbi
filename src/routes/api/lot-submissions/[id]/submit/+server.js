@@ -10,6 +10,12 @@ import {
 
 export async function POST({ params, request, locals }) {
   const user = await requireCurrentUser(locals);
+  if (!user.emailVerifiedAt || !user.phoneVerifiedAt || user.identityVerificationStatus !== 'VERIFIED') {
+    throw error(403, 'Verify your email, phone, and identity before submitting a lot');
+  }
+  if (!user.sellerProfile?.stripeConnectDetailsSubmitted || !user.sellerProfile?.stripeConnectPayoutsEnabled) {
+    throw error(403, 'Complete seller tax and bank verification before submitting a lot');
+  }
   const body = await request.json().catch(() => {
     throw error(400, 'Request body must be valid JSON');
   });

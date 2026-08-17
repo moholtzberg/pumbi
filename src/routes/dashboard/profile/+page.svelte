@@ -193,7 +193,7 @@
             
             <div class="bg-blue-50 border border-blue-200 rounded-lg p-4">
               <p class="text-sm text-blue-800">
-                <strong>Note:</strong> Completing your profile with all required information is necessary to become a verified buyer. Once your profile is complete, an auction house administrator will review and verify your account.
+                <strong>Next:</strong> After completing your profile, use Account verification to confirm your email, phone, photo ID and selfie, and a valid card.
               </p>
             </div>
             
@@ -222,4 +222,3 @@
     </div>
   </div>
 </div>
-

@@ -9,6 +9,9 @@ export async function POST({ params, locals, request }) {
       locals,
       'You must be logged in to register for an auction'
     );
+    if (!user.isVerifiedBuyer) {
+      throw error(403, 'Complete buyer verification before registering for an auction');
+    }
     const auction = await prisma.auction.findUnique({
       where: { id: params.id },
       include: {
@@ -182,4 +185,3 @@ export async function GET({ params, locals }) {
     throw error(500, 'Failed to check registration status');
   }
 }
-

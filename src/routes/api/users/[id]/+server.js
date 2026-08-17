@@ -23,10 +23,12 @@ export async function PATCH({ params, request, locals }) {
     const data = await request.json();
     
     // Update user
+    const phone = data.phone || null;
     const updatedUser = await db.users.update(params.id, {
       firstName: data.firstName || null,
       lastName: data.lastName || null,
-      phone: data.phone || null,
+      phone,
+      ...(phone !== currentUser.phone ? { phoneVerifiedAt: null, isVerifiedBuyer: false } : {}),
       address: data.address || null,
       name: data.firstName && data.lastName 
         ? `${data.firstName} ${data.lastName}`.trim()
@@ -42,4 +44,3 @@ export async function PATCH({ params, request, locals }) {
     throw error(500, err.message || 'Failed to update user');
   }
 }
-

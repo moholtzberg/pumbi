@@ -29,7 +29,11 @@
             <td class="px-5 py-4"><div class="font-semibold text-slate-950">{user.name || 'Unnamed user'}</div><div class="text-xs text-slate-500">{user.email}</div></td>
             <td class="px-5 py-4"><span class="rounded-full bg-slate-100 px-2 py-1 text-xs font-bold">{user.role.replaceAll('_', ' ')}</span></td>
             <td class="px-5 py-4 text-slate-600">{user.auctionHouse?.name || '—'}<div class="text-xs text-slate-400">{user._count.auctionHouseMemberships} memberships</div></td>
-            <td class="px-5 py-4"><span class={user.isVerifiedBuyer ? 'text-emerald-700' : 'text-slate-400'}>{user.isVerifiedBuyer ? 'Buyer verified' : 'Not verified'}</span>{#if user.isVerifiedBidder}<div class="text-xs text-emerald-700">Bidder verified</div>{/if}</td>
+            <td class="px-5 py-4">
+              <span class={user.isVerifiedBuyer ? 'font-semibold text-emerald-700' : 'text-slate-500'}>{user.isVerifiedBuyer ? 'Buyer verified' : 'Buyer incomplete'}</span>
+              <div class="mt-1 text-xs text-slate-400">Email {user.emailVerifiedAt ? '✓' : '—'} · Phone {user.phoneVerifiedAt ? '✓' : '—'} · ID {user.identityVerificationStatus === 'VERIFIED' ? '✓' : '—'} · Card {user.cardVerificationStatus === 'VERIFIED' ? '✓' : '—'}</div>
+              {#if user.isVerifiedBidder}<div class="mt-1 text-xs font-semibold text-emerald-700">Bidder approved</div>{/if}
+            </td>
             <td class="px-5 py-4 text-slate-600">{user._count.bids} bids</td>
             <td class="px-5 py-4 text-slate-600">{date(user.createdAt)}</td>
           </tr>

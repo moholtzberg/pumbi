@@ -22,6 +22,8 @@ export async function load({ url }) {
       orderBy: { createdAt: 'desc' },
       select: {
         id: true, email: true, name: true, role: true, isVerifiedBuyer: true, isVerifiedBidder: true, createdAt: true,
+        emailVerifiedAt: true, phoneVerifiedAt: true,
+        identityVerificationStatus: true, cardVerificationStatus: true,
         auctionHouse: { select: { name: true } },
         _count: { select: { bids: true, auctionHouseMemberships: true } }
       }

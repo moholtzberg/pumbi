@@ -16,6 +16,10 @@ export async function load({ locals }) {
       email: true,
       phone: true,
       address: true,
+      emailVerifiedAt: true,
+      phoneVerifiedAt: true,
+      identityVerificationStatus: true,
+      cardVerificationStatus: true,
       isVerifiedBuyer: true,
       isVerifiedBidder: true,
       watchedLots: {

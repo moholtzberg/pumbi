@@ -71,22 +71,33 @@ model AuctionHouse {
 
 // User model - represents users in the system
 model User {
-  id                   String    @id @default(cuid())
-  email                String    @unique
-  password             String? // Hashed password (optional for existing users, required for new)
-  name                 String?
-  firstName            String?   @map("first_name")
-  lastName             String?   @map("last_name")
-  phone                String? // Phone number
-  address              String? // Address
-  isVerifiedBuyer      Boolean   @default(false) @map("is_verified_buyer") // Profile verified
-  isVerifiedBidder     Boolean   @default(false) @map("is_verified_bidder") // Can bid as verified bidder
-  resetPasswordToken   String?   @map("reset_password_token") // Token for password reset
-  resetPasswordExpires DateTime? @map("reset_password_expires") // Expiration for reset token
-  role                 UserRole  @default(BUYER)
-  auctionHouseId       String?   @map("auction_house_id") // For sellers/auctioneers
-  createdAt            DateTime  @default(now()) @map("created_at")
-  updatedAt            DateTime  @updatedAt @map("updated_at")
+  id                         String             @id @default(cuid())
+  email                      String             @unique
+  password                   String? // Hashed password (optional for existing users, required for new)
+  name                       String?
+  firstName                  String?            @map("first_name")
+  lastName                   String?            @map("last_name")
+  phone                      String? // Phone number
+  address                    String? // Address
+  emailVerifiedAt            DateTime?          @map("email_verified_at")
+  phoneVerifiedAt            DateTime?          @map("phone_verified_at")
+  identityVerificationStatus VerificationStatus @default(NOT_STARTED) @map("identity_verification_status")
+  identityVerifiedAt         DateTime?          @map("identity_verified_at")
+  stripeIdentitySessionId    String?            @unique @map("stripe_identity_session_id")
+  stripeCustomerId           String?            @unique @map("stripe_customer_id")
+  cardVerificationStatus     VerificationStatus @default(NOT_STARTED) @map("card_verification_status")
+  cardVerifiedAt             DateTime?          @map("card_verified_at")
+  defaultPaymentMethodId     String?            @map("default_payment_method_id")
+  paymentMethodBrand         String?            @map("payment_method_brand")
+  paymentMethodLast4         String?            @map("payment_method_last4")
+  isVerifiedBuyer            Boolean            @default(false) @map("is_verified_buyer") // Profile verified
+  isVerifiedBidder           Boolean            @default(false) @map("is_verified_bidder") // Can bid as verified bidder
+  resetPasswordToken         String?            @map("reset_password_token") // Token for password reset
+  resetPasswordExpires       DateTime?          @map("reset_password_expires") // Expiration for reset token
+  role                       UserRole           @default(BUYER)
+  auctionHouseId             String?            @map("auction_house_id") // For sellers/auctioneers
+  createdAt                  DateTime           @default(now()) @map("created_at")
+  updatedAt                  DateTime           @updatedAt @map("updated_at")
 
   // Relations
   auctionHouse                    AuctionHouse?            @relation(fields: [auctionHouseId], references: [id], onDelete: SetNull)
@@ -112,6 +123,8 @@ model User {
   @@index([role])
   @@index([isVerifiedBuyer])
   @@index([isVerifiedBidder])
+  @@index([identityVerificationStatus])
+  @@index([cardVerificationStatus])
   @@index([email])
   @@map("users")
 }
@@ -121,6 +134,13 @@ enum UserRole {
   SELLER
   AUCTIONEER
   PLATFORM_ADMIN
+}
+
+enum VerificationStatus {
+  NOT_STARTED
+  PENDING
+  VERIFIED
+  REQUIRES_INPUT
 }
 
 // Auction model - represents an auction event
@@ -414,21 +434,33 @@ model PlatformPolicy {
 }
 
 model SellerProfile {
-  id           String   @id @default(cuid())
-  userId       String   @unique @map("user_id")
-  displayName  String?  @map("display_name")
-  legalName    String?  @map("legal_name")
-  contactEmail String?  @map("contact_email")
-  contactPhone String?  @map("contact_phone")
-  address      String?
-  createdAt    DateTime @default(now()) @map("created_at")
-  updatedAt    DateTime @updatedAt @map("updated_at")
+  id                            String              @id @default(cuid())
+  userId                        String              @unique @map("user_id")
+  displayName                   String?             @map("display_name")
+  legalName                     String?             @map("legal_name")
+  contactEmail                  String?             @map("contact_email")
+  contactPhone                  String?             @map("contact_phone")
+  address                       String?
+  businessType                  SellerBusinessType  @default(INDIVIDUAL) @map("business_type")
+  stripeConnectAccountId        String?             @unique @map("stripe_connect_account_id")
+  stripeConnectStatus           StripeConnectStatus @default(NOT_CONNECTED) @map("stripe_connect_status")
+  stripeConnectDetailsSubmitted Boolean             @default(false) @map("stripe_connect_details_submitted")
+  stripeConnectChargesEnabled   Boolean             @default(false) @map("stripe_connect_charges_enabled")
+  stripeConnectPayoutsEnabled   Boolean             @default(false) @map("stripe_connect_payouts_enabled")
+  stripeConnectOnboardingDone   Boolean             @default(false) @map("stripe_connect_onboarding_done")
+  createdAt                     DateTime            @default(now()) @map("created_at")
+  updatedAt                     DateTime            @updatedAt @map("updated_at")
 
   user           User            @relation(fields: [userId], references: [id], onDelete: Cascade)
   lotSubmissions LotSubmission[]
   lots           Lot[]
 
   @@map("seller_profiles")
+}
+
+enum SellerBusinessType {
+  INDIVIDUAL
+  BUSINESS
 }
 
 model LotSubmission {
