@@ -3,6 +3,8 @@ import prisma from '$lib/prisma.js';
 import { adminError, requirePlatformAdmin } from '$lib/server/platformAdmin.js';
 import { getZonedDateTimeUtc } from '$lib/server/auctionSchedule.js';
 
+export const _PLATFORM_AUCTION_HOUSE_ID = 'pumbi';
+
 function integer(value, label, min, max) {
   const number = Number(value);
   if (!Number.isInteger(number) || number < min || number > max) {
@@ -13,7 +15,7 @@ function integer(value, label, min, max) {
 
 export function _seriesData(data) {
   const name = typeof data.name === 'string' ? data.name.trim() : '';
-  if (!name || !data.auctionHouseId) throw error(400, 'Name and auction house are required');
+  if (!name) throw error(400, 'Name is required');
   if (data.auctionType !== 'PUBLIC') throw error(400, 'Recurring platform series must be PUBLIC');
   if (!/^\d{2}:\d{2}$/.test(data.recurrenceLocalTime || '')) {
     throw error(400, 'Local time must use HH:MM format');
@@ -38,7 +40,7 @@ export function _seriesData(data) {
 
   return {
     name,
-    auctionHouseId: data.auctionHouseId,
+    auctionHouseId: _PLATFORM_AUCTION_HOUSE_ID,
     auctionType: data.auctionType,
     timezone: data.timezone,
     recurrenceDayOfMonth: integer(data.recurrenceDayOfMonth, 'Day of month', 1, 31),
@@ -55,22 +57,15 @@ export function _seriesData(data) {
 
 export async function GET({ locals }) {
   await requirePlatformAdmin(locals);
-  const [series, auctionHouses] = await Promise.all([
-    prisma.auctionSeries.findMany({
-      orderBy: [{ isActive: 'desc' }, { nextRunAt: 'asc' }],
-      include: {
-        auctionHouse: { select: { id: true, name: true } },
-        createdBy: { select: { name: true, email: true } },
-        _count: { select: { auctions: true, lotSubmissions: true } }
-      }
-    }),
-    prisma.auctionHouse.findMany({
-      where: { isActive: true },
-      orderBy: { name: 'asc' },
-      select: { id: true, name: true }
-    })
-  ]);
-  return json({ series, auctionHouses });
+  const series = await prisma.auctionSeries.findMany({
+    orderBy: [{ isActive: 'desc' }, { nextRunAt: 'asc' }],
+    include: {
+      auctionHouse: { select: { id: true, name: true } },
+      createdBy: { select: { name: true, email: true } },
+      _count: { select: { auctions: true, lotSubmissions: true } }
+    }
+  });
+  return json({ series });
 }
 
 export async function POST({ request, locals }) {

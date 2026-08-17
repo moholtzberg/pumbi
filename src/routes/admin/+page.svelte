@@ -4,7 +4,6 @@
   let { data } = $props();
   let policies = $state([]);
   let series = $state([]);
-  let auctionHouses = $state([]);
   let submissions = $state([]);
   let publicAuctions = $state([]);
   let loading = $state(true);
@@ -28,7 +27,6 @@
   function blankSeries() {
     return {
       name: '',
-      auctionHouseId: '',
       auctionType: 'PUBLIC',
       timezone: 'America/New_York',
       recurrenceDayOfMonth: 1,
@@ -63,10 +61,8 @@
       ]);
       policies = policyData;
       series = seriesData.series;
-      auctionHouses = seriesData.auctionHouses;
       submissions = submissionData.submissions;
       publicAuctions = submissionData.publicAuctions;
-      if (!seriesForm.auctionHouseId && auctionHouses[0]) seriesForm.auctionHouseId = auctionHouses[0].id;
     } catch (error) {
       failure = error.message;
     } finally {
@@ -121,7 +117,6 @@
     editingSeriesId = item.id;
     seriesForm = {
       name: item.name,
-      auctionHouseId: item.auctionHouseId,
       auctionType: item.auctionType,
       timezone: item.timezone,
       recurrenceDayOfMonth: item.recurrenceDayOfMonth,
@@ -245,7 +240,7 @@
         </div>
         <form id="series-form" class="mb-5 grid gap-3 rounded-lg bg-slate-50 p-4 md:grid-cols-4" onsubmit={(event) => { event.preventDefault(); saveSeries(); }}>
           <label class="text-sm font-medium md:col-span-2">Name<input class="mt-1 w-full rounded-md border-slate-300 text-sm" bind:value={seriesForm.name} required /></label>
-          <label class="text-sm font-medium">Auction house<select class="mt-1 w-full rounded-md border-slate-300 text-sm" bind:value={seriesForm.auctionHouseId} required><option value="">Select…</option>{#each auctionHouses as house}<option value={house.id}>{house.name}</option>{/each}</select></label>
+          <label class="text-sm font-medium">Auction house<input class="mt-1 w-full rounded-md border-slate-300 bg-slate-100 text-sm" value="Pumbi" disabled /></label>
           <label class="text-sm font-medium">Type<input class="mt-1 w-full rounded-md border-slate-300 bg-slate-100 text-sm" value="PUBLIC" disabled /></label>
           <label class="text-sm font-medium">Timezone<input class="mt-1 w-full rounded-md border-slate-300 text-sm" bind:value={seriesForm.timezone} required /></label>
           <label class="text-sm font-medium">Day of month<input class="mt-1 w-full rounded-md border-slate-300 text-sm" type="number" min="1" max="31" bind:value={seriesForm.recurrenceDayOfMonth} required /></label>
