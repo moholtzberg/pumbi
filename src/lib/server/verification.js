@@ -119,7 +119,7 @@ function smtp2goConfig() {
   if (!env.SMTP2GO_API_KEY) throw error(503, 'Email and SMS verification is not configured');
   return {
     apiKey: env.SMTP2GO_API_KEY,
-    fromEmail: env.SMTP2GO_FROM_EMAIL || 'Pumbi <hello@pumbi.co>'
+    fromEmail: env.SMTP2GO_FROM_EMAIL || 'Pumbi <hello@ginzeyamerica.com>'
   };
 }
 
