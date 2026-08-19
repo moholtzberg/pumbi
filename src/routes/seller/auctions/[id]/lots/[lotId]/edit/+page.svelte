@@ -20,7 +20,9 @@
     startingBid: 0,
     bidIncrement: 100,
     status: 'active',
-    endTime: ''
+    endTime: '',
+    initialTimerSeconds: null,
+    bidExtensionSeconds: null
   });
   
   let categoryMetaFieldsConfig = $state({});
@@ -98,7 +100,9 @@
         startingBid: lot.startingBid || 0,
         bidIncrement: lot.bidIncrement || 100,
         status: (lot.status || 'ACTIVE').toLowerCase(),
-        endTime: endTime
+        endTime: endTime,
+        initialTimerSeconds: lot.initialTimerSeconds ?? null,
+        bidExtensionSeconds: lot.bidExtensionSeconds ?? null
       };
       
       categoryInput = editedLot.category;
@@ -228,7 +232,9 @@
           startingBid: editedLot.startingBid,
           bidIncrement: editedLot.bidIncrement,
           status: editedLot.status.toUpperCase(),
-          endTime: editedLot.endTime || null
+          endTime: editedLot.endTime || null,
+          initialTimerSeconds: editedLot.initialTimerSeconds || null,
+          bidExtensionSeconds: editedLot.bidExtensionSeconds || null
         })
       });
       
@@ -612,6 +618,14 @@
                   class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                 />
               </div>
+              <div>
+                <label for="initialTimerSeconds" class="block text-sm font-medium text-gray-700 mb-2">Time on block (seconds)</label>
+                <input id="initialTimerSeconds" type="number" min="1" bind:value={editedLot.initialTimerSeconds} placeholder="Inherit from auction" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent" />
+              </div>
+              <div>
+                <label for="bidExtensionSeconds" class="block text-sm font-medium text-gray-700 mb-2">Bid refresh threshold (seconds)</label>
+                <input id="bidExtensionSeconds" type="number" min="1" bind:value={editedLot.bidExtensionSeconds} placeholder="Inherit from auction" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent" />
+              </div>
             </div>
             
             <!-- Images -->
@@ -703,4 +717,3 @@
     {/if}
   </div>
 </div>
-

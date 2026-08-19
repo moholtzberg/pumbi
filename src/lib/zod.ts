@@ -78,6 +78,8 @@ export const auctionHouseSettingsSchema = z.object({
   
   // Bidding Rules
   russianUsersRequireApproval: z.boolean().default(false),
+  automaticAuctionInitialTimerSeconds: z.coerce.number().int().min(1).optional().nullable(),
+  automaticAuctionTimerResetSeconds: z.coerce.number().int().min(1).optional().nullable(),
   
   // Payment Methods
   paymentMethods: z.array(paymentMethodSchema).optional().default([]),
@@ -145,8 +147,8 @@ export const auctionSettingsSchema = z.object({
   baseLiveAuctionStartPriceOnAbsenteeBids: z.boolean().default(false),
   
   // Automatic Auction Settings
-  automaticAuctionInitialTimerSeconds: z.coerce.number().min(1).optional().nullable(),
-  automaticAuctionTimerResetSeconds: z.coerce.number().min(1).optional().nullable(),
+  automaticAuctionInitialTimerSeconds: z.coerce.number().int().min(1).optional().nullable(),
+  automaticAuctionTimerResetSeconds: z.coerce.number().int().min(1).optional().nullable(),
   
   // Currency
   currency: z.string().optional().nullable(),

@@ -137,6 +137,8 @@ async function mapLot(prismaLot) {
     images, // New: array of image objects
     status: prismaLot.status.toLowerCase(),
     endTime: prismaLot.endTime,
+    initialTimerSeconds: prismaLot.initialTimerSeconds,
+    bidExtensionSeconds: prismaLot.bidExtensionSeconds,
     highestBidderId: prismaLot.highestBidderId,
     highestBidderName: prismaLot.highestBidderName,
     isReady: prismaLot.isReady,

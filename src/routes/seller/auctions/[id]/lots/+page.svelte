@@ -22,7 +22,9 @@
     imageUrl: '',
     uploadedImages: [],
     status: 'active',
-    endTime: ''
+    endTime: '',
+    initialTimerSeconds: null,
+    bidExtensionSeconds: null
   });
   
   let removeBackground = $state(false);
@@ -423,7 +425,9 @@
           imageUrl: '',
           uploadedImages: [],
           status: 'active',
-          endTime: defaultEndTime
+          endTime: defaultEndTime,
+          initialTimerSeconds: null,
+          bidExtensionSeconds: null
         };
         categoryInput = '';
         tagInput = '';
@@ -1399,6 +1403,16 @@
                 class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
               />
             </div>
+            <div class="grid grid-cols-1 gap-4 sm:grid-cols-2">
+              <div>
+                <label for="initialTimerSeconds" class="block text-sm font-medium text-gray-700 mb-2">Time on block (seconds)</label>
+                <input id="initialTimerSeconds" type="number" min="1" bind:value={newLot.initialTimerSeconds} placeholder="Inherit from auction" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent" />
+              </div>
+              <div>
+                <label for="bidExtensionSeconds" class="block text-sm font-medium text-gray-700 mb-2">Bid refresh threshold (seconds)</label>
+                <input id="bidExtensionSeconds" type="number" min="1" bind:value={newLot.bidExtensionSeconds} placeholder="Inherit from auction" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent" />
+              </div>
+            </div>
           </div>
 
           <div class="flex gap-4 mt-6">
@@ -1421,5 +1435,4 @@
     </div>
   </div>
 {/if}
-
 

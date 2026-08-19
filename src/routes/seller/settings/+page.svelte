@@ -68,6 +68,8 @@
     
     // Bidding Rules
     russianUsersRequireApproval: false,
+    automaticAuctionInitialTimerSeconds: null,
+    automaticAuctionTimerResetSeconds: null,
     
     // Payment Methods
     paymentMethods: [
@@ -929,11 +931,20 @@
                   </svg>
                 </button>
                 {#if expandedSections.biddingRules}
-                  <div class="p-4">
+                  <div class="p-4 space-y-4">
                     <label class="flex items-center">
                       <input type="checkbox" bind:checked={settings.russianUsersRequireApproval} class="mr-2 h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded" />
                       <span class="text-sm font-medium text-gray-700">Russian users require special bidding approval</span>
                     </label>
+                    <div>
+                      <label class="block text-sm font-medium text-gray-700 mb-1">Default time on block (seconds)</label>
+                      <input type="number" min="1" bind:value={settings.automaticAuctionInitialTimerSeconds} placeholder="Platform default: 60" class="w-full px-3 py-2 text-sm border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500" />
+                    </div>
+                    <div>
+                      <label class="block text-sm font-medium text-gray-700 mb-1">Bid refresh threshold (seconds)</label>
+                      <input type="number" min="1" bind:value={settings.automaticAuctionTimerResetSeconds} placeholder="Platform default: 30" class="w-full px-3 py-2 text-sm border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500" />
+                      <p class="mt-1 text-xs text-gray-500">Auctions inherit these values unless they define their own.</p>
+                    </div>
                   </div>
                 {/if}
               </div>

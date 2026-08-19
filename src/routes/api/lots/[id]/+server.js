@@ -138,6 +138,18 @@ export async function PATCH({ params, request, locals }) {
       // Ensure it's a valid date string
       updates.endTime = new Date(updates.endTime).toISOString();
     }
+
+    for (const field of ['initialTimerSeconds', 'bidExtensionSeconds']) {
+      if (updates[field] === '' || updates[field] === null) {
+        updates[field] = null;
+      } else if (updates[field] !== undefined) {
+        const value = Number(updates[field]);
+        if (!Number.isInteger(value) || value <= 0) {
+          throw error(400, `${field} must be a positive whole number or null`);
+        }
+        updates[field] = value;
+      }
+    }
     
     const lot = await db.lots.update(params.id, updates);
     if (!lot) {
@@ -201,4 +213,3 @@ export async function DELETE({ params, locals }) {
     throw error(500, 'Failed to delete lot');
   }
 }
-

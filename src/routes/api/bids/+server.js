@@ -2,6 +2,7 @@ import { json, error } from '@sveltejs/kit';
 import { db } from '$lib/db.js';
 import prisma from '$lib/prisma.js';
 import { requireAuthenticatedUser } from '$lib/server/authorization.js';
+import { extendedEndTime, resolveLotTiming } from '$lib/server/lotTiming.js';
 
 export async function GET({ url }) {
   const lotId = url.searchParams.get('lotId');
@@ -39,9 +40,7 @@ export async function POST({ request, locals }) {
   const bid = await prisma.$transaction(async (tx) => {
     const lot = await tx.lot.findUnique({
       where: { id: lotId },
-      include: {
-        auction: true
-      }
+      include: { auction: { include: { auctionHouse: true } } }
     });
 
     if (!lot) {
@@ -119,6 +118,12 @@ export async function POST({ request, locals }) {
     }
 
     const userName = user.name || user.email;
+    const timing = resolveLotTiming({
+      lot,
+      auction,
+      auctionHouse: auction.auctionHouse
+    });
+    const nextEndTime = extendedEndTime(lot.endTime, now, timing.bidExtensionSeconds);
     const updated = await tx.lot.updateMany({
       where: {
         id: lot.id,
@@ -128,7 +133,10 @@ export async function POST({ request, locals }) {
       data: {
         currentBid: amount,
         highestBidderId: user.id,
-        highestBidderName: userName
+        highestBidderName: userName,
+        ...(nextEndTime && nextEndTime.getTime() !== lot.endTime?.getTime()
+          ? { endTime: nextEndTime }
+          : {})
       }
     });
 

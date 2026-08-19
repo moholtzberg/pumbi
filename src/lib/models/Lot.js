@@ -57,6 +57,8 @@ const lotSchema = z.object({
     // For any other type (including objects), return null
     return null;
   }, z.union([z.date(), z.null()]).optional()),
+  initialTimerSeconds: z.coerce.number().int().positive().nullable().optional(),
+  bidExtensionSeconds: z.coerce.number().int().positive().nullable().optional(),
   highestBidderId: z.string().nullable().optional(),
   highestBidderName: z.string().nullable().optional(),
   createdAt: z.date().optional(),
@@ -190,4 +192,3 @@ export class Lot extends BaseModel {
     return serialized;
   }
 }
-

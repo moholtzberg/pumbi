@@ -310,6 +310,8 @@ model Lot {
   bidIncrement              Float     @map("bid_increment")
   status                    LotStatus @default(ACTIVE)
   endTime                   DateTime? @map("end_time")
+  initialTimerSeconds       Int?      @map("initial_timer_seconds")
+  bidExtensionSeconds       Int?      @map("bid_extension_seconds")
   highestBidderId           String?   @map("highest_bidder_id")
   highestBidderName         String?   @map("highest_bidder_name")
   isReady                   Boolean   @default(false) @map("is_ready")

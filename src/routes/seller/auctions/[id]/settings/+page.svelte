@@ -46,8 +46,8 @@
     baseLiveAuctionStartPriceOnAbsenteeBids: false,
     
     // Automatic Auction Settings
-    automaticAuctionInitialTimerSeconds: 30,
-    automaticAuctionTimerResetSeconds: 15,
+    automaticAuctionInitialTimerSeconds: null,
+    automaticAuctionTimerResetSeconds: null,
     
     // Currency
     currency: 'USD',
@@ -623,12 +623,14 @@
               {#if expandedSections.automaticAuction}
                 <div class="p-4 space-y-4">
                   <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-1">Initial timer setting for each lot (in seconds)</label>
-                    <input type="number" bind:value={settings.automaticAuctionInitialTimerSeconds} min="1" class="w-full px-3 py-2 text-sm border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500" />
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Default time on block (seconds)</label>
+                    <input type="number" bind:value={settings.automaticAuctionInitialTimerSeconds} min="1" placeholder="Inherited (platform default: 60)" class="w-full px-3 py-2 text-sm border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500" />
+                    <p class="mt-1 text-xs text-gray-500">Leave blank to inherit the auction-house default.</p>
                   </div>
                   <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-1">Timer reset after a bid is placed (in seconds)</label>
-                    <input type="number" bind:value={settings.automaticAuctionTimerResetSeconds} min="1" class="w-full px-3 py-2 text-sm border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500" />
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Bid refresh threshold (seconds)</label>
+                    <input type="number" bind:value={settings.automaticAuctionTimerResetSeconds} min="1" placeholder="Inherited (platform default: 30)" class="w-full px-3 py-2 text-sm border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500" />
+                    <p class="mt-1 text-xs text-gray-500">When a new highest bid arrives with less time remaining, the timer resets to this value.</p>
                   </div>
                 </div>
               {/if}
@@ -849,4 +851,3 @@
     {/if}
   </div>
 </div>
-
