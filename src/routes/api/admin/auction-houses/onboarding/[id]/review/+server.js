@@ -119,7 +119,7 @@ export async function PATCH({ params, request, locals }) {
         onboardingApprovedAt: body.status === 'APPROVED' ? now : null,
         onboardingRejectedAt: body.status === 'REJECTED' ? now : null,
         onboardingRejectionReason: body.status === 'REJECTED' ? rejectionReason : null,
-        ...(body.status === 'APPROVED' ? { isActive: true } : {})
+        isActive: body.status === 'APPROVED'
       }
     });
     return tx.auctionHouse.findUnique({ where: { id: params.id }, select: onboardingSelect });
