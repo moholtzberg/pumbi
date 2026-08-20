@@ -31,7 +31,9 @@ export async function GET({ params, locals }) {
       // Public access - only return gallery template settings
       return json({
         galleryTemplate: settings.galleryTemplate || 'card-grid',
-        galleryTemplateSettings: settings.galleryTemplateSettings || {}
+        galleryTemplateSettings: settings.galleryTemplateSettings || {},
+        liveVideoUrl: settings.liveVideoUrl || null,
+        liveVideoTitle: settings.liveVideoTitle || null
       });
     }
 
@@ -45,7 +47,9 @@ export async function GET({ params, locals }) {
     // Otherwise, return only gallery settings (public access)
     return json({
       galleryTemplate: settings.galleryTemplate || 'card-grid',
-      galleryTemplateSettings: settings.galleryTemplateSettings || {}
+      galleryTemplateSettings: settings.galleryTemplateSettings || {},
+      liveVideoUrl: settings.liveVideoUrl || null,
+      liveVideoTitle: settings.liveVideoTitle || null
     });
   } catch (err) {
     if (err.status) {
@@ -103,4 +107,3 @@ export async function PATCH({ params, request, locals }) {
     throw error(500, 'Failed to update auction settings');
   }
 }
-

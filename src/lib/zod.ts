@@ -145,6 +145,8 @@ export const auctionSettingsSchema = z.object({
   
   // Live Auction Settings
   baseLiveAuctionStartPriceOnAbsenteeBids: z.boolean().default(false),
+  liveVideoUrl: z.string().url('Invalid live video URL').or(z.literal('')).optional().nullable(),
+  liveVideoTitle: z.string().max(120).optional().nullable(),
   
   // Automatic Auction Settings
   automaticAuctionInitialTimerSeconds: z.coerce.number().int().min(1).optional().nullable(),

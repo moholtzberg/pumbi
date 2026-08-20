@@ -4,12 +4,15 @@
   import { goto } from '$app/navigation';
   import LotGalleryTemplate from '$lib/components/LotGalleryTemplate.svelte';
   import CountdownTimer from '$lib/components/CountdownTimer.svelte';
+  import LiveAuctionDashboard from '$lib/components/LiveAuctionDashboard.svelte';
   
   let auction = $state(null);
   let lots = $state([]);
   let loading = $state(true);
   let galleryTemplate = $state('card-grid');
   let galleryTemplateSettings = $state({});
+  let liveVideoUrl = $state(null);
+  let liveVideoTitle = $state(null);
   
   $effect(() => {
     if ($page.params.id) {
@@ -34,6 +37,8 @@
         const settings = await settingsRes.json();
         galleryTemplate = settings.galleryTemplate || 'card-grid';
         galleryTemplateSettings = settings.galleryTemplateSettings || {};
+        liveVideoUrl = settings.liveVideoUrl || null;
+        liveVideoTitle = settings.liveVideoTitle || null;
       } else {
         // Fallback to defaults if settings can't be loaded
         galleryTemplate = 'card-grid';
@@ -81,6 +86,9 @@
   </div>
 {:else if auction}
   <div class="min-h-screen bg-gray-50">
+    {#if auction.status === 'live'}
+      <LiveAuctionDashboard {auction} videoUrl={liveVideoUrl} videoTitle={liveVideoTitle} />
+    {/if}
     <!-- Auction Header -->
     <div class="bg-white shadow-sm">
       <div class="container mx-auto px-4 py-8">
@@ -164,7 +172,7 @@
     </div>
 
     <!-- Lots Section -->
-    <div class="container mx-auto px-4 py-8">
+    <div id="all-lots" class="container mx-auto px-4 py-8">
       <h2 class="text-3xl font-bold text-gray-900 mb-6">Lots ({lots.length})</h2>
       
       {#if lots.length === 0}
@@ -194,4 +202,3 @@
     </div>
   </div>
 {/if}
-

@@ -44,6 +44,8 @@
     
     // Live Auction Settings
     baseLiveAuctionStartPriceOnAbsenteeBids: false,
+    liveVideoUrl: '',
+    liveVideoTitle: '',
     
     // Automatic Auction Settings
     automaticAuctionInitialTimerSeconds: null,
@@ -596,7 +598,7 @@
                 </svg>
               </button>
               {#if expandedSections.liveAuction}
-                <div class="p-4">
+                <div class="p-4 space-y-4">
                   <label class="flex items-center">
                     <input type="checkbox" bind:checked={settings.baseLiveAuctionStartPriceOnAbsenteeBids} class="mr-2 h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded" />
                     <div>
@@ -604,6 +606,15 @@
                       <p class="text-xs text-gray-500">(Timed Auctions Only)</p>
                     </div>
                   </label>
+                  <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Floor auction live video URL</label>
+                    <input type="url" bind:value={settings.liveVideoUrl} placeholder="https://www.youtube.com/watch?v=…" class="w-full px-3 py-2 text-sm border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500" />
+                    <p class="mt-1 text-xs text-gray-500">Optional. YouTube, Vimeo, or a provider's embeddable HTTPS player URL.</p>
+                  </div>
+                  <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Video title</label>
+                    <input type="text" maxlength="120" bind:value={settings.liveVideoTitle} placeholder="Live from the auction floor" class="w-full px-3 py-2 text-sm border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500" />
+                  </div>
                 </div>
               {/if}
             </div>
