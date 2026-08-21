@@ -85,21 +85,21 @@
   .brand span { display: grid; place-items: center; width: 34px; height: 34px; background: #a95739; color: #fff; font: italic 23px Georgia,serif; }
   .brand strong { font: 600 25px 'Cormorant Garamond',Georgia,serif; letter-spacing: -.02em; }
   .desktop-links { display: flex; align-items: stretch; height: 100%; gap: 30px; }
-  .desktop-links a { display: flex; align-items: center; position: relative; font-size: 12px; font-weight: 750; color: #435048; }
+  .desktop-links a { display: flex; align-items: center; position: relative; font: 500 18px Georgia, 'Cormorant Garamond', serif; color: #1a2821; }
   .desktop-links a:after { content: ''; position: absolute; left: 0; right: 100%; bottom: 0; height: 2px; background: #a95739; transition: .2s ease; }
   .desktop-links a:hover:after, .desktop-links a.active:after { right: 0; }
   .desktop-actions { display: flex; justify-content: flex-end; align-items: center; gap: 21px; }
   .icon-link svg { width: 20px; height: 20px; fill: none; stroke: currentColor; stroke-width: 1.7; }
-  .account-link, .text-action { font-size: 12px; font-weight: 750; }
-  .join-button { display: flex; gap: 17px; padding: 12px 16px; background: #18372f; color: #fff; font-size: 11px; font-weight: 850; }
+  .account-link, .text-action { font: 500 17px Georgia, 'Cormorant Garamond', serif; color: #1a2821; }
+  .join-button { display: flex; gap: 17px; padding: 12px 16px; background: #18372f; color: #fff; font-size: 11px; font-weight: 850; letter-spacing: .04em; text-transform: uppercase; border-radius: 0; }
   .menu-toggle { display: none; justify-self: end; width: 38px; height: 38px; position: relative; }
   .menu-toggle span { position: absolute; left: 8px; width: 23px; height: 1.5px; background: currentColor; transition: .2s ease; }
   .menu-toggle span:first-child { top: 14px; } .menu-toggle span:last-child { top: 22px; }
   .menu-open .menu-toggle span:first-child { transform: translateY(4px) rotate(45deg); }
   .menu-open .menu-toggle span:last-child { transform: translateY(-4px) rotate(-45deg); }
   .mobile-menu { background: #f7f4ee; border-top: 1px solid #ddd6ca; padding: 18px 24px 30px; display: grid; }
-  .mobile-menu a, .mobile-menu button { padding: 14px 0; text-align: left; border-bottom: 1px solid #e2dcd1; font: 500 22px Georgia,serif; }
-  .mobile-menu .mobile-join { margin-top: 15px; padding: 15px; text-align: center; background: #18372f; color: #fff; border: 0; font: 800 12px Arial,sans-serif; }
+  .mobile-menu a, .mobile-menu button { padding: 14px 0; text-align: left; border-bottom: 1px solid #e2dcd1; font: 500 22px Georgia, 'Cormorant Garamond', serif; color: #1a2821; }
+  .mobile-menu .mobile-join { margin-top: 15px; padding: 15px; text-align: center; background: #18372f; color: #fff; border: 0; font: 800 12px Arial,sans-serif; letter-spacing: .04em; text-transform: uppercase; }
   @media (max-width: 900px) {
     .site-nav { height: 62px; }
     .nav-inner { width: min(100% - 32px,1240px); display: flex; justify-content: space-between; }

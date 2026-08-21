@@ -53,19 +53,19 @@
   }
 </script>
 
-<div class="min-h-screen bg-gray-50 flex items-center justify-center py-12 px-4 sm:px-6 lg:px-8">
+<div class="min-h-screen bg-[#f7f4ee] flex items-center justify-center py-12 px-4 sm:px-6 lg:px-8">
   <div class="max-w-md w-full space-y-8">
     <div>
-      <h2 class="mt-6 text-center text-3xl font-extrabold text-gray-900">
+      <h2 class="mt-6 text-center font-[family-name:var(--pumbi-serif)] text-4xl font-semibold text-[#1a2821]">
         Sign in to your account
       </h2>
-      <p class="mt-2 text-center text-sm text-gray-600">
+      <p class="mt-2 text-center text-sm text-[#435048]">
         Don't have an account?
-        <a href="/auth/register" class="font-medium text-blue-600 hover:text-blue-500">
+        <a href="/auth/register" class="pumbi-link">
           Register here
         </a>
         <span class="mx-2">|</span>
-        <a href="/auction-houses/signup" class="font-medium text-blue-600 hover:text-blue-500">
+        <a href="/auction-houses/signup" class="pumbi-link">
           Register auction house
         </a>
       </p>
@@ -114,7 +114,7 @@
 
       <div class="flex items-center justify-end">
         <div class="text-sm">
-          <a href="/auth/forgot-password" class="font-medium text-blue-600 hover:text-blue-500">
+          <a href="/auth/forgot-password" class="font-medium text-[#18372f] hover:text-[#a95739]">
             Forgot your password?
           </a>
         </div>
@@ -124,7 +124,7 @@
         <button
           type="submit"
           disabled={loading}
-          class="group relative w-full flex justify-center py-2 px-4 border border-transparent text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed"
+          class="group relative w-full flex justify-center py-2 px-4 border border-transparent text-sm font-medium rounded-md text-white bg-[#18372f] hover:bg-[#152c26] focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed"
         >
           {#if loading}
             <svg class="animate-spin -ml-1 mr-3 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">

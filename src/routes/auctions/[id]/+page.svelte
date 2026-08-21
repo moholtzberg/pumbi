@@ -82,14 +82,14 @@
 </script>
 
 {#if loading}
-  <div class="min-h-screen bg-gray-50 flex items-center justify-center">
+  <div class="min-h-screen bg-[#f7f4ee] flex items-center justify-center">
     <div class="text-center">
-      <div class="inline-block animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+      <div class="inline-block animate-spin rounded-sm h-12 w-12 border-b-2 border-[#a95739]"></div>
       <p class="mt-4 text-gray-600">Loading auction...</p>
     </div>
   </div>
 {:else if auction}
-  <div class="min-h-screen bg-gray-50">
+  <div class="min-h-screen bg-[#f7f4ee]">
     {#if auction.status === 'live'}
       <LiveAuctionDashboard {auction} videoUrl={liveVideoUrl} videoTitle={liveVideoTitle} audioUrl={liveAudioUrl} audioTitle={liveAudioTitle} />
     {/if}
@@ -101,19 +101,19 @@
             <img
               src={auction.imageUrl}
               alt={auction.title}
-              class="w-full h-96 object-cover rounded-lg shadow-lg"
+              class="w-full h-96 object-cover border border-[#ddd6ca]"
             />
           </div>
           <div>
             <div class="mb-4">
-              <span class="px-3 py-1 rounded-full text-sm font-semibold {auction.status === 'live' ? 'bg-red-100 text-red-800' : auction.status === 'upcoming' ? 'bg-blue-100 text-blue-800' : 'bg-gray-100 text-gray-800'}">
+              <span class="px-3 py-1 text-sm font-semibold {auction.status === 'live' ? 'bg-[#efe8dc] text-[#a95739]' : auction.status === 'upcoming' ? 'bg-[#e8eee9] text-[#18372f]' : 'bg-[#efe8dc] text-[#435048]'}">
                 {auction.status.toUpperCase()}
               </span>
-              <span class="ml-2 rounded-full bg-purple-100 px-3 py-1 text-sm font-semibold text-purple-800">
+              <span class="ml-2 bg-[#efe8dc] px-3 py-1 text-sm font-semibold text-[#18372f]">
                 {(auction.type || 'PRIVATE').toUpperCase()}
               </span>
             </div>
-            <h1 class="text-4xl font-bold text-gray-900 mb-4">{auction.title}</h1>
+            <h1 class="mb-4 font-[family-name:var(--pumbi-serif)] text-4xl font-semibold text-[#1a2821]">{auction.title}</h1>
             <p class="text-gray-600 text-lg mb-6">{auction.description}</p>
             <div class="space-y-3 mb-6">
               <div class="flex items-center text-gray-700">
@@ -123,7 +123,7 @@
               {#if shouldShowCountdown(auction)}
                 <div class="flex items-center text-gray-700">
                   <span class="font-semibold mr-2">Starting in:</span>
-                  <span class="text-blue-600 font-semibold">
+                  <span class="text-[#18372f] font-semibold">
                     <CountdownTimer targetDate={auction.startDate} label="" />
                   </span>
                 </div>
@@ -148,14 +148,14 @@
                 </div>
               {/if}
             </div>
-            <div class="rounded-lg border border-gray-200 bg-gray-50 p-4 text-sm text-gray-700">
+            <div class="rounded-lg border border-gray-200 bg-[#f7f4ee] p-4 text-sm text-gray-700">
               {#if auction.type?.toUpperCase() === 'PUBLIC'}
                 <p class="font-semibold text-gray-900">Pumbi public monthly auction</p>
                 <p class="mt-1">Open to all account holders. Independent sellers may submit lots for Pumbi approval.</p>
                 {#if auction.buyerPremiumRateSnapshot != null}
                   <p class="mt-2"><strong>Buyer premium:</strong> {Number(auction.buyerPremiumRateSnapshot) * 100}%</p>
                 {/if}
-                <a href="/dashboard/sell" class="mt-3 inline-block font-semibold text-blue-700">Submit an item →</a>
+                <a href="/dashboard/sell" class="mt-3 inline-block font-semibold text-[#18372f]">Submit an item →</a>
               {:else}
                 <p class="font-semibold text-gray-900">Auction-house managed auction</p>
                 <p class="mt-1">Anyone may browse. Bidding requires approval from {auction.auctionHouse?.name || 'the auction house'}.</p>
@@ -194,12 +194,12 @@
     </div>
   </div>
 {:else}
-  <div class="min-h-screen bg-gray-50 flex items-center justify-center">
+  <div class="min-h-screen bg-[#f7f4ee] flex items-center justify-center">
     <div class="text-center">
       <p class="text-gray-600 text-lg">Auction not found</p>
       <button
         onclick={() => goto('/')}
-        class="mt-4 px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+        class="mt-4 px-6 py-2 bg-[#18372f] text-white rounded-lg hover:bg-[#152c26]"
       >
         Back to Auctions
       </button>

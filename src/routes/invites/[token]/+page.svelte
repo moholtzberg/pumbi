@@ -88,7 +88,7 @@
   <title>Auction house invitation</title>
 </svelte:head>
 
-<main class="min-h-screen bg-gray-50 px-4 py-12">
+<main class="min-h-screen bg-[#f7f4ee] px-4 py-12">
   <div class="mx-auto max-w-lg rounded-lg bg-white p-8 shadow">
     {#if loading}
       <p class="text-center text-gray-600">Loading invitation…</p>
@@ -97,7 +97,7 @@
         <h1 class="text-2xl font-bold text-gray-900">Invitation accepted</h1>
         <p class="mt-3 text-gray-600">You are now a member of {invitation.auctionHouseName}.</p>
         <button
-          class="mt-6 rounded-md bg-blue-600 px-4 py-2 font-medium text-white hover:bg-blue-700"
+          class="mt-6 rounded-md bg-[#18372f] px-4 py-2 font-medium text-white hover:bg-[#152c26]"
           onclick={() => goto('/dashboard')}
         >
           Continue to dashboard
@@ -109,7 +109,7 @@
         {invitation.firstName} {invitation.lastName}, you were invited as
         <span class="font-medium capitalize">{roleLabel}</span>.
       </p>
-      <dl class="mt-6 rounded-md bg-gray-50 p-4 text-sm">
+      <dl class="mt-6 rounded-md bg-[#f7f4ee] p-4 text-sm">
         <div class="flex justify-between gap-4">
           <dt class="text-gray-500">Invited email</dt>
           <dd class="font-medium text-gray-900">{invitation.email}</dd>
@@ -131,7 +131,7 @@
           Signed in as <span class="font-medium">{session.user.email}</span>
         </p>
         <button
-          class="mt-3 w-full rounded-md bg-blue-600 px-4 py-2 font-medium text-white hover:bg-blue-700 disabled:opacity-50"
+          class="mt-3 w-full rounded-md bg-[#18372f] px-4 py-2 font-medium text-white hover:bg-[#152c26] disabled:opacity-50"
           disabled={accepting}
           onclick={acceptInvitation}
         >
@@ -163,7 +163,7 @@
             />
           </div>
           <button
-            class="w-full rounded-md bg-blue-600 px-4 py-2 font-medium text-white hover:bg-blue-700 disabled:opacity-50"
+            class="w-full rounded-md bg-[#18372f] px-4 py-2 font-medium text-white hover:bg-[#152c26] disabled:opacity-50"
             disabled={signingIn}
             type="submit"
           >
@@ -172,7 +172,7 @@
           <p class="text-center text-sm text-gray-600">
             Need an account?
             <a
-              class="font-medium text-blue-600 hover:text-blue-500"
+              class="font-medium text-[#18372f] hover:text-[#a95739]"
               href={`/auth/register?redirect=${encodeURIComponent(`/invites/${token}`)}`}
             >Register</a>
           </p>

@@ -93,7 +93,7 @@
             alt={lot.title}
             class="w-full h-48 object-cover"
           />
-          <div class="absolute top-4 left-4 bg-white px-3 py-1 rounded-full text-sm font-bold">
+          <div class="absolute top-4 left-4 bg-white px-3 py-1 rounded-sm text-sm font-bold">
             Lot #{lot.lotNumber}
           </div>
         </div>
@@ -103,14 +103,14 @@
           <div class="flex items-center justify-between mb-4">
             <div>
               <p class="text-xs text-gray-500">Current Bid</p>
-              <p class="text-xl font-bold text-blue-600">{formatCurrency(lot.currentBid)}</p>
+              <p class="text-xl font-bold text-[#18372f]">{formatCurrency(lot.currentBid)}</p>
             </div>
             <div class="text-right">
               <p class="text-xs text-gray-500">Starting Bid</p>
               <p class="text-lg font-semibold">{formatCurrency(lot.startingBid)}</p>
             </div>
           </div>
-          <button class="w-full bg-blue-600 text-white py-2 rounded-lg hover:bg-blue-700 transition-colors font-semibold">
+          <button class="w-full bg-[#18372f] text-white py-2 rounded-lg hover:bg-[#152c26] transition-colors font-semibold">
             View & Bid
           </button>
         </div>
@@ -144,7 +144,7 @@
                 {#each images as _, idx}
                   <button
                     onclick={(e) => { e.stopPropagation(); setCurrentIndex(lot.id, idx); }}
-                    class="w-2 h-2 rounded-full {idx === currentIndex ? 'bg-white' : 'bg-white/50'}"
+                    class="w-2 h-2 rounded-sm {idx === currentIndex ? 'bg-white' : 'bg-white/50'}"
                     aria-label="Go to image {idx + 1}"
                   ></button>
                 {/each}
@@ -153,7 +153,7 @@
               {#if images.length > 1}
                 <button
                   onclick={(e) => { e.stopPropagation(); setCurrentIndex(lot.id, (currentIndex - 1 + images.length) % images.length); }}
-                  class="absolute left-2 top-1/2 transform -translate-y-1/2 bg-black/50 text-white p-2 rounded-full hover:bg-black/70 transition-colors"
+                  class="absolute left-2 top-1/2 transform -translate-y-1/2 bg-black/50 text-white p-2 rounded-sm hover:bg-black/70 transition-colors"
                   aria-label="Previous image"
                 >
                   <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -162,7 +162,7 @@
                 </button>
                 <button
                   onclick={(e) => { e.stopPropagation(); setCurrentIndex(lot.id, (currentIndex + 1) % images.length); }}
-                  class="absolute right-2 top-1/2 transform -translate-y-1/2 bg-black/50 text-white p-2 rounded-full hover:bg-black/70 transition-colors"
+                  class="absolute right-2 top-1/2 transform -translate-y-1/2 bg-black/50 text-white p-2 rounded-sm hover:bg-black/70 transition-colors"
                   aria-label="Next image"
                 >
                   <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -178,7 +178,7 @@
               class="w-full h-64 object-cover"
             />
           {/if}
-          <div class="absolute top-4 left-4 bg-white px-3 py-1 rounded-full text-sm font-bold">
+          <div class="absolute top-4 left-4 bg-white px-3 py-1 rounded-sm text-sm font-bold">
             Lot #{lot.lotNumber}
           </div>
         </div>
@@ -188,10 +188,10 @@
           <div class="flex items-center justify-between mb-4">
             <div>
               <p class="text-xs text-gray-500">Current Bid</p>
-              <p class="text-xl font-bold text-blue-600">{formatCurrency(lot.currentBid)}</p>
+              <p class="text-xl font-bold text-[#18372f]">{formatCurrency(lot.currentBid)}</p>
             </div>
           </div>
-          <button class="w-full bg-blue-600 text-white py-2 rounded-lg hover:bg-blue-700 transition-colors font-semibold">
+          <button class="w-full bg-[#18372f] text-white py-2 rounded-lg hover:bg-[#152c26] transition-colors font-semibold">
             View & Bid
           </button>
         </div>
@@ -220,7 +220,7 @@
           <!-- Content overlay -->
           <div class="absolute inset-0 flex flex-col justify-between p-6 text-white">
             <div>
-              <div class="bg-white/20 backdrop-blur-sm px-3 py-1 rounded-full text-sm font-bold inline-block mb-3">
+              <div class="bg-white/20 backdrop-blur-sm px-3 py-1 rounded-sm text-sm font-bold inline-block mb-3">
                 Lot #{lot.lotNumber}
               </div>
               <h3 class="text-2xl font-bold mb-2">{lot.title}</h3>
@@ -269,7 +269,7 @@
         </div>
         <div class="p-3">
           <h3 class="text-sm font-semibold text-gray-900 mb-1 line-clamp-1">{lot.title}</h3>
-          <p class="text-lg font-bold text-blue-600 mb-2">{formatCurrency(lot.currentBid)}</p>
+          <p class="text-lg font-bold text-[#18372f] mb-2">{formatCurrency(lot.currentBid)}</p>
           <button class="w-full text-xs bg-gray-100 text-gray-700 py-1.5 rounded hover:bg-gray-200 transition-colors">
             View
           </button>
@@ -296,7 +296,7 @@
             class="w-full object-cover"
             style="height: {imageHeight}px;"
           />
-          <div class="absolute top-4 left-4 bg-white px-3 py-1 rounded-full text-sm font-bold">
+          <div class="absolute top-4 left-4 bg-white px-3 py-1 rounded-sm text-sm font-bold">
             Lot #{lot.lotNumber}
           </div>
           {#if images.length > 1}
@@ -311,10 +311,10 @@
           <div class="flex items-center justify-between mb-3">
             <div>
               <p class="text-xs text-gray-500">Current Bid</p>
-              <p class="text-xl font-bold text-blue-600">{formatCurrency(lot.currentBid)}</p>
+              <p class="text-xl font-bold text-[#18372f]">{formatCurrency(lot.currentBid)}</p>
             </div>
           </div>
-          <button class="w-full bg-blue-600 text-white py-2 rounded-lg hover:bg-blue-700 transition-colors font-semibold text-sm">
+          <button class="w-full bg-[#18372f] text-white py-2 rounded-lg hover:bg-[#152c26] transition-colors font-semibold text-sm">
             View & Bid
           </button>
         </div>
@@ -333,7 +333,7 @@
         class="relative group cursor-pointer overflow-hidden rounded shadow-md hover:shadow-xl transition-all duration-300 bg-white"
         onclick={() => goto(`/lots/${lot.id}`)}
       >
-        <div class="relative w-full flex items-center justify-center bg-gray-50" style={getImageContainerStyle(lot.id)}>
+        <div class="relative w-full flex items-center justify-center bg-[#f7f4ee]" style={getImageContainerStyle(lot.id)}>
           {#if images.length > 1}
             <div class="relative w-full h-full flex items-center justify-center">
               {#each images as img, idx}
@@ -350,7 +350,7 @@
                 {#each images as _, idx}
                   <button
                     onclick={(e) => { e.stopPropagation(); setCurrentIndex(lot.id, idx); }}
-                    class="w-1.5 h-1.5 rounded-full transition-all {idx === currentIndex ? 'bg-white' : 'bg-white/40'}"
+                    class="w-1.5 h-1.5 rounded-sm transition-all {idx === currentIndex ? 'bg-white' : 'bg-white/40'}"
                     aria-label="Go to image {idx + 1}"
                   ></button>
                 {/each}
@@ -359,7 +359,7 @@
               {#if images.length > 1}
                 <button
                   onclick={(e) => { e.stopPropagation(); setCurrentIndex(lot.id, (currentIndex - 1 + images.length) % images.length); }}
-                  class="absolute left-1 top-1/2 transform -translate-y-1/2 bg-black/30 text-white p-1.5 rounded-full hover:bg-black/50 transition-colors z-10 opacity-0 group-hover:opacity-100"
+                  class="absolute left-1 top-1/2 transform -translate-y-1/2 bg-black/30 text-white p-1.5 rounded-sm hover:bg-black/50 transition-colors z-10 opacity-0 group-hover:opacity-100"
                   aria-label="Previous image"
                 >
                   <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -368,7 +368,7 @@
                 </button>
                 <button
                   onclick={(e) => { e.stopPropagation(); setCurrentIndex(lot.id, (currentIndex + 1) % images.length); }}
-                  class="absolute right-1 top-1/2 transform -translate-y-1/2 bg-black/30 text-white p-1.5 rounded-full hover:bg-black/50 transition-colors z-10 opacity-0 group-hover:opacity-100"
+                  class="absolute right-1 top-1/2 transform -translate-y-1/2 bg-black/30 text-white p-1.5 rounded-sm hover:bg-black/50 transition-colors z-10 opacity-0 group-hover:opacity-100"
                   aria-label="Next image"
                 >
                   <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -391,7 +391,7 @@
         <!-- Hover overlay with content -->
         <div class="absolute inset-0 bg-gradient-to-t from-black/70 via-black/40 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex flex-col justify-end p-4 text-white pointer-events-none">
           <div class="transform translate-y-2 opacity-0 group-hover:translate-y-0 group-hover:opacity-100 transition-all duration-300 pointer-events-auto">
-            <div class="bg-white/15 backdrop-blur-sm px-2 py-0.5 rounded-full text-xs font-medium inline-block mb-2">
+            <div class="bg-white/15 backdrop-blur-sm px-2 py-0.5 rounded-sm text-xs font-medium inline-block mb-2">
               Lot #{lot.lotNumber}
             </div>
             <h3 class="text-sm font-medium mb-1">{lot.title}</h3>

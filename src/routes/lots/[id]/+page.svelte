@@ -293,18 +293,18 @@
 </script>
 
 {#if loading}
-  <div class="min-h-screen bg-gray-50 flex items-center justify-center">
+  <div class="min-h-screen bg-[#f7f4ee] flex items-center justify-center">
     <div class="text-center">
-      <div class="inline-block animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+      <div class="inline-block animate-spin rounded-sm h-12 w-12 border-b-2 border-blue-600"></div>
       <p class="mt-4 text-gray-600">Loading lot...</p>
     </div>
   </div>
 {:else if lot}
-  <div class="min-h-screen bg-gray-50">
+  <div class="min-h-screen bg-[#f7f4ee]">
     <div class="container mx-auto px-4 py-8">
       <button
         onclick={() => goto(`/auctions/${lot.auctionId}`)}
-        class="text-blue-600 hover:text-blue-800 mb-6 flex items-center"
+        class="text-[#18372f] hover:text-[#18372f] mb-6 flex items-center"
       >
         <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7" />
@@ -322,7 +322,7 @@
                 alt={lot.title}
                 class="w-full h-96 object-cover"
               />
-              <div class="absolute top-4 left-4 bg-white px-4 py-2 rounded-full text-lg font-bold">
+              <div class="absolute top-4 left-4 bg-white px-4 py-2 rounded-sm text-lg font-bold">
                 Lot #{lot.lotNumber}
               </div>
             </div>
@@ -334,7 +334,7 @@
                   onclick={toggleWatch}
                   disabled={watchBusy}
                   aria-pressed={isWatching}
-                  class="inline-flex items-center gap-2 rounded-full border px-4 py-2 text-sm font-bold transition disabled:opacity-50 {isWatching ? 'border-violet-200 bg-violet-50 text-violet-800' : 'border-gray-200 bg-white text-gray-700 hover:border-violet-300 hover:text-violet-700'}"
+                  class="inline-flex items-center gap-2 rounded-sm border px-4 py-2 text-sm font-bold transition disabled:opacity-50 {isWatching ? 'border-[#ddd6ca] bg-[#efe8dc] text-[#18372f]' : 'border-gray-200 bg-white text-gray-700 hover:border-[#c4b8a8] hover:text-[#18372f]'}"
                 >
                   <span aria-hidden="true">{isWatching ? '♥' : '♡'}</span>
                   {watchBusy ? 'Updating…' : isWatching ? 'Watching' : 'Watch lot'}
@@ -343,7 +343,7 @@
               {#if watchError}<p class="mb-4 text-sm font-medium text-red-600">{watchError}</p>{/if}
               <p class="text-gray-600 text-lg mb-6">{lot.description}</p>
               {#if conditionForLot(lot)}
-                <div class="mb-6 rounded-xl border border-amber-200 bg-amber-50 p-4">
+                <div class="mb-6 rounded-sm border border-amber-200 bg-amber-50 p-4">
                   <p class="text-xs font-bold uppercase tracking-wide text-amber-700">Condition</p>
                   <p class="mt-1 text-sm leading-6 text-amber-950">{conditionForLot(lot)}</p>
                 </div>
@@ -370,12 +370,12 @@
             {:else}
               <div class="space-y-4">
                 {#each bids as bid}
-                  <div class="flex items-center justify-between p-4 bg-gray-50 rounded-lg">
+                  <div class="flex items-center justify-between p-4 bg-[#f7f4ee] rounded-lg">
                     <div>
                       <p class="font-semibold text-gray-900">{bid.userName}</p>
                       <p class="text-sm text-gray-500">{formatDate(bid.timestamp)}</p>
                     </div>
-                    <p class="text-xl font-bold text-blue-600">{formatCurrency(bid.amount)}</p>
+                    <p class="text-xl font-bold text-[#18372f]">{formatCurrency(bid.amount)}</p>
                   </div>
                 {/each}
               </div>
@@ -390,7 +390,7 @@
             
             <div class="mb-6">
               <p class="text-sm text-gray-500 mb-2">Current Highest Bid</p>
-              <p class="text-4xl font-bold text-blue-600 mb-4">{formatCurrency(lot.currentBid)}</p>
+              <p class="text-4xl font-bold text-[#18372f] mb-4">{formatCurrency(lot.currentBid)}</p>
               
               {#if currentUser && lot.highestBidderId === currentUser.id}
                 <div class="bg-green-100 border border-green-400 text-green-700 px-4 py-3 rounded mb-4">
@@ -406,30 +406,30 @@
                 <p class="text-sm text-yellow-800 mb-4">You must be logged in to place a bid.</p>
                 <a
                   href="/auth/login?redirect={encodeURIComponent($page.url.pathname)}"
-                  class="inline-block bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors"
+                  class="inline-block bg-[#18372f] text-white px-4 py-2 rounded-lg hover:bg-[#152c26] transition-colors"
                 >
                   Login to Bid
                 </a>
               </div>
             {:else if (lot.auction?.type || auctionSettings?.requireRegistrationToBid) && !isRegistered}
-              <div class="mb-6 bg-blue-50 border border-blue-200 rounded-lg p-4">
+              <div class="mb-6 bg-[#efe8dc] border border-[#ddd6ca] rounded-lg p-4">
                 {#if registrationStatus === 'PENDING'}
-                  <p class="font-semibold text-blue-900">Approval pending</p>
-                  <p class="mt-1 text-sm text-blue-800">The auction house will review your bidder registration.</p>
+                  <p class="font-semibold text-[#152c26]">Approval pending</p>
+                  <p class="mt-1 text-sm text-[#18372f]">The auction house will review your bidder registration.</p>
                 {:else if registrationStatus === 'REJECTED'}
                   <p class="font-semibold text-red-900">Registration not approved</p>
                   <p class="mt-1 text-sm text-red-800">Contact the auction organizer if you need more information.</p>
                 {:else}
-                  <p class="text-sm text-blue-800 mb-2 font-semibold">{lot.auction?.type?.toUpperCase() === 'PRIVATE' ? 'Bidder approval required' : 'Accept Pumbi terms to bid'}</p>
-                  <p class="text-sm text-blue-700 mb-4">{lot.auction?.type?.toUpperCase() === 'PRIVATE' ? 'Submit your registration for approval by the auction house.' : 'This public auction is open to all account holders.'}</p>
-                  <label class="mb-4 flex items-start gap-2 text-sm text-blue-900">
+                  <p class="text-sm text-[#18372f] mb-2 font-semibold">{lot.auction?.type?.toUpperCase() === 'PRIVATE' ? 'Bidder approval required' : 'Accept Pumbi terms to bid'}</p>
+                  <p class="text-sm text-[#18372f] mb-4">{lot.auction?.type?.toUpperCase() === 'PRIVATE' ? 'Submit your registration for approval by the auction house.' : 'This public auction is open to all account holders.'}</p>
+                  <label class="mb-4 flex items-start gap-2 text-sm text-[#152c26]">
                     <input type="checkbox" bind:checked={acceptTerms} class="mt-1" />
                     <span>I accept the applicable buyer terms and rates for this auction.</span>
                   </label>
                   <button
                     onclick={registerForAuction}
                     disabled={registering || !acceptTerms}
-                    class="inline-block bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors text-sm disabled:opacity-50 disabled:cursor-not-allowed"
+                    class="inline-block bg-[#18372f] text-white px-4 py-2 rounded-lg hover:bg-[#152c26] transition-colors text-sm disabled:opacity-50 disabled:cursor-not-allowed"
                   >
                     {registering ? 'Submitting...' : lot.auction?.type?.toUpperCase() === 'PRIVATE' ? 'Request approval' : 'Accept and register'}
                   </button>
@@ -475,7 +475,7 @@
 
               <button
                 onclick={placeBid}
-                class="w-full bg-blue-600 text-white py-4 rounded-lg hover:bg-blue-700 transition-colors font-bold text-lg mb-4"
+                class="w-full bg-[#18372f] text-white py-4 rounded-lg hover:bg-[#152c26] transition-colors font-bold text-lg mb-4"
               >
                 Place Bid
               </button>
@@ -500,12 +500,12 @@
     </div>
   </div>
 {:else}
-  <div class="min-h-screen bg-gray-50 flex items-center justify-center">
+  <div class="min-h-screen bg-[#f7f4ee] flex items-center justify-center">
     <div class="text-center">
       <p class="text-gray-600 text-lg">Lot not found</p>
       <button
         onclick={() => goto('/')}
-        class="mt-4 px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+        class="mt-4 px-6 py-2 bg-[#18372f] text-white rounded-lg hover:bg-[#152c26]"
       >
         Back to Auctions
       </button>

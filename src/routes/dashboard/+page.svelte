@@ -59,28 +59,28 @@
 
 <svelte:head><title>Dashboard | Pumbi</title></svelte:head>
 
-<main class="min-h-screen bg-slate-50">
+<main class="min-h-screen bg-[#f7f4ee]">
   <div class="mx-auto max-w-7xl space-y-7 px-4 py-8 sm:px-6 lg:px-8">
     <header class="flex flex-wrap items-center justify-between gap-4">
       <div>
-        <p class="text-sm font-bold uppercase tracking-[0.18em] text-violet-600">Your Pumbi</p>
+        <p class="text-sm font-bold uppercase tracking-[0.18em] text-[#a95739]">Your Pumbi</p>
         <h1 class="mt-1 text-3xl font-black tracking-tight text-slate-950 sm:text-4xl">Welcome, {firstName}</h1>
         <p class="mt-1 text-sm text-slate-500">Here’s what needs your attention and what’s coming up.</p>
       </div>
       <div class="flex items-center gap-3">
         {#if data.controlRoomAuctions?.length}
-          <a href="#control-rooms" class="rounded-full border border-red-200 bg-red-50 px-3 py-1.5 text-xs font-bold uppercase tracking-wide text-red-700 hover:bg-red-100">
+          <a href="#control-rooms" class="rounded-sm border border-red-200 bg-red-50 px-3 py-1.5 text-xs font-bold uppercase tracking-wide text-red-700 hover:bg-red-100">
             Control rooms
           </a>
         {/if}
-        <a href="/dashboard/profile" aria-label="View or edit profile" title="View or edit profile" class="grid h-11 w-11 place-items-center rounded-full border border-slate-200 bg-white text-slate-700 shadow-sm transition hover:border-violet-300 hover:text-violet-700">
+        <a href="/dashboard/profile" aria-label="View or edit profile" title="View or edit profile" class="grid h-11 w-11 place-items-center rounded-sm border border-slate-200 bg-white text-slate-700 shadow-sm transition hover:border-[#c4b8a8] hover:text-[#18372f]">
           <svg viewBox="0 0 24 24" class="h-5 w-5" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M20 21a8 8 0 0 0-16 0"/><circle cx="12" cy="7" r="4"/></svg>
         </a>
       </div>
     </header>
 
     {#if data.controlRoomAuctions?.length}
-      <section id="control-rooms" class="rounded-2xl border border-slate-800 bg-slate-950 p-5 text-white shadow-sm">
+      <section id="control-rooms" class="rounded-sm border border-[#18372f] bg-[#152c26] p-5 text-white shadow-sm">
         <div class="flex flex-wrap items-start justify-between gap-3">
           <div>
             <p class="text-xs font-bold uppercase tracking-wider text-red-300">Auctioneer</p>
@@ -96,10 +96,10 @@
           {#each data.controlRoomAuctions as auction}
             <a
               href={`/seller/auctions/${auction.id}/control-room`}
-              class="rounded-xl border border-white/10 bg-white/5 p-4 transition hover:border-red-400/40 hover:bg-white/10"
+              class="rounded-sm border border-white/10 bg-white/5 p-4 transition hover:border-red-400/40 hover:bg-white/10"
             >
               <div class="flex items-center justify-between gap-2">
-                <span class="rounded-full px-2 py-0.5 text-[10px] font-black uppercase tracking-wide {auction.status === 'LIVE' ? 'bg-red-500 text-white' : 'bg-slate-700 text-slate-200'}">
+                <span class="rounded-sm px-2 py-0.5 text-[10px] font-black uppercase tracking-wide {auction.status === 'LIVE' ? 'bg-red-500 text-white' : 'bg-slate-700 text-slate-200'}">
                   {auction.status}
                 </span>
                 <span class="text-[10px] font-bold uppercase tracking-wide text-slate-400">{(auction.type || 'PRIVATE').toUpperCase()}</span>
@@ -122,62 +122,62 @@
     {/if}
 
     <div class="grid gap-6 lg:grid-cols-[minmax(0,0.85fr)_minmax(0,1.4fr)]">
-      <section class="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+      <section class="rounded-sm border border-slate-200 bg-white p-5 shadow-sm">
         <div class="flex items-start justify-between gap-3">
           <div><p class="text-xs font-bold uppercase tracking-wider text-amber-600">To do</p><h2 class="mt-1 text-xl font-black text-slate-950">Finish setting up</h2></div>
-          <span class="rounded-full bg-amber-50 px-2.5 py-1 text-xs font-bold text-amber-800">{tasks.length} remaining</span>
+          <span class="rounded-sm bg-amber-50 px-2.5 py-1 text-xs font-bold text-amber-800">{tasks.length} remaining</span>
         </div>
 
         {#if tasks.length}
           <ol class="mt-5 space-y-3">
             {#each tasks as task}
-              <li class="flex gap-3 rounded-xl border border-slate-100 bg-slate-50 p-3.5">
-                <span class="mt-0.5 grid h-6 w-6 shrink-0 place-items-center rounded-full border-2 {task.pending ? 'border-blue-300 bg-blue-50' : 'border-amber-300 bg-white'}">
-                  {#if task.pending}<span class="h-2 w-2 rounded-full bg-blue-500"></span>{/if}
+              <li class="flex gap-3 rounded-sm border border-slate-100 bg-[#f7f4ee] p-3.5">
+                <span class="mt-0.5 grid h-6 w-6 shrink-0 place-items-center rounded-sm border-2 {task.pending ? 'border-blue-300 bg-[#efe8dc]' : 'border-amber-300 bg-white'}">
+                  {#if task.pending}<span class="h-2 w-2 rounded-sm bg-[#efe8dc]0"></span>{/if}
                 </span>
                 <div class="min-w-0 flex-1"><p class="font-bold text-slate-900">{task.title}</p><p class="mt-0.5 text-sm leading-5 text-slate-500">{task.detail}</p></div>
-                {#if task.href}<a href={task.href} aria-label={task.title} class="self-center rounded-lg px-2 py-1 text-lg text-slate-400 hover:bg-white hover:text-violet-600">›</a>{/if}
+                {#if task.href}<a href={task.href} aria-label={task.title} class="self-center rounded-lg px-2 py-1 text-lg text-slate-400 hover:bg-white hover:text-[#a95739]">›</a>{/if}
               </li>
             {/each}
           </ol>
         {:else}
-          <div class="mt-5 rounded-xl bg-emerald-50 p-5 text-center"><span class="mx-auto grid h-10 w-10 place-items-center rounded-full bg-emerald-600 text-xl text-white">✓</span><p class="mt-3 font-bold text-emerald-950">You’re all set</p><p class="mt-1 text-sm text-emerald-800">There are no outstanding account tasks.</p></div>
+          <div class="mt-5 rounded-sm bg-[#e8eee9] p-5 text-center"><span class="mx-auto grid h-10 w-10 place-items-center rounded-sm bg-[#18372f] text-xl text-white">✓</span><p class="mt-3 font-bold text-[#152c26]">You’re all set</p><p class="mt-1 text-sm text-[#18372f]">There are no outstanding account tasks.</p></div>
         {/if}
       </section>
 
-      <section class="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+      <section class="rounded-sm border border-slate-200 bg-white p-5 shadow-sm">
         <div class="flex flex-wrap items-start justify-between gap-3">
-          <div><p class="text-xs font-bold uppercase tracking-wider text-violet-600">Watchlist</p><h2 class="mt-1 text-xl font-black text-slate-950">Lots you’re watching</h2></div>
-          <a href="/" class="text-sm font-bold text-violet-700 hover:text-violet-900">Browse auctions →</a>
+          <div><p class="text-xs font-bold uppercase tracking-wider text-[#a95739]">Watchlist</p><h2 class="mt-1 text-xl font-black text-slate-950">Lots you’re watching</h2></div>
+          <a href="/" class="text-sm font-bold text-[#18372f] hover:text-[#152c26]">Browse auctions →</a>
         </div>
 
         {#if data.watchedLots.length}
           <div class="mt-5 divide-y divide-slate-100">
             {#each data.watchedLots as lot (lot.id)}
               <article class="grid gap-4 py-4 first:pt-0 last:pb-0 sm:grid-cols-[88px_minmax(0,1fr)_auto] sm:items-center">
-                <a href={`/lots/${lot.id}`} class="block h-20 overflow-hidden rounded-xl bg-slate-100">
+                <a href={`/lots/${lot.id}`} class="block h-20 overflow-hidden rounded-sm bg-slate-100">
                   {#if lot.imageUrl}<img src={lot.imageUrl} alt={lot.title} class="h-full w-full object-cover" />{:else}<span class="grid h-full place-items-center text-2xl text-slate-300">◇</span>{/if}
                 </a>
-                <div class="min-w-0"><p class="text-xs font-bold uppercase tracking-wide text-slate-400">Lot #{lot.lotNumber} · {lot.auction.title}</p><a href={`/lots/${lot.id}`} class="mt-1 block truncate font-bold text-slate-950 hover:text-violet-700">{lot.title}</a><p class="mt-1 text-sm text-slate-500">Current bid <strong class="text-slate-800">{money(lot.currentBid || lot.startingBid)}</strong></p></div>
-                <div class="flex items-center justify-between gap-3 sm:block sm:text-right"><div><p class="text-xs font-bold uppercase tracking-wide text-violet-500">On the block in</p><p class="mt-1 font-black tabular-nums text-violet-800">{countdown(lot)}</p></div><button type="button" onclick={() => unwatch(lot.id)} disabled={removing === lot.id} class="mt-2 text-xs font-semibold text-slate-400 hover:text-red-600 disabled:opacity-50">Remove</button></div>
+                <div class="min-w-0"><p class="text-xs font-bold uppercase tracking-wide text-slate-400">Lot #{lot.lotNumber} · {lot.auction.title}</p><a href={`/lots/${lot.id}`} class="mt-1 block truncate font-bold text-slate-950 hover:text-[#18372f]">{lot.title}</a><p class="mt-1 text-sm text-slate-500">Current bid <strong class="text-slate-800">{money(lot.currentBid || lot.startingBid)}</strong></p></div>
+                <div class="flex items-center justify-between gap-3 sm:block sm:text-right"><div><p class="text-xs font-bold uppercase tracking-wide text-[#a95739]">On the block in</p><p class="mt-1 font-black tabular-nums text-[#18372f]">{countdown(lot)}</p></div><button type="button" onclick={() => unwatch(lot.id)} disabled={removing === lot.id} class="mt-2 text-xs font-semibold text-slate-400 hover:text-red-600 disabled:opacity-50">Remove</button></div>
               </article>
             {/each}
           </div>
         {:else}
-          <div class="mt-5 rounded-xl border border-dashed border-slate-200 px-5 py-10 text-center"><span class="text-3xl text-slate-300">♡</span><p class="mt-2 font-bold text-slate-800">Your watchlist is empty</p><p class="mt-1 text-sm text-slate-500">Open a lot and select Watch lot to track it here.</p></div>
+          <div class="mt-5 rounded-sm border border-dashed border-slate-200 px-5 py-10 text-center"><span class="text-3xl text-slate-300">♡</span><p class="mt-2 font-bold text-slate-800">Your watchlist is empty</p><p class="mt-1 text-sm text-slate-500">Open a lot and select Watch lot to track it here.</p></div>
         {/if}
       </section>
     </div>
 
     <section class="grid gap-4 sm:grid-cols-3">
-      <div class="rounded-xl border bg-white p-4"><p class="text-xs font-bold uppercase tracking-wide text-slate-400">Bids placed</p><p class="mt-1 text-2xl font-black text-slate-950">{data.stats.totalBids}</p></div>
-      <div class="rounded-xl border bg-white p-4"><p class="text-xs font-bold uppercase tracking-wide text-slate-400">Currently winning</p><p class="mt-1 text-2xl font-black text-emerald-700">{data.stats.winningBids}</p></div>
-      <div class="rounded-xl border bg-white p-4"><p class="text-xs font-bold uppercase tracking-wide text-slate-400">Winning value</p><p class="mt-1 text-2xl font-black text-violet-700">{money(data.stats.winningValue)}</p></div>
+      <div class="rounded-sm border bg-white p-4"><p class="text-xs font-bold uppercase tracking-wide text-slate-400">Bids placed</p><p class="mt-1 text-2xl font-black text-slate-950">{data.stats.totalBids}</p></div>
+      <div class="rounded-sm border bg-white p-4"><p class="text-xs font-bold uppercase tracking-wide text-slate-400">Currently winning</p><p class="mt-1 text-2xl font-black text-[#18372f]">{data.stats.winningBids}</p></div>
+      <div class="rounded-sm border bg-white p-4"><p class="text-xs font-bold uppercase tracking-wide text-slate-400">Winning value</p><p class="mt-1 text-2xl font-black text-[#18372f]">{money(data.stats.winningValue)}</p></div>
     </section>
 
     <div class="grid gap-6 lg:grid-cols-[minmax(0,1.35fr)_minmax(280px,0.65fr)]">
-      <section class="rounded-2xl border bg-white p-5 shadow-sm"><div class="flex items-center justify-between"><h2 class="text-lg font-black">Recent bidding</h2><a href="/" class="text-sm font-semibold text-violet-700">Find lots</a></div>{#if data.recentBids.length}<div class="mt-4 divide-y">{#each data.recentBids as bid}<a href={`/lots/${bid.lot.id}`} class="flex items-center justify-between gap-4 py-3 first:pt-0 last:pb-0"><div class="min-w-0"><p class="truncate font-semibold text-slate-900">{bid.lot.title}</p><p class="text-xs text-slate-500">Lot #{bid.lot.lotNumber}</p></div><div class="text-right"><p class="font-bold">{money(bid.amount)}</p><p class="text-xs {bid.lot.highestBidderId === data.user.id ? 'text-emerald-600' : 'text-slate-400'}">{bid.lot.highestBidderId === data.user.id ? 'Winning' : 'Outbid'}</p></div></a>{/each}</div>{:else}<p class="mt-4 text-sm text-slate-500">You haven’t placed any bids yet.</p>{/if}</section>
-      <aside class="rounded-2xl bg-violet-950 p-5 text-white shadow-sm"><p class="text-xs font-bold uppercase tracking-wider text-violet-300">Selling with Pumbi</p><h2 class="mt-2 text-xl font-black">Submit a lot to a public auction</h2><p class="mt-2 text-sm leading-6 text-violet-200">Manage drafts, submissions, and review status in one place.</p><a href="/dashboard/sell" class="mt-5 inline-flex rounded-lg bg-white px-4 py-2 text-sm font-bold text-violet-950">Manage submissions</a></aside>
+      <section class="rounded-sm border bg-white p-5 shadow-sm"><div class="flex items-center justify-between"><h2 class="text-lg font-black">Recent bidding</h2><a href="/" class="text-sm font-semibold text-[#18372f]">Find lots</a></div>{#if data.recentBids.length}<div class="mt-4 divide-y">{#each data.recentBids as bid}<a href={`/lots/${bid.lot.id}`} class="flex items-center justify-between gap-4 py-3 first:pt-0 last:pb-0"><div class="min-w-0"><p class="truncate font-semibold text-slate-900">{bid.lot.title}</p><p class="text-xs text-slate-500">Lot #{bid.lot.lotNumber}</p></div><div class="text-right"><p class="font-bold">{money(bid.amount)}</p><p class="text-xs {bid.lot.highestBidderId === data.user.id ? 'text-[#18372f]' : 'text-slate-400'}">{bid.lot.highestBidderId === data.user.id ? 'Winning' : 'Outbid'}</p></div></a>{/each}</div>{:else}<p class="mt-4 text-sm text-slate-500">You haven’t placed any bids yet.</p>{/if}</section>
+      <aside class="rounded-sm bg-[#152c26] p-5 text-white shadow-sm"><p class="text-xs font-bold uppercase tracking-wider text-[#d6b477]">Selling with Pumbi</p><h2 class="mt-2 text-xl font-black">Submit a lot to a public auction</h2><p class="mt-2 text-sm leading-6 text-[#bec9c4]">Manage drafts, submissions, and review status in one place.</p><a href="/dashboard/sell" class="mt-5 inline-flex rounded-lg bg-white px-4 py-2 text-sm font-bold text-[#152c26]">Manage submissions</a></aside>
     </div>
   </div>
 </main>

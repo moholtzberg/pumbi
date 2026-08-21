@@ -101,11 +101,11 @@
   }
 </script>
 
-<div class="min-h-screen bg-gray-50">
+<div class="min-h-screen bg-[#f7f4ee]">
   <div class="container mx-auto px-4 py-8">
     <div class="max-w-2xl mx-auto">
       <div class="mb-6">
-        <a href="/dashboard" class="text-blue-600 hover:text-blue-800 flex items-center">
+        <a href="/dashboard" class="text-[#18372f] hover:text-[#18372f] flex items-center">
           <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7" />
           </svg>
@@ -117,7 +117,7 @@
       
       {#if loading}
         <div class="text-center py-12">
-          <div class="inline-block animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+          <div class="inline-block animate-spin rounded-sm h-12 w-12 border-b-2 border-blue-600"></div>
           <p class="mt-4 text-gray-600">Loading...</p>
         </div>
       {:else}
@@ -191,8 +191,8 @@
               ></textarea>
             </div>
             
-            <div class="bg-blue-50 border border-blue-200 rounded-lg p-4">
-              <p class="text-sm text-blue-800">
+            <div class="bg-[#efe8dc] border border-[#ddd6ca] rounded-lg p-4">
+              <p class="text-sm text-[#18372f]">
                 <strong>Next:</strong> After completing your profile, use Account verification to confirm your email, phone, photo ID and selfie, and a valid card.
               </p>
             </div>
@@ -201,7 +201,7 @@
               <button
                 type="submit"
                 disabled={saving}
-                class="flex-1 bg-blue-600 text-white py-3 px-6 rounded-lg hover:bg-blue-700 transition-colors font-semibold disabled:opacity-50 disabled:cursor-not-allowed"
+                class="flex-1 bg-[#18372f] text-white py-3 px-6 rounded-lg hover:bg-[#152c26] transition-colors font-semibold disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 {#if saving}
                   Saving...
