@@ -22,6 +22,10 @@
   let canEndAuction = $derived(Boolean(isAuctioneer && data?.canEndAuction && !auctionEnded));
   let allLotsComplete = $derived(Boolean(data?.allLotsComplete));
   let autoAdvanceNextLot = $derived(Boolean(data?.autoAdvanceNextLot));
+  let defaultExtendSeconds = $derived(Number(data?.defaultExtendSeconds) || 30);
+  let extendPresets = $derived(
+    [...new Set([15, 30, 60, defaultExtendSeconds].filter((n) => n > 0))].sort((a, b) => a - b)
+  );
 
   async function refresh() {
     try {
@@ -58,10 +62,12 @@
     }
   }
 
-  async function runAction(action, lotId = null) {
+  async function runAction(action, lotId = null, extra = {}) {
     actionError = '';
     actionSuccess = '';
-    busyAction = `${action}:${lotId || 'none'}`;
+    busyAction = action === 'extend'
+      ? `extend:${lotId || 'none'}:${extra.seconds || ''}`
+      : `${action}:${lotId || 'none'}`;
     try {
       if (action === 'end') {
         const remaining = data?.remainingReadyLots || 0;
@@ -79,7 +85,7 @@
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         credentials: 'include',
-        body: JSON.stringify({ action, ...(lotId ? { lotId } : {}) })
+        body: JSON.stringify({ action, ...(lotId ? { lotId } : {}), ...extra })
       });
       if (!response.ok) {
         const err = await response.json().catch(() => ({}));
@@ -93,13 +99,15 @@
             ? 'Auction started — first lot is open'
             : action === 'open'
               ? 'Lot opened for bidding'
-              : action === 'end'
-                ? 'Auction ended'
-                : result.auctionEnded
-                  ? 'Lot closed — auction finished'
-                  : result.autoAdvanced
-                    ? `Lot closed — next lot #${result.nextLot?.lotNumber || ''} is on the block`
-                    : 'Lot closed';
+              : action === 'extend'
+                ? `Added ${result.seconds || extra.seconds || defaultExtendSeconds}s to the lot`
+                : action === 'end'
+                  ? 'Auction ended'
+                  : result.auctionEnded
+                    ? 'Lot closed — auction finished'
+                    : result.autoAdvanced
+                      ? `Lot closed — next lot #${result.nextLot?.lotNumber || ''} is on the block`
+                      : 'Lot closed';
       clearTimeout(successTimer);
       successTimer = setTimeout(() => {
         actionSuccess = '';
@@ -292,13 +300,30 @@
                 <p class="mt-2 text-xs font-semibold text-amber-700">Timer expired — auto-advancing to the next lot…</p>
               {/if}
             {/if}
+            {#if isAuctioneer && !auctionEnded}
+              <div class="mt-4">
+                <p class="text-xs font-bold uppercase tracking-wide text-slate-500">Add time</p>
+                <div class="mt-2 flex flex-wrap gap-2">
+                  {#each extendPresets as seconds}
+                    <button
+                      type="button"
+                      class="rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-sm font-bold text-slate-800 hover:bg-slate-100 disabled:opacity-60"
+                      disabled={Boolean(busyAction)}
+                      onclick={() => runAction('extend', openLot.id, { seconds })}
+                    >
+                      {busyAction.startsWith(`extend:${openLot.id}:${seconds}`) ? 'Adding…' : `+${seconds}s`}
+                    </button>
+                  {/each}
+                </div>
+              </div>
+            {/if}
             <button
               type="button"
               class="mt-4 w-full rounded-xl bg-red-600 px-4 py-3 font-bold text-white hover:bg-red-700 disabled:opacity-60"
               disabled={!isAuctioneer || Boolean(busyAction)}
               onclick={() => runAction('close', openLot.id)}
             >
-              {busyAction === `close:${openLot.id}` ? 'Closing…' : openLot.highestBidderId ? 'Hammer down · Mark sold' : 'Close · Mark unsold'}
+              {busyAction.startsWith(`close:${openLot.id}`) ? 'Closing…' : openLot.highestBidderId ? 'Hammer down · Mark sold' : 'Close · Mark unsold'}
             </button>
           {:else}
             <p class="mt-2 text-lg font-black text-slate-900">No lot open</p>

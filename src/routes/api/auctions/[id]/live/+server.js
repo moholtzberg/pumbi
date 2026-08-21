@@ -8,7 +8,8 @@ import {
   maybeAutoAdvanceAfterClose,
   openLotOnBlock,
   parseAuctionSettings,
-  clearOnBlockLot
+  clearOnBlockLot,
+  addTimeToLotOnBlock
 } from '$lib/server/liveAuctionFloor.js';
 import { requireAuthenticatedUser, requireAuctionAccess, requireAuctionHousePermission, HOUSE_PERMISSIONS } from '$lib/server/authorization.js';
 
@@ -154,8 +155,8 @@ export async function POST({ params, request, locals }) {
   const body = await request.json();
   const lotId = String(body.lotId || '');
   const action = String(body.action || '').toLowerCase();
-  if (!['claim', 'start', 'open', 'close', 'end', 'settings'].includes(action)) {
-    throw error(400, 'action must be claim, start, open, close, end, or settings');
+  if (!['claim', 'start', 'open', 'close', 'end', 'settings', 'extend'].includes(action)) {
+    throw error(400, 'action must be claim, start, open, close, end, settings, or extend');
   }
   if (
     action !== 'claim' &&
@@ -257,6 +258,32 @@ export async function POST({ params, request, locals }) {
       });
       return json({
         action,
+        lot: { id: updated.id, endTime: updated.endTime, status: updated.status }
+      });
+    } catch (err) {
+      if (err.status) throw error(err.status, err.message);
+      throw err;
+    }
+  }
+
+  if (action === 'extend') {
+    if (auction.status === 'ENDED' || auction.status === 'CANCELLED') {
+      throw error(409, 'This auction has ended');
+    }
+    const { bidExtensionSeconds } = resolveLotTiming({
+      lot,
+      auction,
+      auctionHouse: auction.auctionHouse
+    });
+    const seconds =
+      body.seconds === undefined || body.seconds === null || body.seconds === ''
+        ? bidExtensionSeconds
+        : Number(body.seconds);
+    try {
+      const updated = await addTimeToLotOnBlock({ auction, lot, seconds });
+      return json({
+        action,
+        seconds: Number(seconds),
         lot: { id: updated.id, endTime: updated.endTime, status: updated.status }
       });
     } catch (err) {

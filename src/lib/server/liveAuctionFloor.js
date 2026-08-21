@@ -149,3 +149,57 @@ export async function maybeAutoAdvanceAfterClose({
   });
   return { advanced: true, lot: opened };
 }
+
+/**
+ * Add seconds to the on-block lot timer.
+ * If the timer already expired, time is added from now (revives bidding).
+ */
+export async function addTimeToLotOnBlock({ auction, lot, seconds }) {
+  const amount = Number(seconds);
+  if (!Number.isInteger(amount) || amount < 1 || amount > 3600) {
+    const error = new Error('seconds must be an integer between 1 and 3600');
+    error.status = 400;
+    throw error;
+  }
+  if (lot.status !== 'ACTIVE' || !lot.isReady) {
+    const error = new Error('Only an active, ready lot can receive more time');
+    error.status = 409;
+    throw error;
+  }
+
+  const now = Date.now();
+  const onBlockLotId = getOnBlockLotId(auction);
+  const isTimedOpen = Boolean(lot.endTime && lot.endTime.getTime() > now);
+  if (onBlockLotId && onBlockLotId !== lot.id) {
+    const error = new Error('Only the lot on the block can receive more time');
+    error.status = 409;
+    throw error;
+  }
+  if (!onBlockLotId && !isTimedOpen) {
+    const error = new Error('Open a lot on the block before adding time');
+    error.status = 409;
+    throw error;
+  }
+
+  const base = Math.max(now, lot.endTime ? lot.endTime.getTime() : now);
+  const lotEndTime = new Date(base + amount * 1000);
+  const auctionEndFloor = new Date(lotEndTime.getTime() + 60_000);
+  const settings = parseAuctionSettings(auction.settings);
+
+  await prisma.auction.update({
+    where: { id: auction.id },
+    data: {
+      status: 'LIVE',
+      settings: JSON.stringify({ ...settings, onBlockLotId: lot.id }),
+      ...(auction.endDate.getTime() < auctionEndFloor.getTime()
+        ? { endDate: auctionEndFloor }
+        : {})
+    }
+  });
+  auction.settings = JSON.stringify({ ...settings, onBlockLotId: lot.id });
+
+  return prisma.lot.update({
+    where: { id: lot.id },
+    data: { endTime: lotEndTime }
+  });
+}

@@ -2,6 +2,7 @@ import { json, error } from '@sveltejs/kit';
 import prisma from '$lib/prisma.js';
 import { requireAuthenticatedUser, requireAuctionAccess, requireAuctionHousePermission, HOUSE_PERMISSIONS } from '$lib/server/authorization.js';
 import { isAutoAdvanceEnabled, getOnBlockLotId } from '$lib/server/liveAuctionFloor.js';
+import { resolveLotTiming } from '$lib/server/lotTiming.js';
 
 async function authorize(locals, auctionId) {
   const user = await requireAuthenticatedUser(locals, 'Authentication required');
@@ -58,6 +59,9 @@ export async function GET({ params, locals }) {
   const finishedLots = lots.filter((lot) => ['SOLD', 'UNSOLD', 'WITHDRAWN'].includes(lot.status)).length;
   const allLotsComplete = remainingReadyLots === 0 && lots.some((lot) => lot.isReady);
   const canEndAuction = ['UPCOMING', 'LIVE'].includes(auction.status) && !openLot;
+  const openLotTiming = openLot
+    ? resolveLotTiming({ lot: openLot, auction, auctionHouse: auction.auctionHouse })
+    : null;
 
   return json({
     currentUserId: user.id,
@@ -92,6 +96,7 @@ export async function GET({ params, locals }) {
     allLotsComplete,
     canEndAuction,
     autoAdvanceNextLot: isAutoAdvanceEnabled(auction),
+    defaultExtendSeconds: openLotTiming?.bidExtensionSeconds || 30,
     settingsPath: `/seller/auctions/${auction.id}/settings`,
     lots,
     bids: bids.map((bid) => ({
