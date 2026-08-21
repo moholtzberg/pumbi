@@ -1,6 +1,7 @@
 <script>
   import { onMount } from 'svelte';
   import { goto } from '$app/navigation';
+  import PumbiLoader from '$lib/components/PumbiLoader.svelte';
 
   const roles = ['OWNER', 'ADMIN', 'AUCTION_MANAGER', 'CATALOG_MANAGER', 'FINANCE', 'VIEWER'];
   const memberStatuses = ['ACTIVE', 'SUSPENDED'];
@@ -159,7 +160,7 @@
     {/if}
 
     {#if loading}
-      <div class="mt-6 rounded-xl bg-white p-12 text-center shadow-sm"><div class="mx-auto h-10 w-10 animate-spin rounded-full border-4 border-blue-100 border-t-blue-600"></div><p class="mt-4 text-slate-600">Loading team…</p></div>
+      <div class="mt-6 rounded-xl bg-white p-12 text-center shadow-sm"><PumbiLoader size="md" label="Loading team" /><p class="mt-4 text-slate-600">Loading team…</p></div>
     {:else}
       <section class="mt-6 rounded-xl bg-white p-5 shadow-sm sm:p-7">
         <h2 class="text-xl font-bold text-slate-900">Invite a team member</h2>

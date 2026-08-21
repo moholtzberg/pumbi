@@ -2,6 +2,7 @@
   import { onMount } from 'svelte';
   import { page } from '$app/stores';
   import { goto } from '$app/navigation';
+  import PumbiLoader from '$lib/components/PumbiLoader.svelte';
   
   let lot = $state(null);
   let bids = $state([]);
@@ -295,7 +296,7 @@
 {#if loading}
   <div class="min-h-screen bg-[#f7f4ee] flex items-center justify-center">
     <div class="text-center">
-      <div class="inline-block animate-spin rounded-sm h-12 w-12 border-b-2 border-blue-600"></div>
+      <PumbiLoader size="lg" label="Loading lot" />
       <p class="mt-4 text-gray-600">Loading lot...</p>
     </div>
   </div>

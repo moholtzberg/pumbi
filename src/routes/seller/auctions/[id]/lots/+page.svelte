@@ -3,6 +3,7 @@
   import { page } from '$app/stores';
   import { goto } from '$app/navigation';
   import BannerGenerator from '$lib/components/BannerGenerator.svelte';
+  import PumbiLoader from '$lib/components/PumbiLoader.svelte';
   
   let auction = $state(null);
   let lots = $state([]);
@@ -486,7 +487,7 @@
 {#if loading}
   <div class="min-h-screen bg-gray-50 flex items-center justify-center">
     <div class="text-center">
-      <div class="inline-block animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+      <PumbiLoader size="lg" label="Loading" />
       <p class="mt-4 text-gray-600">Loading...</p>
     </div>
   </div>

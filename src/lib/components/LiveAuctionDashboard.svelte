@@ -3,6 +3,7 @@
   import { page } from '$app/stores';
   import { goto } from '$app/navigation';
   import CountdownTimer from '$lib/components/CountdownTimer.svelte';
+  import PumbiLoader from '$lib/components/PumbiLoader.svelte';
 
   let { auction, videoUrl = null, videoTitle = null, audioUrl = null, audioTitle = null } = $props();
   let liveData = $state({
@@ -268,7 +269,10 @@
     </div>
 
     {#if loading}
-      <div class="rounded-sm bg-[rgba(255,255,255,0.04)] p-12 text-center text-[#bec9c4]">Loading the live room…</div>
+      <div class="rounded-sm bg-[rgba(255,255,255,0.04)] p-12 text-center text-[#bec9c4]">
+        <PumbiLoader size="lg" label="Loading the live room" />
+        <p class="mt-4">Loading the live room…</p>
+      </div>
     {:else if liveData.finished || ['ENDED', 'CANCELLED'].includes(String(liveData.auctionStatus || auction?.status || '').toUpperCase())}
       <div class="rounded-sm border border-[rgba(215,190,150,0.18)] bg-[rgba(255,255,255,0.04)] p-12 text-center">
         <p class="font-[family-name:var(--pumbi-serif)] text-2xl font-semibold">This auction has ended</p>

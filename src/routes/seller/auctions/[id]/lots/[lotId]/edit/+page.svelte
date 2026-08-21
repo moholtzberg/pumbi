@@ -2,6 +2,7 @@
   import { onMount } from 'svelte';
   import { page } from '$app/stores';
   import { goto } from '$app/navigation';
+  import PumbiLoader from '$lib/components/PumbiLoader.svelte';
   
   let lot = $state(null);
   let auction = $state(null);
@@ -271,7 +272,7 @@
   <div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
     {#if loading}
       <div class="text-center py-12">
-        <div class="inline-block animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+        <PumbiLoader size="lg" label="Loading" />
         <p class="mt-4 text-gray-600">Loading lot...</p>
       </div>
     {:else if lot}

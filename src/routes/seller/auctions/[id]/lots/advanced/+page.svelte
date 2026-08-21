@@ -8,6 +8,7 @@
   import ImageEditor from '$lib/components/lots/ImageEditor.svelte';
   import BannerGenerator from '$lib/components/BannerGenerator.svelte';
   import ConsignmentPDF from '$lib/components/lots/ConsignmentPDF.svelte';
+  import PumbiLoader from '$lib/components/PumbiLoader.svelte';
 
   let auction = $state(null);
   let lots = $state([]);
@@ -2321,7 +2322,7 @@
   <div class="max-w-[95vw] mx-auto px-4">
     {#if loading}
       <div class="text-center py-12">
-        <div class="inline-block animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+        <PumbiLoader size="lg" label="Loading" />
         <p class="mt-4 text-gray-600">Loading lots...</p>
       </div>
     {:else if auction}

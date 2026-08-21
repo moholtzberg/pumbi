@@ -1,5 +1,6 @@
 <script>
   import CountdownTimer from '$lib/components/CountdownTimer.svelte';
+  import PumbiLoader from '$lib/components/PumbiLoader.svelte';
 
   let { data } = $props();
   let auctions = $state([]);
@@ -165,7 +166,7 @@
       </div>
 
       {#if loading}
-        <div class="py-16 text-center"><div class="inline-block h-10 w-10 animate-spin rounded-sm border-4 border-slate-200 border-t-[#a95739]"></div><p class="mt-4 text-slate-500">Loading auctions…</p></div>
+        <div class="py-16 text-center"><PumbiLoader size="md" label="Loading auctions" /><p class="mt-4 text-slate-500">Loading auctions…</p></div>
       {:else if filteredAuctions().length === 0}
         <div class="rounded-sm border border-dashed border-slate-300 bg-white py-16 text-center text-slate-600">No auctions found. Try another search or filter.</div>
       {:else}

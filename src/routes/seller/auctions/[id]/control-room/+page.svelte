@@ -2,6 +2,7 @@
   import { onMount, onDestroy } from 'svelte';
   import { page } from '$app/stores';
   import CountdownTimer from '$lib/components/CountdownTimer.svelte';
+  import PumbiLoader from '$lib/components/PumbiLoader.svelte';
 
   let data = $state(null);
   let loading = $state(true);
@@ -205,7 +206,10 @@
 
   <div class="container mx-auto px-4 py-6">
     {#if loading}
-      <div class="rounded-2xl bg-white p-12 text-center text-slate-500">Loading control room…</div>
+      <div class="rounded-2xl bg-white p-12 text-center text-slate-500">
+        <PumbiLoader size="lg" label="Loading control room" />
+        <p class="mt-4">Loading control room…</p>
+      </div>
     {:else if errorMessage}
       <div class="rounded-2xl border border-red-200 bg-red-50 p-8 text-center text-red-700">{errorMessage}</div>
     {:else if data}

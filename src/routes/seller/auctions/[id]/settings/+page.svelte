@@ -3,6 +3,7 @@
   import { page } from '$app/stores';
   import { goto } from '$app/navigation';
   import BannerGenerator from '$lib/components/BannerGenerator.svelte';
+  import PumbiLoader from '$lib/components/PumbiLoader.svelte';
 
   let auction = $state(null);
   let auctionData = $state({
@@ -218,7 +219,7 @@
   <div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
     {#if loading}
       <div class="text-center py-12">
-        <div class="inline-block animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+        <PumbiLoader size="lg" label="Loading auction settings" />
         <p class="mt-4 text-gray-600">Loading auction settings...</p>
       </div>
     {:else if errorMessage && !auction}

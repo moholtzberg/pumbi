@@ -5,6 +5,7 @@
   import LotGalleryTemplate from '$lib/components/LotGalleryTemplate.svelte';
   import CountdownTimer from '$lib/components/CountdownTimer.svelte';
   import LiveAuctionDashboard from '$lib/components/LiveAuctionDashboard.svelte';
+  import PumbiLoader from '$lib/components/PumbiLoader.svelte';
   
   let auction = $state(null);
   let lots = $state([]);
@@ -84,7 +85,7 @@
 {#if loading}
   <div class="min-h-screen bg-[#f7f4ee] flex items-center justify-center">
     <div class="text-center">
-      <div class="inline-block animate-spin rounded-sm h-12 w-12 border-b-2 border-[#a95739]"></div>
+      <PumbiLoader size="lg" label="Loading auction" />
       <p class="mt-4 text-gray-600">Loading auction...</p>
     </div>
   </div>

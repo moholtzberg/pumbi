@@ -1,6 +1,7 @@
 <script>
   import { onMount } from 'svelte';
   import { goto } from '$app/navigation';
+  import PumbiLoader from '$lib/components/PumbiLoader.svelte';
 
   const steps = ['Company', 'Locations', 'Compliance', 'Brand assets', 'Banking', 'Team', 'Terms', 'Review'];
   const businessTypes = ['SOLE_PROPRIETORSHIP', 'PARTNERSHIP', 'LLC', 'CORPORATION', 'NONPROFIT', 'OTHER'];
@@ -314,7 +315,7 @@
     {#if successMessage}<div class="mb-4 rounded-lg border border-green-200 bg-green-50 p-4 text-sm text-green-800" role="status">{successMessage}</div>{/if}
 
     {#if loading}
-      <div class="rounded-xl bg-white p-12 text-center shadow-sm"><div class="mx-auto h-10 w-10 animate-spin rounded-full border-4 border-blue-100 border-t-blue-600"></div><p class="mt-4 text-slate-600">Loading onboarding…</p></div>
+      <div class="rounded-xl bg-white p-12 text-center shadow-sm"><PumbiLoader size="md" label="Loading onboarding" /><p class="mt-4 text-slate-600">Loading onboarding…</p></div>
     {:else}
       <div class="grid gap-6 lg:grid-cols-[250px_minmax(0,1fr)]">
         <nav class="rounded-xl bg-white p-3 shadow-sm lg:sticky lg:top-4 lg:self-start" aria-label="Onboarding steps">

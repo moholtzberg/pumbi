@@ -1,6 +1,7 @@
 <script>
   import { onMount } from 'svelte';
   import { goto } from '$app/navigation';
+  import PumbiLoader from '$lib/components/PumbiLoader.svelte';
   
   let session = $state(null);
   let currentUser = $state(null);
@@ -117,7 +118,7 @@
       
       {#if loading}
         <div class="text-center py-12">
-          <div class="inline-block animate-spin rounded-sm h-12 w-12 border-b-2 border-blue-600"></div>
+          <PumbiLoader size="lg" label="Loading" />
           <p class="mt-4 text-gray-600">Loading...</p>
         </div>
       {:else}
