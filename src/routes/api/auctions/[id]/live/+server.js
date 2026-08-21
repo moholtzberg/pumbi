@@ -12,15 +12,21 @@ export async function GET({ params }) {
   if (!auction) throw error(404, 'Auction not found');
 
   const lots = await prisma.lot.findMany({
-    where: { auctionId: auction.id, status: 'ACTIVE', isReady: true },
+    where: {
+      auctionId: auction.id,
+      isReady: true,
+      status: { in: ['ACTIVE', 'SOLD', 'UNSOLD'] }
+    },
     select: {
       id: true,
       position: true,
       lotNumber: true,
       endTime: true,
       title: true,
+      status: true,
       currentBid: true,
       startingBid: true,
+      highestBidderName: true,
       images: {
         where: { isHidden: false },
         orderBy: [{ isPrimary: 'desc' }, { displayOrder: 'asc' }],
@@ -31,45 +37,63 @@ export async function GET({ params }) {
     orderBy: [{ position: 'asc' }, { lotNumber: 'asc' }]
   });
   const now = Date.now();
-  const timedLots = lots
+  const activeLots = lots.filter((lot) => lot.status === 'ACTIVE');
+  const timedLots = activeLots
     .filter((lot) => lot.endTime && lot.endTime.getTime() > now)
     .sort((a, b) => a.endTime.getTime() - b.endTime.getTime() || a.position - b.position);
   const openLot = timedLots[0] || null;
   // Prefer the open lot; otherwise surface the next ready lot so bidders can still open details.
   const selected =
     openLot ||
-    lots.find((lot) => !lot.endTime || lot.endTime.getTime() <= now) ||
-    lots[0] ||
+    activeLots.find((lot) => !lot.endTime || lot.endTime.getTime() <= now) ||
+    activeLots[0] ||
     null;
   const biddingOpen = Boolean(auction.auctioneerStartedAt && openLot && selected?.id === openLot.id);
 
-  const upcomingRaw = lots
-    .filter((lot) => lot.id !== selected?.id)
-    .filter((lot) => !lot.endTime || lot.endTime.getTime() > now)
-    .slice(0, 12);
-
   const { convertToPresignedUrl } = await import('$lib/utils/s3Presigned.js');
 
-  const [currentLot, recentBids, upcomingLots] = await Promise.all([
+  function lotPhase(lot) {
+    if (selected && lot.id === selected.id) return 'current';
+    if (lot.status === 'SOLD' || lot.status === 'UNSOLD') return 'past';
+    if (lot.endTime && lot.endTime.getTime() <= now) return 'past';
+    if (selected) {
+      const selectedIndex = lots.findIndex((entry) => entry.id === selected.id);
+      const lotIndex = lots.findIndex((entry) => entry.id === lot.id);
+      if (selectedIndex >= 0 && lotIndex >= 0 && lotIndex < selectedIndex) return 'past';
+    }
+    return 'upcoming';
+  }
+
+  const [currentLot, lotBids, lotRail] = await Promise.all([
     selected ? db.lots.getById(selected.id) : null,
-    prisma.bid.findMany({
-      where: { lot: { auctionId: auction.id } },
-      include: { lot: { select: { lotNumber: true, title: true } } },
-      orderBy: { timestamp: 'desc' },
-      take: 20
-    }),
+    selected
+      ? prisma.bid.findMany({
+          where: { lotId: selected.id },
+          orderBy: { timestamp: 'desc' },
+          take: 40
+        })
+      : Promise.resolve([]),
     Promise.all(
-      upcomingRaw.map(async (lot) => ({
-        id: lot.id,
-        lotNumber: lot.lotNumber,
-        title: lot.title,
-        currentBid: lot.currentBid,
-        startingBid: lot.startingBid,
-        endTime: lot.endTime,
-        imageUrl: await convertToPresignedUrl(lot.images[0]?.url || null)
-      }))
+      lots.map(async (lot) => {
+        const phase = lotPhase(lot);
+        return {
+          id: lot.id,
+          lotNumber: lot.lotNumber,
+          title: lot.title,
+          status: lot.status,
+          phase,
+          currentBid: lot.currentBid,
+          startingBid: lot.startingBid,
+          highestBidderName: lot.highestBidderName,
+          endTime: lot.endTime,
+          imageUrl: await convertToPresignedUrl(lot.images[0]?.url || null)
+        };
+      })
     )
   ]);
+
+  const pastLots = lotRail.filter((lot) => lot.phase === 'past');
+  const upcomingLots = lotRail.filter((lot) => lot.phase === 'upcoming');
 
   return json({
     auctioneerId: auction.auctioneerId,
@@ -77,18 +101,17 @@ export async function GET({ params }) {
     lobby: !auction.auctioneerStartedAt,
     biddingOpen,
     currentLot,
+    pastLots,
     upcomingLots,
+    lotRail,
     timing: currentLot
       ? resolveLotTiming({ lot: currentLot, auction, auctionHouse: auction.auctionHouse })
       : null,
-    recentBids: recentBids.map((bid) => ({
+    recentBids: lotBids.map((bid) => ({
       id: bid.id,
       amount: bid.amount,
       bidderName: bid.userName,
-      timestamp: bid.timestamp,
-      lotNumber: bid.lot.lotNumber,
-      lotTitle: bid.lot.title,
-      isCurrentLot: bid.lotId === selected?.id
+      timestamp: bid.timestamp
     }))
   }, { headers: { 'cache-control': 'no-store' } });
 }
@@ -156,15 +179,29 @@ export async function POST({ params, request, locals }) {
     }
 
     const { initialTimerSeconds } = resolveLotTiming({ lot, auction, auctionHouse: auction.auctionHouse });
+    const lotEndTime = new Date(now + initialTimerSeconds * 1000);
+    // Keep the auction window open at least through this lot so cron cannot end a live floor sale.
+    const auctionEndFloor = new Date(lotEndTime.getTime() + 60_000);
     if (action === 'start' || !auction.auctioneerStartedAt) {
       await prisma.auction.update({
         where: { id: auction.id },
-        data: { status: 'LIVE', auctioneerStartedAt: new Date() }
+        data: {
+          status: 'LIVE',
+          auctioneerStartedAt: new Date(),
+          ...(auction.endDate.getTime() < auctionEndFloor.getTime()
+            ? { endDate: auctionEndFloor }
+            : {})
+        }
       });
-    } else if (auction.status !== 'LIVE') {
+    } else {
       await prisma.auction.update({
         where: { id: auction.id },
-        data: { status: 'LIVE' }
+        data: {
+          ...(auction.status !== 'LIVE' ? { status: 'LIVE' } : {}),
+          ...(auction.endDate.getTime() < auctionEndFloor.getTime()
+            ? { endDate: auctionEndFloor }
+            : {})
+        }
       });
     }
 
@@ -173,7 +210,7 @@ export async function POST({ params, request, locals }) {
       data: {
         status: 'ACTIVE',
         isReady: true,
-        endTime: new Date(now + initialTimerSeconds * 1000)
+        endTime: lotEndTime
       }
     });
     return json({

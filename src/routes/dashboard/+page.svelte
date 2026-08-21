@@ -67,10 +67,59 @@
         <h1 class="mt-1 text-3xl font-black tracking-tight text-slate-950 sm:text-4xl">Welcome, {firstName}</h1>
         <p class="mt-1 text-sm text-slate-500">Here’s what needs your attention and what’s coming up.</p>
       </div>
-      <a href="/dashboard/profile" aria-label="View or edit profile" title="View or edit profile" class="grid h-11 w-11 place-items-center rounded-full border border-slate-200 bg-white text-slate-700 shadow-sm transition hover:border-violet-300 hover:text-violet-700">
-        <svg viewBox="0 0 24 24" class="h-5 w-5" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M20 21a8 8 0 0 0-16 0"/><circle cx="12" cy="7" r="4"/></svg>
-      </a>
+      <div class="flex items-center gap-3">
+        {#if data.controlRoomAuctions?.length}
+          <a href="#control-rooms" class="rounded-full border border-red-200 bg-red-50 px-3 py-1.5 text-xs font-bold uppercase tracking-wide text-red-700 hover:bg-red-100">
+            Control rooms
+          </a>
+        {/if}
+        <a href="/dashboard/profile" aria-label="View or edit profile" title="View or edit profile" class="grid h-11 w-11 place-items-center rounded-full border border-slate-200 bg-white text-slate-700 shadow-sm transition hover:border-violet-300 hover:text-violet-700">
+          <svg viewBox="0 0 24 24" class="h-5 w-5" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M20 21a8 8 0 0 0-16 0"/><circle cx="12" cy="7" r="4"/></svg>
+        </a>
+      </div>
     </header>
+
+    {#if data.controlRoomAuctions?.length}
+      <section id="control-rooms" class="rounded-2xl border border-slate-800 bg-slate-950 p-5 text-white shadow-sm">
+        <div class="flex flex-wrap items-start justify-between gap-3">
+          <div>
+            <p class="text-xs font-bold uppercase tracking-wider text-red-300">Auctioneer</p>
+            <h2 class="mt-1 text-xl font-black">Control rooms</h2>
+            <p class="mt-1 text-sm text-slate-400">Start live sales and move lots along for auctions you can run.</p>
+          </div>
+          {#if data.user.role === 'PLATFORM_ADMIN' || data.user.role === 'SELLER' || data.user.role === 'AUCTIONEER'}
+            <a href="/seller" class="rounded-lg border border-white/15 px-3 py-2 text-sm font-bold text-slate-200 hover:bg-white/10">Seller portal</a>
+          {/if}
+        </div>
+
+        <div class="mt-5 grid gap-3 md:grid-cols-2 xl:grid-cols-3">
+          {#each data.controlRoomAuctions as auction}
+            <a
+              href={`/seller/auctions/${auction.id}/control-room`}
+              class="rounded-xl border border-white/10 bg-white/5 p-4 transition hover:border-red-400/40 hover:bg-white/10"
+            >
+              <div class="flex items-center justify-between gap-2">
+                <span class="rounded-full px-2 py-0.5 text-[10px] font-black uppercase tracking-wide {auction.status === 'LIVE' ? 'bg-red-500 text-white' : 'bg-slate-700 text-slate-200'}">
+                  {auction.status}
+                </span>
+                <span class="text-[10px] font-bold uppercase tracking-wide text-slate-400">{(auction.type || 'PRIVATE').toUpperCase()}</span>
+              </div>
+              <h3 class="mt-3 truncate font-black text-white">{auction.title}</h3>
+              <p class="mt-1 truncate text-xs text-slate-400">
+                {auction.auctionHouseName || 'Auction house'} · {auction.lotCount} lots
+              </p>
+              <p class="mt-3 text-sm font-bold text-red-300">
+                {auction.status === 'LIVE' && auction.hasStarted
+                  ? auction.isClaimedAuctioneer
+                    ? 'Open your control room →'
+                    : 'Open control room →'
+                  : 'Prepare / start sale →'}
+              </p>
+            </a>
+          {/each}
+        </div>
+      </section>
+    {/if}
 
     <div class="grid gap-6 lg:grid-cols-[minmax(0,0.85fr)_minmax(0,1.4fr)]">
       <section class="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">

@@ -29,10 +29,17 @@ export async function POST({ params, locals, request }) {
     }
     
     const now = new Date();
-    if (auction.status === 'ENDED' || auction.status === 'CANCELLED' || now >= auction.endDate) {
+    const liveFloorOpen = Boolean(
+      auction.auctioneerStartedAt &&
+      auction.status === 'LIVE'
+    );
+    if (auction.status === 'ENDED' || auction.status === 'CANCELLED') {
       throw error(409, 'Registration is closed for this auction');
     }
-    if (auction.series) {
+    if (!liveFloorOpen && now >= auction.endDate) {
+      throw error(409, 'Registration is closed for this auction');
+    }
+    if (auction.series && !liveFloorOpen) {
       const opensAt = new Date(
         auction.startDate.getTime() - auction.series.registrationOpenOffsetDays * 86_400_000
       );
@@ -161,8 +168,23 @@ export async function POST({ params, locals, request }) {
 export async function GET({ params, locals }) {
   try {
     const user = await requireAuthenticatedUser(locals);
-    
-    // Check if user is registered
+    const auction = await prisma.auction.findUnique({
+      where: { id: params.id },
+      select: {
+        id: true,
+        type: true,
+        status: true,
+        platformPolicyId: true,
+        policyVersionSnapshot: true,
+        buyerTermsSnapshot: true,
+        buyerPremiumRateSnapshot: true,
+        privateHouseBuyerTermsSnapshot: true,
+        privateHouseBuyerPremiumRateSnapshot: true,
+        auctioneerStartedAt: true
+      }
+    });
+    if (!auction) throw error(404, 'Auction not found');
+
     const registration = await prisma.auctionRegistration.findUnique({
       where: {
         auctionId_userId: {
@@ -171,11 +193,47 @@ export async function GET({ params, locals }) {
         }
       }
     });
-    
+
+    const isPublic = auction.type === 'PUBLIC';
+    const buyerTerms = isPublic
+      ? auction.buyerTermsSnapshot
+      : auction.privateHouseBuyerTermsSnapshot;
+    const buyerPremiumRate = isPublic
+      ? auction.buyerPremiumRateSnapshot
+      : auction.privateHouseBuyerPremiumRateSnapshot;
+
+    const policyAccepted = isPublic
+      ? Boolean(
+          registration?.status === 'APPROVED' &&
+          registration.termsAcceptedAt &&
+          registration.acceptedPolicyId === auction.platformPolicyId &&
+          registration.acceptedPolicyVersion === auction.policyVersionSnapshot &&
+          registration.acceptedBuyerTermsSnapshot === auction.buyerTermsSnapshot
+        )
+      : registration?.status === 'APPROVED';
+
+    const status = registration?.status || null;
+    const needsVerification = !user.isVerifiedBuyer;
+    const needsTermsAcceptance = Boolean(
+      user.isVerifiedBuyer &&
+      !policyAccepted &&
+      status !== 'PENDING' &&
+      status !== 'REJECTED'
+    );
+
     return json({
       registered: !!registration,
-      approved: registration?.status === 'APPROVED',
-      status: registration?.status || null
+      approved: status === 'APPROVED',
+      status,
+      auctionType: auction.type,
+      buyerTerms,
+      buyerPremiumRate,
+      policyVersion: auction.policyVersionSnapshot,
+      isVerifiedBuyer: user.isVerifiedBuyer,
+      policyAccepted,
+      readyToBid: Boolean(user.isVerifiedBuyer && policyAccepted),
+      needsVerification,
+      needsTermsAcceptance
     });
   } catch (err) {
     console.error('Error checking registration:', err);

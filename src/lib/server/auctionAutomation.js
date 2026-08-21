@@ -118,7 +118,10 @@ async function transitionAuctionStatuses(client, now) {
 		const ended = await tx.auction.updateMany({
 			where: {
 				status: { in: ['UPCOMING', 'LIVE'] },
-				endDate: { lte: now }
+				endDate: { lte: now },
+				// Floor sales that the auctioneer has opened are driven by lot timers,
+				// not the original catalog window.
+				auctioneerStartedAt: null
 			},
 			data: { status: 'ENDED' }
 		});

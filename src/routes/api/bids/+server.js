@@ -50,15 +50,16 @@ export async function POST({ request, locals }) {
     const auction = lot.auction;
     const now = new Date();
 
-    if (
-      auction.status !== 'LIVE' ||
-      now < auction.startDate ||
-      now >= auction.endDate
-    ) {
-      throw error(409, 'This auction is not open for bidding');
+    // Auctioneer-run sales are gated by LIVE status + lot timers, not the catalog endDate.
+    // Scheduled start/end only apply before the auctioneer has opened the floor.
+    if (auction.status !== 'LIVE') {
+      throw error(409, 'This auction is not live');
     }
 
     if (!auction.auctioneerStartedAt) {
+      if (now < auction.startDate || now >= auction.endDate) {
+        throw error(409, 'This auction is not open for bidding');
+      }
       throw error(409, 'The auctioneer has not started bidding yet');
     }
 

@@ -7,7 +7,9 @@
   let { auction, videoUrl = null, videoTitle = null, audioUrl = null, audioTitle = null } = $props();
   let liveData = $state({
     currentLot: null,
+    pastLots: [],
     upcomingLots: [],
+    lotRail: [],
     recentBids: [],
     timing: null,
     lobby: true,
@@ -20,6 +22,11 @@
   let bidError = $state('');
   let bidSuccess = $state(false);
   let bidSuccessTimer;
+  let bidAccess = $state(null);
+  let checkingAccess = $state(false);
+  let acceptTerms = $state(false);
+  let registering = $state(false);
+  let registerError = $state('');
 
   let nextBidAmount = $derived.by(() => {
     const lot = liveData.currentLot;
@@ -30,8 +37,32 @@
     return Math.max(startingBid, currentBid + increment);
   });
 
-  let canBidNow = $derived(Boolean(liveData.currentLot && liveData.biddingOpen && nextBidAmount > 0));
+  let readyToBid = $derived(Boolean(bidAccess?.readyToBid));
+  let canBidNow = $derived(
+    Boolean(liveData.currentLot && liveData.biddingOpen && nextBidAmount > 0 && readyToBid)
+  );
   let upcomingLots = $derived(liveData.upcomingLots || []);
+  let pastLots = $derived(liveData.pastLots || []);
+  let lotRail = $derived(
+    (liveData.lotRail && liveData.lotRail.length
+      ? liveData.lotRail.filter((lot) => lot.phase !== 'current')
+      : [...pastLots, ...upcomingLots]) || []
+  );
+  let lotBids = $derived(liveData.recentBids || []);
+  let isPublicAuction = $derived(
+    String(bidAccess?.auctionType || auction?.type || '').toUpperCase() === 'PUBLIC'
+  );
+  let buyerTerms = $derived(
+    bidAccess?.buyerTerms ||
+      auction?.buyerTermsSnapshot ||
+      auction?.privateHouseBuyerTermsSnapshot ||
+      ''
+  );
+  let premiumLabel = $derived.by(() => {
+    const rate = bidAccess?.buyerPremiumRate ?? auction?.buyerPremiumRateSnapshot ?? auction?.privateHouseBuyerPremiumRateSnapshot;
+    if (rate == null || rate === '') return null;
+    return `${Number(rate) * 100}%`;
+  });
 
   function embedUrl(url) {
     if (!url) return null;
@@ -61,6 +92,65 @@
     }
   }
 
+  async function loadBidAccess() {
+    if (!session?.user) {
+      bidAccess = null;
+      return;
+    }
+    checkingAccess = true;
+    registerError = '';
+    try {
+      const response = await fetch(`/api/auctions/${auction.id}/register`, {
+        credentials: 'include'
+      });
+      if (response.status === 401) {
+        bidAccess = null;
+        return;
+      }
+      if (!response.ok) {
+        const err = await response.json().catch(() => ({}));
+        throw new Error(err.message || 'Failed to check bidding access');
+      }
+      bidAccess = await response.json();
+      if (bidAccess.readyToBid) acceptTerms = true;
+    } catch (err) {
+      registerError = err.message || 'Failed to check bidding access';
+    } finally {
+      checkingAccess = false;
+    }
+  }
+
+  async function acceptAuctionTerms() {
+    if (!session?.user) {
+      goto(`/auth/login?redirect=${encodeURIComponent($page.url.pathname)}`);
+      return;
+    }
+    if (!acceptTerms) {
+      registerError = 'Check the box to accept this auction’s buyer terms before continuing.';
+      return;
+    }
+    registering = true;
+    registerError = '';
+    bidError = '';
+    try {
+      const response = await fetch(`/api/auctions/${auction.id}/register`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({ acceptedTerms: true })
+      });
+      if (!response.ok) {
+        const err = await response.json().catch(() => ({}));
+        throw new Error(err.message || 'Failed to accept auction terms');
+      }
+      await loadBidAccess();
+    } catch (err) {
+      registerError = err.message || 'Failed to accept auction terms';
+    } finally {
+      registering = false;
+    }
+  }
+
   async function refresh() {
     try {
       const response = await fetch(`/api/auctions/${auction.id}/live`);
@@ -79,6 +169,18 @@
 
     if (!session?.user) {
       goto(`/auth/login?redirect=${encodeURIComponent($page.url.pathname)}`);
+      return;
+    }
+
+    if (bidAccess?.needsVerification) {
+      bidError = 'Complete buyer verification before bidding.';
+      return;
+    }
+
+    if (!readyToBid) {
+      bidError = isPublicAuction
+        ? 'Accept this auction’s buyer terms before bidding.'
+        : 'Your bidder registration must be approved before bidding.';
       return;
     }
 
@@ -104,6 +206,9 @@
           goto(`/auth/login?redirect=${encodeURIComponent($page.url.pathname)}`);
           return;
         }
+        if (response.status === 403) {
+          await loadBidAccess();
+        }
         throw new Error(err.message || err.error || (typeof err === 'string' ? err : 'Failed to place bid'));
       }
 
@@ -123,6 +228,8 @@
   function bidButtonLabel() {
     if (bidding) return 'Placing bid…';
     if (!session?.user) return `Log in to bid ${money(nextBidAmount)}`;
+    if (bidAccess?.needsVerification) return 'Verify to bid';
+    if (!readyToBid) return isPublicAuction ? 'Accept terms to bid' : 'Registration required';
     if (!liveData.biddingOpen) {
       return liveData.lobby ? 'Waiting for auctioneer' : 'Bidding closed';
     }
@@ -137,9 +244,9 @@
     return new Date(value).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit', second: '2-digit' });
   }
 
-  onMount(() => {
-    loadSession();
-    refresh();
+  onMount(async () => {
+    await loadSession();
+    await Promise.all([refresh(), loadBidAccess()]);
     refreshTimer = setInterval(refresh, 2000);
   });
   onDestroy(() => {
@@ -164,33 +271,67 @@
       <div class="rounded-2xl bg-white/5 p-12 text-center"><p class="text-xl font-bold">Waiting for the next lot</p><p class="mt-2 text-slate-400">The auctioneer has not put a lot on the block yet.</p></div>
     {:else}
       <div class="grid gap-5 xl:grid-cols-[minmax(260px,0.85fr)_minmax(0,1.5fr)_minmax(260px,0.85fr)]">
-        <!-- Left: upcoming lots -->
+        <!-- Left: past + upcoming lots -->
         <aside class="order-2 overflow-hidden rounded-2xl border border-white/10 bg-white/5 xl:order-1">
           <div class="border-b border-white/10 px-5 py-4">
-            <h2 class="font-black">Upcoming lots</h2>
-            <p class="text-xs text-slate-400">Next on the block</p>
+            <h2 class="font-black">Lots</h2>
+            <p class="text-xs text-slate-400">Scroll for past and upcoming</p>
           </div>
-          {#if upcomingLots.length === 0}
-            <p class="p-6 text-sm text-slate-400">No more lots queued.</p>
+          {#if lotRail.length === 0}
+            <p class="p-6 text-sm text-slate-400">No other lots in this sale yet.</p>
           {:else}
-            <div class="max-h-[720px] divide-y divide-white/10 overflow-y-auto">
-              {#each upcomingLots as lot, index}
-                <a href={`/lots/${lot.id}`} class="flex gap-3 p-4 transition hover:bg-white/5">
-                  <div class="relative h-16 w-16 shrink-0 overflow-hidden rounded-lg bg-slate-800">
-                    {#if lot.imageUrl}
-                      <img src={lot.imageUrl} alt="" class="h-full w-full object-cover" />
-                    {:else}
-                      <div class="grid h-full place-items-center text-[10px] text-slate-500">No img</div>
-                    {/if}
-                    <span class="absolute left-1 top-1 rounded bg-black/70 px-1.5 py-0.5 text-[10px] font-bold">{index + 1}</span>
-                  </div>
-                  <div class="min-w-0 flex-1">
-                    <p class="text-xs font-bold uppercase tracking-wide text-slate-400">Lot #{lot.lotNumber}</p>
-                    <p class="truncate font-bold text-white">{lot.title}</p>
-                    <p class="mt-1 text-sm font-semibold text-emerald-300">{money(lot.currentBid || lot.startingBid)}</p>
-                  </div>
-                </a>
-              {/each}
+            <div class="max-h-[720px] overflow-y-auto">
+              {#if pastLots.length}
+                <div class="sticky top-0 z-10 border-b border-white/10 bg-slate-950/90 px-4 py-2 text-[10px] font-black uppercase tracking-[0.18em] text-slate-400 backdrop-blur">
+                  Past · {pastLots.length}
+                </div>
+                <div class="divide-y divide-white/10">
+                  {#each pastLots as lot}
+                    <a href={`/lots/${lot.id}`} class="flex gap-3 p-4 opacity-75 transition hover:bg-white/5 hover:opacity-100">
+                      <div class="relative h-16 w-16 shrink-0 overflow-hidden rounded-lg bg-slate-800">
+                        {#if lot.imageUrl}
+                          <img src={lot.imageUrl} alt="" class="h-full w-full object-cover" />
+                        {:else}
+                          <div class="grid h-full place-items-center text-[10px] text-slate-500">No img</div>
+                        {/if}
+                      </div>
+                      <div class="min-w-0 flex-1">
+                        <div class="flex items-center justify-between gap-2">
+                          <p class="text-xs font-bold uppercase tracking-wide text-slate-500">Lot #{lot.lotNumber}</p>
+                          <span class="rounded bg-slate-800 px-1.5 py-0.5 text-[10px] font-bold uppercase text-slate-300">{lot.status === 'SOLD' ? 'Sold' : lot.status === 'UNSOLD' ? 'Unsold' : 'Closed'}</span>
+                        </div>
+                        <p class="truncate font-bold text-slate-200">{lot.title}</p>
+                        <p class="mt-1 text-sm font-semibold text-slate-400">{money(lot.currentBid || lot.startingBid)}</p>
+                      </div>
+                    </a>
+                  {/each}
+                </div>
+              {/if}
+
+              {#if upcomingLots.length}
+                <div class="sticky top-0 z-10 border-b border-white/10 bg-slate-950/90 px-4 py-2 text-[10px] font-black uppercase tracking-[0.18em] text-violet-300 backdrop-blur">
+                  Upcoming · {upcomingLots.length}
+                </div>
+                <div class="divide-y divide-white/10">
+                  {#each upcomingLots as lot, index}
+                    <a href={`/lots/${lot.id}`} class="flex gap-3 p-4 transition hover:bg-white/5">
+                      <div class="relative h-16 w-16 shrink-0 overflow-hidden rounded-lg bg-slate-800">
+                        {#if lot.imageUrl}
+                          <img src={lot.imageUrl} alt="" class="h-full w-full object-cover" />
+                        {:else}
+                          <div class="grid h-full place-items-center text-[10px] text-slate-500">No img</div>
+                        {/if}
+                        <span class="absolute left-1 top-1 rounded bg-violet-700/90 px-1.5 py-0.5 text-[10px] font-bold">{index + 1}</span>
+                      </div>
+                      <div class="min-w-0 flex-1">
+                        <p class="text-xs font-bold uppercase tracking-wide text-slate-400">Lot #{lot.lotNumber}</p>
+                        <p class="truncate font-bold text-white">{lot.title}</p>
+                        <p class="mt-1 text-sm font-semibold text-emerald-300">{money(lot.currentBid || lot.startingBid)}</p>
+                      </div>
+                    </a>
+                  {/each}
+                </div>
+              {/if}
             </div>
           {/if}
         </aside>
@@ -241,6 +382,79 @@
                 <p class="mt-4 rounded-lg bg-emerald-50 px-3 py-2 text-sm font-semibold text-emerald-700">Bid placed successfully</p>
               {/if}
 
+              {#if session?.user && (checkingAccess || bidAccess)}
+                {#if checkingAccess && !bidAccess}
+                  <div class="mt-5 rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-600">
+                    Checking whether you’re ready to bid…
+                  </div>
+                {:else if bidAccess?.needsVerification}
+                  <div class="mt-5 rounded-xl border border-amber-200 bg-amber-50 p-4">
+                    <p class="text-xs font-black uppercase tracking-wide text-amber-700">Not ready to bid</p>
+                    <p class="mt-1 font-bold text-amber-950">Finish buyer verification first</p>
+                    <p class="mt-1 text-sm text-amber-800">Same checklist as account onboarding: email, phone, ID, and card must be complete before you can bid here.</p>
+                    <a href="/dashboard/verification" class="mt-3 inline-flex rounded-lg bg-amber-700 px-4 py-2 text-sm font-bold text-white hover:bg-amber-800">Continue verification</a>
+                  </div>
+                {:else if bidAccess?.status === 'PENDING'}
+                  <div class="mt-5 rounded-xl border border-blue-200 bg-blue-50 p-4">
+                    <p class="text-xs font-black uppercase tracking-wide text-blue-700">Not ready to bid</p>
+                    <p class="mt-1 font-bold text-blue-950">Waiting for auction-house approval</p>
+                    <p class="mt-1 text-sm text-blue-800">Your registration was submitted. You’ll be able to bid once the house approves you.</p>
+                  </div>
+                {:else if bidAccess?.status === 'REJECTED'}
+                  <div class="mt-5 rounded-xl border border-red-200 bg-red-50 p-4">
+                    <p class="text-xs font-black uppercase tracking-wide text-red-700">Not approved</p>
+                    <p class="mt-1 font-bold text-red-950">Your bidder registration was not approved</p>
+                    <p class="mt-1 text-sm text-red-800">Contact the auction organizer if you need more information.</p>
+                  </div>
+                {:else if bidAccess?.needsTermsAcceptance}
+                  <div class="mt-5 rounded-xl border border-violet-200 bg-violet-50 p-4">
+                    <p class="text-xs font-black uppercase tracking-wide text-violet-700">Not ready to bid</p>
+                    <p class="mt-1 font-bold text-violet-950">
+                      {isPublicAuction ? 'Accept this auction’s buyer terms' : 'Accept house terms to request approval'}
+                    </p>
+                    <p class="mt-1 text-sm text-violet-800">
+                      {isPublicAuction
+                        ? 'Public auctions require accepting Pumbi’s buyer terms and rates for this sale before you can place a bid.'
+                        : 'Submit your acceptance so the auction house can review your bidder registration.'}
+                    </p>
+                    {#if premiumLabel}
+                      <p class="mt-2 text-sm font-semibold text-violet-900">Buyer premium: {premiumLabel}</p>
+                    {/if}
+                    {#if buyerTerms}
+                      <details class="mt-3 rounded-lg border border-violet-200 bg-white p-3">
+                        <summary class="cursor-pointer text-sm font-bold text-violet-950">Read buyer terms</summary>
+                        <p class="mt-2 max-h-40 overflow-y-auto whitespace-pre-wrap text-xs leading-5 text-slate-600">{buyerTerms}</p>
+                      </details>
+                    {/if}
+                    <label class="mt-3 flex items-start gap-2 text-sm font-semibold text-violet-950">
+                      <input type="checkbox" class="mt-1 rounded border-violet-300 text-violet-700 focus:ring-violet-600" bind:checked={acceptTerms} />
+                      <span>
+                        I have read and accept the buyer terms{premiumLabel ? ` and ${premiumLabel} buyer premium` : ''} for this auction{bidAccess?.policyVersion != null ? ` (policy v${bidAccess.policyVersion})` : ''}.
+                      </span>
+                    </label>
+                    {#if registerError}
+                      <p class="mt-2 text-sm font-semibold text-red-700">{registerError}</p>
+                    {/if}
+                    <button
+                      type="button"
+                      onclick={acceptAuctionTerms}
+                      disabled={registering || !acceptTerms}
+                      class="mt-3 inline-flex rounded-lg bg-violet-700 px-4 py-2.5 text-sm font-bold text-white hover:bg-violet-800 disabled:cursor-not-allowed disabled:opacity-60"
+                    >
+                      {registering
+                        ? 'Saving…'
+                        : isPublicAuction
+                          ? 'Accept terms and enable bidding'
+                          : 'Accept terms and request approval'}
+                    </button>
+                  </div>
+                {:else if readyToBid}
+                  <div class="mt-4 rounded-lg border border-emerald-200 bg-emerald-50 px-3 py-2 text-sm font-semibold text-emerald-800">
+                    You’re cleared to bid on this auction.
+                  </div>
+                {/if}
+              {/if}
+
               <div class="mt-5 grid gap-3 sm:grid-cols-2">
                 <button
                   type="button"
@@ -261,22 +475,24 @@
           </article>
         </div>
 
-        <!-- Right: recent bids -->
+        <!-- Right: bids for the current lot only -->
         <aside class="order-3 overflow-hidden rounded-2xl border border-white/10 bg-white/5">
           <div class="border-b border-white/10 px-5 py-4">
-            <h2 class="font-black">Recent bids</h2>
-            <p class="text-xs text-slate-400">Updates automatically</p>
+            <h2 class="font-black">Bid history</h2>
+            <p class="text-xs text-slate-400">
+              Lot #{liveData.currentLot.lotNumber} · updates automatically
+            </p>
           </div>
-          {#if liveData.recentBids.length === 0}
-            <p class="p-6 text-sm text-slate-400">No bids yet.</p>
+          {#if lotBids.length === 0}
+            <p class="p-6 text-sm text-slate-400">No bids on this lot yet.</p>
           {:else}
             <div class="max-h-[720px] divide-y divide-white/10 overflow-y-auto">
-              {#each liveData.recentBids as bid}
-                <div class={`p-4 ${bid.isCurrentLot ? 'bg-violet-500/10' : ''}`}>
+              {#each lotBids as bid, index}
+                <div class={`p-4 ${index === 0 ? 'bg-violet-500/10' : ''}`}>
                   <div class="flex items-center justify-between gap-4">
                     <div class="min-w-0">
                       <p class="truncate font-bold">{bid.bidderName}</p>
-                      <p class="truncate text-xs text-slate-400">Lot #{bid.lotNumber} · {bid.lotTitle}</p>
+                      <p class="text-xs text-slate-400">{index === 0 ? 'High bid' : `Bid #${lotBids.length - index}`}</p>
                     </div>
                     <div class="text-right">
                       <p class="font-black text-emerald-300">{money(bid.amount)}</p>
@@ -292,6 +508,11 @@
 
       <!-- Sticky actions so Bid / Details stay reachable while watching video -->
       <div class="fixed inset-x-0 bottom-0 z-40 border-t border-slate-200 bg-white/95 p-3 shadow-[0_-8px_30px_rgba(15,23,42,0.18)] backdrop-blur md:hidden">
+        {#if session?.user && bidAccess?.needsTermsAcceptance}
+          <p class="mb-2 text-center text-xs font-semibold text-violet-800">Accept auction terms above before bidding</p>
+        {:else if session?.user && bidAccess?.needsVerification}
+          <p class="mb-2 text-center text-xs font-semibold text-amber-800">Complete buyer verification before bidding</p>
+        {/if}
         <div class="mx-auto grid max-w-lg grid-cols-2 gap-2">
           <button
             type="button"
