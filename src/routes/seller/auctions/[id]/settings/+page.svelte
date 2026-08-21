@@ -241,6 +241,12 @@
             </div>
             <div class="flex items-center gap-3">
               <a
+                href="/seller/auctions/{auction.id}/control-room"
+                class="bg-red-500 text-white px-4 py-2 rounded-lg hover:bg-red-600 transition-colors text-sm font-semibold"
+              >
+                Control room
+              </a>
+              <a
                 href="/seller/auctions/{auction.id}/lots"
                 class="bg-white/20 text-white px-4 py-2 rounded-lg hover:bg-white/30 transition-colors text-sm font-semibold"
               >

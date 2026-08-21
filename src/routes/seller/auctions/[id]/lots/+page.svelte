@@ -508,10 +508,22 @@
           <div class="flex items-center justify-between mb-4">
             <h1 class="text-4xl font-bold text-gray-900">Manage Lots</h1>
             <a
+              href="/seller/auctions/{auction.id}/control-room"
+              class="px-4 py-2 text-sm font-medium text-white bg-red-600 rounded-lg hover:bg-red-700"
+            >
+              Control room
+            </a>
+            <a
               href="/seller/auctions/{auction.id}/lots/advanced"
               class="px-4 py-2 text-sm font-medium text-white bg-green-600 rounded-lg hover:bg-green-700"
             >
               Advanced View
+            </a>
+            <a
+              href="/seller/auctions/{auction.id}/lots/bulk"
+              class="ml-2 px-4 py-2 text-sm font-medium text-white bg-violet-700 rounded-lg hover:bg-violet-800"
+            >
+              Bulk CSV / Grid
             </a>
           </div>
           <p class="text-gray-600 text-lg">{auction.title}</p>
@@ -1435,4 +1447,3 @@
     </div>
   </div>
 {/if}
-

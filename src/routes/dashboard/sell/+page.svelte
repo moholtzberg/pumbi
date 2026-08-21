@@ -186,7 +186,7 @@
   <div class="mx-auto max-w-6xl space-y-6 px-4 sm:px-6">
     <header class="flex flex-wrap items-end justify-between gap-4">
       <div><a href="/dashboard" class="text-sm font-semibold text-violet-700">← Dashboard</a><p class="mt-4 text-xs font-bold uppercase tracking-[0.18em] text-violet-600">Seller workspace</p><h1 class="mt-1 text-3xl font-black text-slate-950">Create a lot</h1><p class="mt-1 text-sm text-slate-500">Start with a photo or enter the catalog details yourself.</p></div>
-      <button type="button" onclick={() => document.getElementById('ai-image')?.click()} disabled={imageBusy || !profileReady} class="inline-flex items-center gap-2 rounded-xl bg-violet-700 px-5 py-3 font-bold text-white shadow-sm transition hover:bg-violet-800 disabled:cursor-not-allowed disabled:opacity-50"><span aria-hidden="true">✦</span>{imageBusy ? 'Reading image…' : 'Create from image'}</button>
+      <div class="flex flex-wrap gap-2"><a href="/dashboard/sell/bulk" class="inline-flex items-center gap-2 rounded-xl border border-violet-200 bg-white px-5 py-3 font-bold text-violet-700 shadow-sm transition hover:bg-violet-50">Bulk CSV / Grid</a><button type="button" onclick={() => document.getElementById('ai-image')?.click()} disabled={imageBusy || !profileReady} class="inline-flex items-center gap-2 rounded-xl bg-violet-700 px-5 py-3 font-bold text-white shadow-sm transition hover:bg-violet-800 disabled:cursor-not-allowed disabled:opacity-50"><span aria-hidden="true">✦</span>{imageBusy ? 'Reading image…' : 'Create from image'}</button></div>
       <input id="ai-image" class="sr-only" type="file" accept="image/jpeg,image/png,image/webp" capture="environment" onchange={(event) => createFromImage(event.currentTarget.files?.[0])} />
     </header>
 

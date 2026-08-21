@@ -9,19 +9,19 @@ async function authorize(locals, auctionId) {
     include: { auctionHouse: true, auctioneer: { select: { id: true, name: true, email: true } } }
   });
   requireAuctionAccess(user, auction);
-  await requireAuctionHousePermission(user, auction.auctionHouseId, HOUSE_PERMISSIONS.VIEW);
-  return auction;
+  await requireAuctionHousePermission(user, auction.auctionHouseId, HOUSE_PERMISSIONS.MANAGE_AUCTIONS);
+  return { auction, user };
 }
 
 export async function GET({ params, locals }) {
-  const auction = await authorize(locals, params.id);
+  const { auction, user } = await authorize(locals, params.id);
   const [lots, bids, registrations] = await Promise.all([
     prisma.lot.findMany({
       where: { auctionId: auction.id },
       orderBy: [{ position: 'asc' }, { lotNumber: 'asc' }],
       select: {
         id: true, lotNumber: true, title: true, status: true, isReady: true,
-        currentBid: true, bidIncrement: true, highestBidderId: true,
+        currentBid: true, startingBid: true, bidIncrement: true, highestBidderId: true,
         highestBidderName: true, endTime: true, position: true
       }
     }),
@@ -39,7 +39,17 @@ export async function GET({ params, locals }) {
   ]);
 
   const counts = Object.fromEntries(registrations.map((entry) => [entry.status, entry._count._all]));
+  const now = Date.now();
+  const openLot = lots.find((lot) => lot.status === 'ACTIVE' && lot.isReady && lot.endTime && lot.endTime.getTime() > now) || null;
+  const nextLot = lots.find((lot) =>
+    lot.status === 'ACTIVE' &&
+    lot.isReady &&
+    lot.id !== openLot?.id &&
+    (!lot.endTime || lot.endTime.getTime() <= now)
+  ) || null;
+
   return json({
+    currentUserId: user.id,
     auction: {
       id: auction.id,
       title: auction.title,
@@ -63,6 +73,8 @@ export async function GET({ params, locals }) {
         }
       })()
     },
+    openLotId: openLot?.id || null,
+    nextLotId: nextLot?.id || null,
     lots,
     bids: bids.map((bid) => ({
       id: bid.id,

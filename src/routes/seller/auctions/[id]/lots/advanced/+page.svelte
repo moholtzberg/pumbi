@@ -2351,6 +2351,12 @@
             >
               Import Lots
             </button>
+            <a
+              href="/seller/auctions/{auction.id}/lots/bulk"
+              class="px-4 py-2 text-sm font-medium text-white bg-violet-700 rounded-lg hover:bg-violet-800"
+            >
+              Bulk Grid Editor
+            </a>
             <button
               onclick={handleBulkImageUpload}
               disabled={lots.length === 0 || uploadingImages}
@@ -4030,4 +4036,3 @@
     {/if}
   </div>
 </div>
-

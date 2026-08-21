@@ -105,8 +105,11 @@ export async function POST({ params, request, locals }) {
   const body = await request.json();
   const lotId = String(body.lotId || '');
   const action = String(body.action || '').toLowerCase();
-  if (!['claim', 'start', 'close'].includes(action) || (action !== 'claim' && !lotId && action !== 'start')) {
-    throw error(400, 'action must be claim, start, or close');
+  if (!['claim', 'start', 'open', 'close'].includes(action)) {
+    throw error(400, 'action must be claim, start, open, or close');
+  }
+  if (action !== 'claim' && !lotId && action !== 'start' && action !== 'open') {
+    throw error(400, 'lotId is required for this action');
   }
 
   if (action === 'claim') {
@@ -120,32 +123,69 @@ export async function POST({ params, request, locals }) {
     return json({ action, auctioneerId: user.id });
   }
 
-  if (action === 'start' && auction.auctioneerId !== user.id) {
-    throw error(403, 'Claim the auctioneer seat before starting the auction');
+  if (auction.auctioneerId !== user.id) {
+    throw error(403, 'Claim the auctioneer seat before controlling the auction');
   }
 
   const lot = lotId
     ? await prisma.lot.findFirst({ where: { id: lotId, auctionId: auction.id } })
-    : await prisma.lot.findFirst({ where: { auctionId: auction.id, status: 'ACTIVE', isReady: true }, orderBy: [{ position: 'asc' }, { lotNumber: 'asc' }] });
+    : await prisma.lot.findFirst({
+        where: { auctionId: auction.id, status: 'ACTIVE', isReady: true },
+        orderBy: [{ position: 'asc' }, { lotNumber: 'asc' }]
+      });
   if (!lot) throw error(404, 'Lot not found in this auction');
 
-  if (action === 'start') {
-    const { initialTimerSeconds } = resolveLotTiming({ lot, auction, auctionHouse: auction.auctionHouse });
-    await prisma.auction.update({
-      where: { id: auction.id },
-      data: { status: 'LIVE', auctioneerStartedAt: new Date() }
+  if (action === 'start' || action === 'open') {
+    const now = Date.now();
+    const openLots = await prisma.lot.findMany({
+      where: {
+        auctionId: auction.id,
+        status: 'ACTIVE',
+        isReady: true,
+        endTime: { gt: new Date(now) },
+        ...(lot.id ? { id: { not: lot.id } } : {})
+      },
+      select: { id: true, lotNumber: true }
     });
+    if (openLots.length > 0) {
+      throw error(409, `Close lot #${openLots[0].lotNumber} before opening another lot`);
+    }
+
+    if (lot.status !== 'ACTIVE' || !lot.isReady) {
+      throw error(409, 'Only active, ready lots can be opened for bidding');
+    }
+
+    const { initialTimerSeconds } = resolveLotTiming({ lot, auction, auctionHouse: auction.auctionHouse });
+    if (action === 'start' || !auction.auctioneerStartedAt) {
+      await prisma.auction.update({
+        where: { id: auction.id },
+        data: { status: 'LIVE', auctioneerStartedAt: new Date() }
+      });
+    } else if (auction.status !== 'LIVE') {
+      await prisma.auction.update({
+        where: { id: auction.id },
+        data: { status: 'LIVE' }
+      });
+    }
+
     const updated = await prisma.lot.update({
       where: { id: lot.id },
       data: {
         status: 'ACTIVE',
         isReady: true,
-        endTime: new Date(Date.now() + initialTimerSeconds * 1000)
+        endTime: new Date(now + initialTimerSeconds * 1000)
       }
     });
-    return json({ action, lot: { id: updated.id, endTime: updated.endTime, status: updated.status } });
+    return json({
+      action,
+      lot: { id: updated.id, endTime: updated.endTime, status: updated.status }
+    });
   }
 
+  // close
+  if (lot.status !== 'ACTIVE') {
+    throw error(409, 'Only an active lot can be closed');
+  }
   const updated = await prisma.lot.update({
     where: { id: lot.id },
     data: { endTime: new Date(), status: lot.highestBidderId ? 'SOLD' : 'UNSOLD' }

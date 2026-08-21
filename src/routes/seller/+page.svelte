@@ -368,7 +368,15 @@
               </span>
             </div>
             <div class="p-6">
-              <h3 class="text-xl font-bold text-gray-900 mb-2">{auction.title}</h3>
+              <h3 class="text-xl font-bold text-gray-900 mb-2">
+                <button
+                  type="button"
+                  class="text-left hover:text-blue-700"
+                  onclick={() => goto(`/seller/auctions/${auction.id}`)}
+                >
+                  {auction.title}
+                </button>
+              </h3>
               <span class="mb-3 inline-flex rounded-full bg-purple-100 px-2 py-1 text-xs font-bold text-purple-800">
                 {(auction.type || 'PRIVATE').toUpperCase()} auction
               </span>
@@ -397,6 +405,12 @@
                   class="flex-1 bg-blue-600 text-white py-2 rounded-lg hover:bg-blue-700 transition-colors font-semibold text-sm"
                 >
                   View
+                </button>
+                <button
+                  onclick={() => goto(`/seller/auctions/${auction.id}/control-room`)}
+                  class="flex-1 bg-red-600 text-white py-2 rounded-lg hover:bg-red-700 transition-colors font-semibold text-sm"
+                >
+                  Control room
                 </button>
                 <button
                   onclick={() => goto(`/seller/auctions/${auction.id}/lots`)}
