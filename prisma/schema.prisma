@@ -102,6 +102,7 @@ model User {
   // Relations
   auctionHouse                    AuctionHouse?             @relation(fields: [auctionHouseId], references: [id], onDelete: SetNull)
   auctions                        Auction[] // Auctions created by this user (if seller)
+  conductedAuctions               Auction[]              @relation("Auctioneer")
   bids                            Bid[]
   auctionRegistrations            AuctionRegistration[] // Auctions this user registered for
   auctionRegistrationsReviewed    AuctionRegistration[]     @relation("AuctionRegistrationReviewer")
@@ -210,6 +211,8 @@ model Auction {
   settings                                 String? // JSON string for auction-specific settings
   auctionHouseId                           String        @map("auction_house_id") // Multi-tenant: which auction house hosts this
   sellerId                                 String        @map("seller_id")
+  auctioneerId                             String?       @map("auctioneer_id")
+  auctioneerStartedAt                      DateTime?     @map("auctioneer_started_at")
   seriesId                                 String?       @map("series_id")
   seriesOccurrenceAt                       DateTime?     @map("series_occurrence_at")
   platformPolicyId                         String?       @map("platform_policy_id")
@@ -231,6 +234,7 @@ model Auction {
   // Relations
   auctionHouse   AuctionHouse          @relation(fields: [auctionHouseId], references: [id], onDelete: Cascade)
   seller         User                  @relation(fields: [sellerId], references: [id], onDelete: Cascade)
+  auctioneer     User?                 @relation("Auctioneer", fields: [auctioneerId], references: [id], onDelete: SetNull)
   series         AuctionSeries?        @relation(fields: [seriesId], references: [id], onDelete: SetNull)
   platformPolicy PlatformPolicy?       @relation(fields: [platformPolicyId], references: [id], onDelete: SetNull)
   lots           Lot[]
@@ -240,6 +244,7 @@ model Auction {
   @@unique([seriesId, seriesOccurrenceAt])
   @@index([auctionHouseId])
   @@index([sellerId])
+  @@index([auctioneerId])
   @@index([seriesId])
   @@index([platformPolicyId])
   @@index([type])

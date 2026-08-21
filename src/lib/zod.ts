@@ -147,6 +147,8 @@ export const auctionSettingsSchema = z.object({
   baseLiveAuctionStartPriceOnAbsenteeBids: z.boolean().default(false),
   liveVideoUrl: z.string().url('Invalid live video URL').or(z.literal('')).optional().nullable(),
   liveVideoTitle: z.string().max(120).optional().nullable(),
+  liveAudioUrl: z.string().url('Invalid live audio URL').or(z.literal('')).optional().nullable(),
+  liveAudioTitle: z.string().max(120).optional().nullable(),
   
   // Automatic Auction Settings
   automaticAuctionInitialTimerSeconds: z.coerce.number().int().min(1).optional().nullable(),
@@ -208,6 +210,8 @@ const auctionFieldsSchema = z.object({
   settings: z.union([z.string(), z.record(z.unknown())]).nullable().optional(),
   auctionHouseId: z.string().min(1, "Auction house ID is required"),
   sellerId: z.string().min(1, "Seller ID is required"),
+  auctioneerId: z.string().nullable().optional(),
+  auctioneerStartedAt: z.coerce.date().nullable().optional(),
   seriesId: z.string().nullable().optional(),
   seriesOccurrenceAt: z.coerce.date().nullable().optional(),
   platformPolicyId: z.string().nullable().optional(),

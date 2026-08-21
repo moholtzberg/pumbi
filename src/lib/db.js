@@ -31,6 +31,8 @@ function mapAuction(prismaAuction) {
     settings: prismaAuction.settings,
     auctionHouseId: prismaAuction.auctionHouseId,
     sellerId: prismaAuction.sellerId,
+    auctioneerId: prismaAuction.auctioneerId,
+    auctioneerStartedAt: prismaAuction.auctioneerStartedAt,
     seriesId: prismaAuction.seriesId,
     seriesOccurrenceAt: prismaAuction.seriesOccurrenceAt,
     platformPolicyId: prismaAuction.platformPolicyId,

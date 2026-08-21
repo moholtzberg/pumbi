@@ -20,6 +20,8 @@ const auctionSchema = z.object({
   settings: z.string().nullable().optional(),
   auctionHouseId: z.string().min(1, 'Auction house ID is required'),
   sellerId: z.string().min(1, 'Seller ID is required'),
+  auctioneerId: z.string().nullable().optional(),
+  auctioneerStartedAt: z.coerce.date().nullable().optional(),
   seriesId: z.string().nullable().optional(),
   seriesOccurrenceAt: z.coerce.date().nullable().optional(),
   platformPolicyId: z.string().nullable().optional(),
@@ -99,4 +101,3 @@ export class Auction extends BaseModel {
     return data;
   }
 }
-

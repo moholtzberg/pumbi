@@ -13,6 +13,8 @@
   let galleryTemplateSettings = $state({});
   let liveVideoUrl = $state(null);
   let liveVideoTitle = $state(null);
+  let liveAudioUrl = $state(null);
+  let liveAudioTitle = $state(null);
   
   $effect(() => {
     if ($page.params.id) {
@@ -39,6 +41,8 @@
         galleryTemplateSettings = settings.galleryTemplateSettings || {};
         liveVideoUrl = settings.liveVideoUrl || null;
         liveVideoTitle = settings.liveVideoTitle || null;
+        liveAudioUrl = settings.liveAudioUrl || null;
+        liveAudioTitle = settings.liveAudioTitle || null;
       } else {
         // Fallback to defaults if settings can't be loaded
         galleryTemplate = 'card-grid';
@@ -87,7 +91,7 @@
 {:else if auction}
   <div class="min-h-screen bg-gray-50">
     {#if auction.status === 'live'}
-      <LiveAuctionDashboard {auction} videoUrl={liveVideoUrl} videoTitle={liveVideoTitle} />
+      <LiveAuctionDashboard {auction} videoUrl={liveVideoUrl} videoTitle={liveVideoTitle} audioUrl={liveAudioUrl} audioTitle={liveAudioTitle} />
     {/if}
     <!-- Auction Header -->
     <div class="bg-white shadow-sm">

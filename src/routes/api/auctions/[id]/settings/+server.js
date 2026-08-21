@@ -33,7 +33,9 @@ export async function GET({ params, locals }) {
         galleryTemplate: settings.galleryTemplate || 'card-grid',
         galleryTemplateSettings: settings.galleryTemplateSettings || {},
         liveVideoUrl: settings.liveVideoUrl || null,
-        liveVideoTitle: settings.liveVideoTitle || null
+        liveVideoTitle: settings.liveVideoTitle || null,
+        liveAudioUrl: settings.liveAudioUrl || null,
+        liveAudioTitle: settings.liveAudioTitle || null
       });
     }
 
@@ -49,7 +51,9 @@ export async function GET({ params, locals }) {
       galleryTemplate: settings.galleryTemplate || 'card-grid',
       galleryTemplateSettings: settings.galleryTemplateSettings || {},
       liveVideoUrl: settings.liveVideoUrl || null,
-      liveVideoTitle: settings.liveVideoTitle || null
+      liveVideoTitle: settings.liveVideoTitle || null,
+      liveAudioUrl: settings.liveAudioUrl || null,
+      liveAudioTitle: settings.liveAudioTitle || null
     });
   } catch (err) {
     if (err.status) {

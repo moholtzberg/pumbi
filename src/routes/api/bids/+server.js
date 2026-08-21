@@ -58,6 +58,10 @@ export async function POST({ request, locals }) {
       throw error(409, 'This auction is not open for bidding');
     }
 
+    if (!auction.auctioneerStartedAt) {
+      throw error(409, 'The auctioneer has not started bidding yet');
+    }
+
     if (
       lot.status !== 'ACTIVE' ||
       !lot.isReady ||

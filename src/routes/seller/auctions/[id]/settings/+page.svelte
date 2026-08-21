@@ -46,6 +46,8 @@
     baseLiveAuctionStartPriceOnAbsenteeBids: false,
     liveVideoUrl: '',
     liveVideoTitle: '',
+    liveAudioUrl: '',
+    liveAudioTitle: '',
     
     // Automatic Auction Settings
     automaticAuctionInitialTimerSeconds: null,
@@ -614,6 +616,15 @@
                   <div>
                     <label class="block text-sm font-medium text-gray-700 mb-1">Video title</label>
                     <input type="text" maxlength="120" bind:value={settings.liveVideoTitle} placeholder="Live from the auction floor" class="w-full px-3 py-2 text-sm border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500" />
+                  </div>
+                  <div class="border-t border-gray-200 pt-4">
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Live audio feed URL</label>
+                    <input type="url" bind:value={settings.liveAudioUrl} placeholder="https://stream.example.com/auction.mp3" class="w-full px-3 py-2 text-sm border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500" />
+                    <p class="mt-1 text-xs text-gray-500">Optional HTTPS audio stream. Every bidder can listen from the public live auction room.</p>
+                  </div>
+                  <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1">Audio feed title</label>
+                    <input type="text" maxlength="120" bind:value={settings.liveAudioTitle} placeholder="Listen to the auctioneer" class="w-full px-3 py-2 text-sm border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500" />
                   </div>
                 </div>
               {/if}
