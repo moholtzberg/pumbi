@@ -44,6 +44,7 @@
     
     // Live Auction Settings
     baseLiveAuctionStartPriceOnAbsenteeBids: false,
+    autoAdvanceNextLot: false,
     liveVideoUrl: '',
     liveVideoTitle: '',
     liveAudioUrl: '',
@@ -612,6 +613,13 @@
                     <div>
                       <span class="text-sm font-medium text-gray-700">Base live auction start price on absentee bids</span>
                       <p class="text-xs text-gray-500">(Timed Auctions Only)</p>
+                    </div>
+                  </label>
+                  <label class="flex items-start">
+                    <input type="checkbox" bind:checked={settings.autoAdvanceNextLot} class="mt-0.5 mr-2 h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded" />
+                    <div>
+                      <span class="text-sm font-medium text-gray-700">Auto-advance to the next lot</span>
+                      <p class="text-xs text-gray-500">After a lot is hammered / finished, automatically put the next ready lot on the block. You can also toggle this live in the control room.</p>
                     </div>
                   </label>
                   <div>

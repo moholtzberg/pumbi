@@ -9,6 +9,7 @@
   let actionError = $state('');
   let actionSuccess = $state('');
   let busyAction = $state('');
+  let autoClosingExpired = $state(false);
   let refreshTimer;
   let successTimer;
 
@@ -16,6 +17,10 @@
   let isAuctioneer = $derived(Boolean(data?.auction?.auctioneerId && data.auction.auctioneerId === data.currentUserId));
   let openLot = $derived(data?.lots?.find((lot) => lot.id === data.openLotId) || null);
   let nextLot = $derived(data?.lots?.find((lot) => lot.id === data.nextLotId) || null);
+  let auctionEnded = $derived(['ENDED', 'CANCELLED'].includes(data?.auction?.status));
+  let canEndAuction = $derived(Boolean(isAuctioneer && data?.canEndAuction && !auctionEnded));
+  let allLotsComplete = $derived(Boolean(data?.allLotsComplete));
+  let autoAdvanceNextLot = $derived(Boolean(data?.autoAdvanceNextLot));
 
   async function refresh() {
     try {
@@ -26,6 +31,25 @@
       }
       data = await response.json();
       errorMessage = '';
+
+      // If auto-advance is on and the on-block lot timer has expired, hammer it so the next lot can open.
+      const blockId = data.onBlockLotId || data.openLotId;
+      const expiredOpen =
+        data.autoAdvanceNextLot &&
+        blockId &&
+        data.auction?.auctioneerId === data.currentUserId &&
+        data.lots?.find((lot) => {
+          if (lot.id !== blockId || lot.status !== 'ACTIVE' || !lot.endTime) return false;
+          return new Date(lot.endTime).getTime() <= Date.now();
+        });
+      if (expiredOpen && !autoClosingExpired && !busyAction) {
+        autoClosingExpired = true;
+        try {
+          await runAction('close', expiredOpen.id);
+        } finally {
+          autoClosingExpired = false;
+        }
+      }
     } catch (err) {
       errorMessage = err.message || 'Failed to load control room';
     } finally {
@@ -38,6 +62,18 @@
     actionSuccess = '';
     busyAction = `${action}:${lotId || 'none'}`;
     try {
+      if (action === 'end') {
+        const remaining = data?.remainingReadyLots || 0;
+        const message =
+          remaining > 0
+            ? `End this auction and mark ${remaining} remaining ready lot${remaining === 1 ? '' : 's'} as unsold?`
+            : 'End this auction and mark it as finished?';
+        if (!confirm(message)) {
+          busyAction = '';
+          return;
+        }
+      }
+
       const response = await fetch(`/api/auctions/${auctionId}/live`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -48,6 +84,7 @@
         const err = await response.json().catch(() => ({}));
         throw new Error(err.message || `Failed to ${action}`);
       }
+      const result = await response.json().catch(() => ({}));
       actionSuccess =
         action === 'claim'
           ? 'You claimed the auctioneer seat'
@@ -55,7 +92,13 @@
             ? 'Auction started — first lot is open'
             : action === 'open'
               ? 'Lot opened for bidding'
-              : 'Lot closed';
+              : action === 'end'
+                ? 'Auction ended'
+                : result.auctionEnded
+                  ? 'Lot closed — auction finished'
+                  : result.autoAdvanced
+                    ? `Lot closed — next lot #${result.nextLot?.lotNumber || ''} is on the block`
+                    : 'Lot closed';
       clearTimeout(successTimer);
       successTimer = setTimeout(() => {
         actionSuccess = '';
@@ -63,6 +106,36 @@
       await refresh();
     } catch (err) {
       actionError = err.message || `Failed to ${action}`;
+    } finally {
+      busyAction = '';
+    }
+  }
+
+  async function setAutoAdvance(enabled) {
+    if (!isAuctioneer) return;
+    actionError = '';
+    busyAction = 'settings:autoAdvance';
+    try {
+      const response = await fetch(`/api/auctions/${auctionId}/live`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({ action: 'settings', autoAdvanceNextLot: enabled })
+      });
+      if (!response.ok) {
+        const err = await response.json().catch(() => ({}));
+        throw new Error(err.message || 'Failed to update auto-advance setting');
+      }
+      actionSuccess = enabled
+        ? 'Auto-advance on — next lot opens after each hammer'
+        : 'Auto-advance off — you will open each lot manually';
+      clearTimeout(successTimer);
+      successTimer = setTimeout(() => {
+        actionSuccess = '';
+      }, 3000);
+      await refresh();
+    } catch (err) {
+      actionError = err.message || 'Failed to update auto-advance setting';
     } finally {
       busyAction = '';
     }
@@ -105,12 +178,23 @@
         {#if data?.auction}
           <p class="mt-1 text-sm text-slate-300">
             Status: <span class="font-semibold text-white">{data.auction.status}</span>
+            · Finished lots: {data.finishedLots || 0}
+            · Remaining ready: {data.remainingReadyLots || 0}
             · Approved bidders: {data.registrations?.APPROVED || 0}
-            · Pending: {data.registrations?.PENDING || 0}
           </p>
         {/if}
       </div>
       <div class="flex flex-wrap gap-2">
+        {#if canEndAuction}
+          <button
+            type="button"
+            class="rounded-lg bg-[#a95739] px-4 py-2 text-sm font-bold text-white hover:bg-[#8f482f] disabled:opacity-60"
+            disabled={Boolean(busyAction)}
+            onclick={() => runAction('end')}
+          >
+            {busyAction.startsWith('end') ? 'Ending…' : allLotsComplete ? 'End auction' : 'End auction early'}
+          </button>
+        {/if}
         <a href={`/auctions/${auctionId}`} class="rounded-lg border border-white/20 px-4 py-2 text-sm font-bold hover:bg-white/10" target="_blank" rel="noreferrer">Public live room</a>
         <a href={`/seller/auctions/${auctionId}/lots`} class="rounded-lg border border-white/20 px-4 py-2 text-sm font-bold hover:bg-white/10">Manage lots</a>
         <a href={`/seller/auctions/${auctionId}/settings`} class="rounded-lg border border-white/20 px-4 py-2 text-sm font-bold hover:bg-white/10">Settings</a>
@@ -154,6 +238,40 @@
           {/if}
         </div>
 
+        <div class="rounded-2xl bg-white p-5 shadow-sm lg:col-span-2">
+          <div class="flex flex-wrap items-start justify-between gap-3">
+            <div>
+              <p class="text-xs font-bold uppercase tracking-wide text-slate-500">Auto-advance lots</p>
+              <p class="mt-2 text-lg font-black text-slate-900">
+                {autoAdvanceNextLot ? 'On — next lot opens after hammer' : 'Off — open each lot manually'}
+              </p>
+              <p class="mt-1 text-sm text-slate-500">
+                Default lives under auction Settings → Live Auction. Change it here while the sale is running.
+              </p>
+            </div>
+            {#if isAuctioneer && !auctionEnded}
+              <button
+                type="button"
+                class="rounded-xl px-4 py-3 text-sm font-bold text-white disabled:opacity-60 {autoAdvanceNextLot ? 'bg-slate-700 hover:bg-slate-800' : 'bg-violet-700 hover:bg-violet-800'}"
+                disabled={Boolean(busyAction)}
+                onclick={() => setAutoAdvance(!autoAdvanceNextLot)}
+              >
+                {busyAction === 'settings:autoAdvance'
+                  ? 'Saving…'
+                  : autoAdvanceNextLot
+                    ? 'Turn auto-advance off'
+                    : 'Turn auto-advance on'}
+              </button>
+            {:else if !isAuctioneer}
+              <a href={data.settingsPath || `/seller/auctions/${auctionId}/settings`} class="rounded-xl border border-slate-200 px-4 py-3 text-sm font-bold text-slate-700 hover:bg-slate-50">
+                Change in Settings
+              </a>
+            {/if}
+          </div>
+        </div>
+      </div>
+
+      <div class="mb-5 grid gap-4 lg:grid-cols-2">
         <div class="rounded-2xl bg-white p-5 shadow-sm">
           <p class="text-xs font-bold uppercase tracking-wide text-slate-500">On the block</p>
           {#if openLot}
@@ -166,6 +284,9 @@
               <p class="mt-2 text-sm font-semibold text-red-600">
                 Time left: <CountdownTimer targetDate={openLot.endTime} label="" />
               </p>
+              {#if autoAdvanceNextLot && new Date(openLot.endTime).getTime() <= Date.now()}
+                <p class="mt-2 text-xs font-semibold text-amber-700">Timer expired — auto-advancing to the next lot…</p>
+              {/if}
             {/if}
             <button
               type="button"
@@ -210,10 +331,45 @@
             {/if}
           {:else}
             <p class="mt-2 text-lg font-black text-slate-900">No queued lots</p>
-            <p class="mt-1 text-sm text-slate-500">Mark lots ready in Manage Lots to queue them here.</p>
+            {#if auctionEnded}
+              <p class="mt-1 text-sm text-slate-500">This auction is finished.</p>
+            {:else if allLotsComplete}
+              <p class="mt-1 text-sm text-slate-500">All ready lots are complete. End the auction to mark it finished.</p>
+              <button
+                type="button"
+                class="mt-4 w-full rounded-xl bg-[#18372f] px-4 py-3 font-bold text-white hover:bg-[#152c26] disabled:opacity-60"
+                disabled={!canEndAuction || Boolean(busyAction)}
+                onclick={() => runAction('end')}
+              >
+                {busyAction.startsWith('end') ? 'Ending…' : 'End auction'}
+              </button>
+            {:else}
+              <p class="mt-1 text-sm text-slate-500">Mark lots ready in Manage Lots to queue them here.</p>
+            {/if}
           {/if}
         </div>
       </div>
+
+      {#if auctionEnded}
+        <div class="mb-5 rounded-2xl border border-slate-200 bg-white px-5 py-4 text-sm font-semibold text-slate-700">
+          Auction status is <span class="uppercase">{data.auction.status}</span>. The public room will no longer accept bids.
+        </div>
+      {:else if allLotsComplete && canEndAuction}
+        <div class="mb-5 flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-[#ddd6ca] bg-[#efe8dc] px-5 py-4">
+          <div>
+            <p class="font-bold text-[#1a2821]">All lots are done</p>
+            <p class="mt-1 text-sm text-[#435048]">Close the sale to set this auction to ended/finished.</p>
+          </div>
+          <button
+            type="button"
+            class="rounded-xl bg-[#18372f] px-4 py-2.5 text-sm font-bold text-white hover:bg-[#152c26] disabled:opacity-60"
+            disabled={Boolean(busyAction)}
+            onclick={() => runAction('end')}
+          >
+            {busyAction.startsWith('end') ? 'Ending…' : 'End auction'}
+          </button>
+        </div>
+      {/if}
 
       <div class="grid gap-5 xl:grid-cols-[minmax(0,1.4fr)_minmax(300px,0.8fr)]">
         <section class="overflow-hidden rounded-2xl bg-white shadow-sm">

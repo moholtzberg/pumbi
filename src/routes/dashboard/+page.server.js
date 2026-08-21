@@ -76,11 +76,68 @@ export async function load({ locals }) {
 
   const canSeeControlRooms = isPlatformAdmin || isAuctioneerRole || controlHouseIds.length > 0;
 
-  const [totalBids, winningLots, recentBids, controlRoomAuctions] = await Promise.all([
+  const [totalBids, leadingLots, wonLotsRaw, recentBids, controlRoomAuctions] = await Promise.all([
     prisma.bid.count({ where: { userId: user.id } }),
     prisma.lot.findMany({
-      where: { highestBidderId: user.id },
-      select: { id: true, currentBid: true }
+      where: {
+        highestBidderId: user.id,
+        status: 'ACTIVE'
+      },
+      orderBy: { updatedAt: 'desc' },
+      take: 20,
+      select: {
+        id: true,
+        lotNumber: true,
+        title: true,
+        currentBid: true,
+        status: true,
+        endTime: true,
+        images: {
+          where: { isHidden: false },
+          orderBy: [{ isPrimary: 'desc' }, { displayOrder: 'asc' }],
+          take: 1,
+          select: { url: true }
+        },
+        auction: {
+          select: {
+            id: true,
+            title: true,
+            status: true,
+            auctionHouse: { select: { name: true } }
+          }
+        }
+      }
+    }),
+    prisma.lot.findMany({
+      where: {
+        highestBidderId: user.id,
+        status: 'SOLD'
+      },
+      orderBy: { updatedAt: 'desc' },
+      take: 50,
+      select: {
+        id: true,
+        lotNumber: true,
+        title: true,
+        currentBid: true,
+        status: true,
+        endTime: true,
+        updatedAt: true,
+        images: {
+          where: { isHidden: false },
+          orderBy: [{ isPrimary: 'desc' }, { displayOrder: 'asc' }],
+          take: 1,
+          select: { url: true }
+        },
+        auction: {
+          select: {
+            id: true,
+            title: true,
+            status: true,
+            auctionHouse: { select: { name: true } }
+          }
+        }
+      }
     }),
     prisma.bid.findMany({
       where: { userId: user.id },
@@ -90,7 +147,7 @@ export async function load({ locals }) {
         id: true,
         amount: true,
         timestamp: true,
-        lot: { select: { id: true, lotNumber: true, title: true, highestBidderId: true } }
+        lot: { select: { id: true, lotNumber: true, title: true, highestBidderId: true, status: true } }
       }
     }),
     canSeeControlRooms
@@ -124,12 +181,33 @@ export async function load({ locals }) {
       : Promise.resolve([])
   ]);
 
-  const watchedLots = await Promise.all(user.watchedLots.map(async ({ lot, createdAt }) => ({
-    ...lot,
-    watchedAt: createdAt,
+  const mapBuyerLot = async (lot) => ({
+    id: lot.id,
+    lotNumber: lot.lotNumber,
+    title: lot.title,
+    currentBid: lot.currentBid,
+    status: lot.status,
+    endTime: lot.endTime,
+    updatedAt: lot.updatedAt || null,
     imageUrl: lot.images[0]?.url ? await convertToPresignedUrl(lot.images[0].url) : null,
-    images: undefined
-  })));
+    auction: {
+      id: lot.auction.id,
+      title: lot.auction.title,
+      status: lot.auction.status,
+      auctionHouseName: lot.auction.auctionHouse?.name || null
+    }
+  });
+
+  const [watchedLots, leadingLotsMapped, wonLots] = await Promise.all([
+    Promise.all(user.watchedLots.map(async ({ lot, createdAt }) => ({
+      ...lot,
+      watchedAt: createdAt,
+      imageUrl: lot.images[0]?.url ? await convertToPresignedUrl(lot.images[0].url) : null,
+      images: undefined
+    }))),
+    Promise.all(leadingLots.map(mapBuyerLot)),
+    Promise.all(wonLotsRaw.map(mapBuyerLot))
+  ]);
 
   return {
     user: {
@@ -149,6 +227,8 @@ export async function load({ locals }) {
       isVerifiedBidder: user.isVerifiedBidder
     },
     watchedLots,
+    leadingLots: leadingLotsMapped,
+    wonLots,
     recentBids,
     controlRoomAuctions: controlRoomAuctions.map((auction) => ({
       id: auction.id,
@@ -164,8 +244,11 @@ export async function load({ locals }) {
     })),
     stats: {
       totalBids,
-      winningBids: winningLots.length,
-      winningValue: winningLots.reduce((sum, lot) => sum + lot.currentBid, 0)
+      leadingBids: leadingLotsMapped.length,
+      wonBids: wonLots.length,
+      wonValue: wonLots.reduce((sum, lot) => sum + (lot.currentBid || 0), 0),
+      winningBids: leadingLotsMapped.length,
+      winningValue: leadingLotsMapped.reduce((sum, lot) => sum + (lot.currentBid || 0), 0)
     }
   };
 }

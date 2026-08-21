@@ -13,7 +13,9 @@
     recentBids: [],
     timing: null,
     lobby: true,
-    biddingOpen: false
+    biddingOpen: false,
+    finished: false,
+    auctionStatus: null
   });
   let loading = $state(true);
   let refreshTimer;
@@ -267,6 +269,12 @@
 
     {#if loading}
       <div class="rounded-sm bg-[rgba(255,255,255,0.04)] p-12 text-center text-[#bec9c4]">Loading the live room…</div>
+    {:else if liveData.finished || ['ENDED', 'CANCELLED'].includes(String(liveData.auctionStatus || auction?.status || '').toUpperCase())}
+      <div class="rounded-sm border border-[rgba(215,190,150,0.18)] bg-[rgba(255,255,255,0.04)] p-12 text-center">
+        <p class="font-[family-name:var(--pumbi-serif)] text-2xl font-semibold">This auction has ended</p>
+        <p class="mt-2 text-[#91a29a]">Browse the catalog below for results and lot details.</p>
+        <a href="#all-lots" class="mt-5 inline-flex border border-white/20 px-4 py-2 text-xs font-bold uppercase tracking-wide hover:bg-white/10">View lots</a>
+      </div>
     {:else if !liveData.currentLot}
       <div class="rounded-sm bg-[rgba(255,255,255,0.04)] p-12 text-center"><p class="text-xl font-bold">Waiting for the next lot</p><p class="mt-2 text-[#91a29a]">The auctioneer has not put a lot on the block yet.</p></div>
     {:else}

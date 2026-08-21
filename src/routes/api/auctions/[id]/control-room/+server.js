@@ -1,6 +1,7 @@
 import { json, error } from '@sveltejs/kit';
 import prisma from '$lib/prisma.js';
 import { requireAuthenticatedUser, requireAuctionAccess, requireAuctionHousePermission, HOUSE_PERMISSIONS } from '$lib/server/authorization.js';
+import { isAutoAdvanceEnabled, getOnBlockLotId } from '$lib/server/liveAuctionFloor.js';
 
 async function authorize(locals, auctionId) {
   const user = await requireAuthenticatedUser(locals, 'Authentication required');
@@ -40,13 +41,23 @@ export async function GET({ params, locals }) {
 
   const counts = Object.fromEntries(registrations.map((entry) => [entry.status, entry._count._all]));
   const now = Date.now();
-  const openLot = lots.find((lot) => lot.status === 'ACTIVE' && lot.isReady && lot.endTime && lot.endTime.getTime() > now) || null;
+  const onBlockLotId = getOnBlockLotId(auction);
+  const trackedOnBlock =
+    (onBlockLotId && lots.find((lot) => lot.id === onBlockLotId && lot.status === 'ACTIVE')) || null;
+  const timedOpen =
+    lots.find((lot) => lot.status === 'ACTIVE' && lot.isReady && lot.endTime && lot.endTime.getTime() > now) ||
+    null;
+  const openLot = timedOpen || trackedOnBlock || null;
   const nextLot = lots.find((lot) =>
     lot.status === 'ACTIVE' &&
     lot.isReady &&
     lot.id !== openLot?.id &&
     (!lot.endTime || lot.endTime.getTime() <= now)
   ) || null;
+  const remainingReadyLots = lots.filter((lot) => lot.status === 'ACTIVE' && lot.isReady).length;
+  const finishedLots = lots.filter((lot) => ['SOLD', 'UNSOLD', 'WITHDRAWN'].includes(lot.status)).length;
+  const allLotsComplete = remainingReadyLots === 0 && lots.some((lot) => lot.isReady);
+  const canEndAuction = ['UPCOMING', 'LIVE'].includes(auction.status) && !openLot;
 
   return json({
     currentUserId: user.id,
@@ -74,7 +85,14 @@ export async function GET({ params, locals }) {
       })()
     },
     openLotId: openLot?.id || null,
+    onBlockLotId: trackedOnBlock?.id || openLot?.id || null,
     nextLotId: nextLot?.id || null,
+    remainingReadyLots,
+    finishedLots,
+    allLotsComplete,
+    canEndAuction,
+    autoAdvanceNextLot: isAutoAdvanceEnabled(auction),
+    settingsPath: `/seller/auctions/${auction.id}/settings`,
     lots,
     bids: bids.map((bid) => ({
       id: bid.id,

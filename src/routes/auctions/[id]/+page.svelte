@@ -90,8 +90,14 @@
   </div>
 {:else if auction}
   <div class="min-h-screen bg-[#f7f4ee]">
-    {#if auction.status === 'live'}
+    {#if auction.status === 'live' || auction.status === 'LIVE'}
       <LiveAuctionDashboard {auction} videoUrl={liveVideoUrl} videoTitle={liveVideoTitle} audioUrl={liveAudioUrl} audioTitle={liveAudioTitle} />
+    {:else if ['ended', 'ENDED', 'cancelled', 'CANCELLED'].includes(auction.status)}
+      <div class="border-b border-[#ddd6ca] bg-[#152c26] px-4 py-8 text-center text-[#f7f4ee]">
+        <p class="text-xs font-bold uppercase tracking-[0.18em] text-[#d6b477]">Auction finished</p>
+        <p class="mt-2 font-[family-name:var(--pumbi-serif)] text-3xl font-semibold">This sale has ended</p>
+        <p class="mt-2 text-sm text-[#91a29a]">Lot results are listed below.</p>
+      </div>
     {/if}
     <!-- Auction Header -->
     <div class="bg-white shadow-sm">

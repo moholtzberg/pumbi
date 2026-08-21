@@ -169,14 +169,70 @@
       </section>
     </div>
 
-    <section class="grid gap-4 sm:grid-cols-3">
+    <section class="grid gap-4 sm:grid-cols-4">
       <div class="rounded-sm border bg-white p-4"><p class="text-xs font-bold uppercase tracking-wide text-slate-400">Bids placed</p><p class="mt-1 text-2xl font-black text-slate-950">{data.stats.totalBids}</p></div>
-      <div class="rounded-sm border bg-white p-4"><p class="text-xs font-bold uppercase tracking-wide text-slate-400">Currently winning</p><p class="mt-1 text-2xl font-black text-[#18372f]">{data.stats.winningBids}</p></div>
-      <div class="rounded-sm border bg-white p-4"><p class="text-xs font-bold uppercase tracking-wide text-slate-400">Winning value</p><p class="mt-1 text-2xl font-black text-[#18372f]">{money(data.stats.winningValue)}</p></div>
+      <div class="rounded-sm border bg-white p-4"><p class="text-xs font-bold uppercase tracking-wide text-slate-400">Currently leading</p><p class="mt-1 text-2xl font-black text-[#18372f]">{data.stats.leadingBids ?? data.stats.winningBids}</p></div>
+      <div class="rounded-sm border bg-white p-4"><p class="text-xs font-bold uppercase tracking-wide text-slate-400">Lots won</p><p class="mt-1 text-2xl font-black text-[#18372f]">{data.stats.wonBids || 0}</p></div>
+      <div class="rounded-sm border bg-white p-4"><p class="text-xs font-bold uppercase tracking-wide text-slate-400">Won value</p><p class="mt-1 text-2xl font-black text-[#18372f]">{money(data.stats.wonValue || 0)}</p></div>
+    </section>
+
+    <section id="won-lots" class="rounded-sm border border-[#ddd6ca] bg-white p-5 shadow-sm">
+      <div class="flex flex-wrap items-end justify-between gap-3">
+        <div>
+          <p class="text-xs font-bold uppercase tracking-[0.16em] text-[#a95739]">Buyer results</p>
+          <h2 class="mt-1 font-[family-name:var(--pumbi-serif)] text-2xl font-semibold text-[#1a2821]">Lots you won</h2>
+          <p class="mt-1 text-sm text-[#435048]">Hammered lots where you were the high bidder.</p>
+        </div>
+      </div>
+
+      {#if data.wonLots?.length}
+        <div class="mt-5 divide-y divide-[#e2dcd1]">
+          {#each data.wonLots as lot}
+            <a href={`/lots/${lot.id}`} class="grid gap-4 py-4 first:pt-0 last:pb-0 sm:grid-cols-[72px_minmax(0,1fr)_auto] sm:items-center">
+              <div class="h-[72px] overflow-hidden border border-[#ddd6ca] bg-[#efe8dc]">
+                {#if lot.imageUrl}<img src={lot.imageUrl} alt={lot.title} class="h-full w-full object-cover" />{:else}<span class="grid h-full place-items-center text-slate-400">◇</span>{/if}
+              </div>
+              <div class="min-w-0">
+                <p class="text-xs font-bold uppercase tracking-wide text-slate-400">
+                  Lot #{lot.lotNumber} · {lot.auction.auctionHouseName || 'Auction'} · {lot.auction.title}
+                </p>
+                <p class="mt-1 truncate font-bold text-[#1a2821]">{lot.title}</p>
+                <p class="mt-1 text-sm text-[#435048]">Won for <strong class="text-[#1a2821]">{money(lot.currentBid)}</strong></p>
+              </div>
+              <div class="text-left sm:text-right">
+                <span class="inline-flex bg-[#e8eee9] px-2 py-1 text-[10px] font-bold uppercase tracking-wide text-[#18372f]">Won</span>
+              </div>
+            </a>
+          {/each}
+        </div>
+      {:else}
+        <div class="mt-5 border border-dashed border-[#ddd6ca] px-5 py-10 text-center">
+          <p class="font-bold text-[#1a2821]">No won lots yet</p>
+          <p class="mt-1 text-sm text-[#435048]">When you win a lot, it will appear here after the auctioneer hammers it down.</p>
+        </div>
+      {/if}
+
+      {#if data.leadingLots?.length}
+        <div class="mt-8 border-t border-[#e2dcd1] pt-6">
+          <h3 class="font-[family-name:var(--pumbi-serif)] text-xl font-semibold text-[#1a2821]">Currently leading</h3>
+          <p class="mt-1 text-sm text-[#435048]">Active lots where you are the high bidder.</p>
+          <div class="mt-4 divide-y divide-[#e2dcd1]">
+            {#each data.leadingLots as lot}
+              <a href={`/lots/${lot.id}`} class="flex items-center justify-between gap-4 py-3 first:pt-0 last:pb-0">
+                <div class="min-w-0">
+                  <p class="truncate font-semibold text-[#1a2821]">{lot.title}</p>
+                  <p class="text-xs text-slate-500">Lot #{lot.lotNumber} · {lot.auction.title}</p>
+                </div>
+                <p class="font-bold text-[#18372f]">{money(lot.currentBid)}</p>
+              </a>
+            {/each}
+          </div>
+        </div>
+      {/if}
     </section>
 
     <div class="grid gap-6 lg:grid-cols-[minmax(0,1.35fr)_minmax(280px,0.65fr)]">
-      <section class="rounded-sm border bg-white p-5 shadow-sm"><div class="flex items-center justify-between"><h2 class="text-lg font-black">Recent bidding</h2><a href="/" class="text-sm font-semibold text-[#18372f]">Find lots</a></div>{#if data.recentBids.length}<div class="mt-4 divide-y">{#each data.recentBids as bid}<a href={`/lots/${bid.lot.id}`} class="flex items-center justify-between gap-4 py-3 first:pt-0 last:pb-0"><div class="min-w-0"><p class="truncate font-semibold text-slate-900">{bid.lot.title}</p><p class="text-xs text-slate-500">Lot #{bid.lot.lotNumber}</p></div><div class="text-right"><p class="font-bold">{money(bid.amount)}</p><p class="text-xs {bid.lot.highestBidderId === data.user.id ? 'text-[#18372f]' : 'text-slate-400'}">{bid.lot.highestBidderId === data.user.id ? 'Winning' : 'Outbid'}</p></div></a>{/each}</div>{:else}<p class="mt-4 text-sm text-slate-500">You haven’t placed any bids yet.</p>{/if}</section>
+      <section class="rounded-sm border bg-white p-5 shadow-sm"><div class="flex items-center justify-between"><h2 class="text-lg font-black">Recent bidding</h2><a href="/" class="text-sm font-semibold text-[#18372f]">Find lots</a></div>{#if data.recentBids.length}<div class="mt-4 divide-y">{#each data.recentBids as bid}<a href={`/lots/${bid.lot.id}`} class="flex items-center justify-between gap-4 py-3 first:pt-0 last:pb-0"><div class="min-w-0"><p class="truncate font-semibold text-slate-900">{bid.lot.title}</p><p class="text-xs text-slate-500">Lot #{bid.lot.lotNumber}</p></div><div class="text-right"><p class="font-bold">{money(bid.amount)}</p><p class="text-xs {bid.lot.highestBidderId === data.user.id ? (bid.lot.status === 'SOLD' ? 'text-[#18372f]' : 'text-[#18372f]') : 'text-slate-400'}">{bid.lot.highestBidderId === data.user.id ? (bid.lot.status === 'SOLD' ? 'Won' : 'Leading') : 'Outbid'}</p></div></a>{/each}</div>{:else}<p class="mt-4 text-sm text-slate-500">You haven’t placed any bids yet.</p>{/if}</section>
       <aside class="rounded-sm bg-[#152c26] p-5 text-white shadow-sm"><p class="text-xs font-bold uppercase tracking-wider text-[#d6b477]">Selling with Pumbi</p><h2 class="mt-2 text-xl font-black">Submit a lot to a public auction</h2><p class="mt-2 text-sm leading-6 text-[#bec9c4]">Manage drafts, submissions, and review status in one place.</p><a href="/dashboard/sell" class="mt-5 inline-flex rounded-lg bg-white px-4 py-2 text-sm font-bold text-[#152c26]">Manage submissions</a></aside>
     </div>
   </div>

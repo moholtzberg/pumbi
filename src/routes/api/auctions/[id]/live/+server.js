@@ -2,6 +2,14 @@ import { json, error } from '@sveltejs/kit';
 import prisma from '$lib/prisma.js';
 import { db } from '$lib/db.js';
 import { resolveLotTiming } from '$lib/server/lotTiming.js';
+import {
+  findNextReadyLot,
+  isAutoAdvanceEnabled,
+  maybeAutoAdvanceAfterClose,
+  openLotOnBlock,
+  parseAuctionSettings,
+  clearOnBlockLot
+} from '$lib/server/liveAuctionFloor.js';
 import { requireAuthenticatedUser, requireAuctionAccess, requireAuctionHousePermission, HOUSE_PERMISSIONS } from '$lib/server/authorization.js';
 
 export async function GET({ params }) {
@@ -10,6 +18,23 @@ export async function GET({ params }) {
     include: { auctionHouse: true }
   });
   if (!auction) throw error(404, 'Auction not found');
+
+  if (auction.status === 'ENDED' || auction.status === 'CANCELLED') {
+    return json({
+      auctioneerId: auction.auctioneerId,
+      auctioneerStartedAt: auction.auctioneerStartedAt,
+      lobby: false,
+      biddingOpen: false,
+      auctionStatus: auction.status,
+      finished: true,
+      currentLot: null,
+      pastLots: [],
+      upcomingLots: [],
+      lotRail: [],
+      timing: null,
+      recentBids: []
+    }, { headers: { 'cache-control': 'no-store' } });
+  }
 
   const lots = await prisma.lot.findMany({
     where: {
@@ -100,6 +125,7 @@ export async function GET({ params }) {
     auctioneerStartedAt: auction.auctioneerStartedAt,
     lobby: !auction.auctioneerStartedAt,
     biddingOpen,
+    autoAdvanceNextLot: isAutoAdvanceEnabled(auction),
     currentLot,
     pastLots,
     upcomingLots,
@@ -128,10 +154,17 @@ export async function POST({ params, request, locals }) {
   const body = await request.json();
   const lotId = String(body.lotId || '');
   const action = String(body.action || '').toLowerCase();
-  if (!['claim', 'start', 'open', 'close'].includes(action)) {
-    throw error(400, 'action must be claim, start, open, or close');
+  if (!['claim', 'start', 'open', 'close', 'end', 'settings'].includes(action)) {
+    throw error(400, 'action must be claim, start, open, close, end, or settings');
   }
-  if (action !== 'claim' && !lotId && action !== 'start' && action !== 'open') {
+  if (
+    action !== 'claim' &&
+    action !== 'end' &&
+    action !== 'settings' &&
+    !lotId &&
+    action !== 'start' &&
+    action !== 'open'
+  ) {
     throw error(400, 'lotId is required for this action');
   }
 
@@ -150,76 +183,89 @@ export async function POST({ params, request, locals }) {
     throw error(403, 'Claim the auctioneer seat before controlling the auction');
   }
 
-  const lot = lotId
-    ? await prisma.lot.findFirst({ where: { id: lotId, auctionId: auction.id } })
-    : await prisma.lot.findFirst({
-        where: { auctionId: auction.id, status: 'ACTIVE', isReady: true },
-        orderBy: [{ position: 'asc' }, { lotNumber: 'asc' }]
-      });
-  if (!lot) throw error(404, 'Lot not found in this auction');
+  if (action === 'settings') {
+    if (typeof body.autoAdvanceNextLot !== 'boolean') {
+      throw error(400, 'autoAdvanceNextLot must be a boolean');
+    }
+    const current = parseAuctionSettings(auction.settings);
+    const merged = {
+      ...current,
+      autoAdvanceNextLot: body.autoAdvanceNextLot
+    };
+    await prisma.auction.update({
+      where: { id: auction.id },
+      data: { settings: JSON.stringify(merged) }
+    });
+    return json({
+      action,
+      autoAdvanceNextLot: Boolean(merged.autoAdvanceNextLot)
+    });
+  }
 
-  if (action === 'start' || action === 'open') {
-    const now = Date.now();
+  if (action === 'end') {
+    if (auction.status === 'ENDED' || auction.status === 'CANCELLED') {
+      throw error(409, 'This auction is already finished');
+    }
+
+    const now = new Date();
     const openLots = await prisma.lot.findMany({
       where: {
         auctionId: auction.id,
         status: 'ACTIVE',
         isReady: true,
-        endTime: { gt: new Date(now) },
-        ...(lot.id ? { id: { not: lot.id } } : {})
+        endTime: { gt: now }
       },
       select: { id: true, lotNumber: true }
     });
     if (openLots.length > 0) {
-      throw error(409, `Close lot #${openLots[0].lotNumber} before opening another lot`);
+      throw error(409, `Close lot #${openLots[0].lotNumber} before ending the auction`);
     }
 
-    if (lot.status !== 'ACTIVE' || !lot.isReady) {
-      throw error(409, 'Only active, ready lots can be opened for bidding');
-    }
+    // Any remaining queued ready lots are marked unsold when the auctioneer ends the sale.
+    await prisma.lot.updateMany({
+      where: { auctionId: auction.id, status: 'ACTIVE', isReady: true },
+      data: { status: 'UNSOLD', endTime: now }
+    });
 
-    const { initialTimerSeconds } = resolveLotTiming({ lot, auction, auctionHouse: auction.auctionHouse });
-    const lotEndTime = new Date(now + initialTimerSeconds * 1000);
-    // Keep the auction window open at least through this lot so cron cannot end a live floor sale.
-    const auctionEndFloor = new Date(lotEndTime.getTime() + 60_000);
-    if (action === 'start' || !auction.auctioneerStartedAt) {
-      await prisma.auction.update({
-        where: { id: auction.id },
-        data: {
-          status: 'LIVE',
-          auctioneerStartedAt: new Date(),
-          ...(auction.endDate.getTime() < auctionEndFloor.getTime()
-            ? { endDate: auctionEndFloor }
-            : {})
-        }
-      });
-    } else {
-      await prisma.auction.update({
-        where: { id: auction.id },
-        data: {
-          ...(auction.status !== 'LIVE' ? { status: 'LIVE' } : {}),
-          ...(auction.endDate.getTime() < auctionEndFloor.getTime()
-            ? { endDate: auctionEndFloor }
-            : {})
-        }
-      });
-    }
+    await clearOnBlockLot(auction);
 
-    const updated = await prisma.lot.update({
-      where: { id: lot.id },
-      data: {
-        status: 'ACTIVE',
-        isReady: true,
-        endTime: lotEndTime
-      }
+    const ended = await prisma.auction.update({
+      where: { id: auction.id },
+      data: { status: 'ENDED', endDate: now }
     });
     return json({
       action,
-      lot: { id: updated.id, endTime: updated.endTime, status: updated.status }
+      auction: { id: ended.id, status: ended.status, endDate: ended.endDate }
     });
   }
 
-  // close
+  const lot = lotId
+    ? await prisma.lot.findFirst({ where: { id: lotId, auctionId: auction.id } })
+    : await findNextReadyLot(auction.id);
+  if (!lot) throw error(404, 'Lot not found in this auction');
+
+  if (action === 'start' || action === 'open') {
+    if (auction.status === 'ENDED' || auction.status === 'CANCELLED') {
+      throw error(409, 'This auction has ended');
+    }
+    try {
+      const updated = await openLotOnBlock({
+        auction,
+        auctionHouse: auction.auctionHouse,
+        lot,
+        claimAuctioneerStart: action === 'start' || !auction.auctioneerStartedAt
+      });
+      return json({
+        action,
+        lot: { id: updated.id, endTime: updated.endTime, status: updated.status }
+      });
+    } catch (err) {
+      if (err.status) throw error(err.status, err.message);
+      throw err;
+    }
+  }
+
+  // close lot
   if (lot.status !== 'ACTIVE') {
     throw error(409, 'Only an active lot can be closed');
   }
@@ -227,5 +273,47 @@ export async function POST({ params, request, locals }) {
     where: { id: lot.id },
     data: { endTime: new Date(), status: lot.highestBidderId ? 'SOLD' : 'UNSOLD' }
   });
-  return json({ action, lot: { id: updated.id, endTime: updated.endTime, status: updated.status } });
+  await clearOnBlockLot(auction);
+
+  const remainingReady = await prisma.lot.count({
+    where: {
+      auctionId: auction.id,
+      isReady: true,
+      status: 'ACTIVE',
+      id: { not: updated.id }
+    }
+  });
+
+  let auctionEnded = false;
+  let advancedLot = null;
+  if (remainingReady === 0 && auction.auctioneerStartedAt) {
+    await prisma.auction.update({
+      where: { id: auction.id },
+      data: { status: 'ENDED', endDate: new Date() }
+    });
+    auctionEnded = true;
+  } else {
+    const advance = await maybeAutoAdvanceAfterClose({
+      auction,
+      auctionHouse: auction.auctionHouse,
+      closedLotId: updated.id
+    });
+    if (advance.advanced) {
+      advancedLot = {
+        id: advance.lot.id,
+        endTime: advance.lot.endTime,
+        status: advance.lot.status,
+        lotNumber: advance.lot.lotNumber,
+        title: advance.lot.title
+      };
+    }
+  }
+
+  return json({
+    action,
+    lot: { id: updated.id, endTime: updated.endTime, status: updated.status },
+    auctionEnded,
+    autoAdvanced: Boolean(advancedLot),
+    nextLot: advancedLot
+  });
 }
