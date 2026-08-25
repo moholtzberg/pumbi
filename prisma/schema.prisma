@@ -244,6 +244,11 @@ model Auction {
   lotSubmissions LotSubmission[]
   invoices       Invoice[]
 
+  // Interest / engagement counters (denormalized from ContentView)
+  viewCount          Int   @default(0) @map("view_count")
+  uniqueVisitorCount Int   @default(0) @map("unique_visitor_count")
+  totalDwellMs       BigInt @default(0) @map("total_dwell_ms")
+
   @@unique([seriesId, seriesOccurrenceAt])
   @@index([auctionHouseId])
   @@index([sellerId])
@@ -340,6 +345,11 @@ model Lot {
   owner                   User?          @relation("LotOwner", fields: [ownerUserId], references: [id], onDelete: SetNull)
   watchers                LotWatch[]
   invoice                 Invoice?
+
+  // Interest / engagement counters (denormalized from ContentView)
+  viewCount          Int    @default(0) @map("view_count")
+  uniqueVisitorCount Int    @default(0) @map("unique_visitor_count")
+  totalDwellMs       BigInt @default(0) @map("total_dwell_ms")
 
   @@unique([auctionId, lotNumber])
   @@index([auctionId])
@@ -956,4 +966,34 @@ model Shipment {
   @@index([trackingNumber])
   @@index([shippoShipmentId])
   @@map("shipments")
+}
+
+enum ContentViewEntity {
+  AUCTION
+  LOT
+}
+
+/// One row per page-open session. Unique interest = distinct visitorKey per entity.
+model ContentView {
+  id          String            @id @default(cuid())
+  entityType  ContentViewEntity @map("entity_type")
+  entityId    String            @map("entity_id")
+  visitorKey  String            @map("visitor_key")
+  userId      String?           @map("user_id")
+  sessionKey  String            @unique @map("session_key")
+  durationMs  Int               @default(0) @map("duration_ms")
+  path        String?
+  referrer    String?
+  userAgent   String?           @map("user_agent")
+  startedAt   DateTime          @default(now()) @map("started_at")
+  lastSeenAt  DateTime          @default(now()) @map("last_seen_at")
+  endedAt     DateTime?         @map("ended_at")
+  createdAt   DateTime          @default(now()) @map("created_at")
+  updatedAt   DateTime          @updatedAt @map("updated_at")
+
+  @@index([entityType, entityId, startedAt])
+  @@index([entityType, entityId, visitorKey])
+  @@index([visitorKey, startedAt])
+  @@index([userId])
+  @@map("content_views")
 }

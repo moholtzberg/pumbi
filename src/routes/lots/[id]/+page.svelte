@@ -3,6 +3,7 @@
   import { page } from '$app/stores';
   import { goto } from '$app/navigation';
   import PumbiLoader from '$lib/components/PumbiLoader.svelte';
+  import InterestTracker from '$lib/components/InterestTracker.svelte';
   
   let lot = $state(null);
   let bids = $state([]);
@@ -301,6 +302,7 @@
     </div>
   </div>
 {:else if lot}
+  <InterestTracker entityType="LOT" entityId={lot.id} />
   <div class="min-h-screen bg-[#f7f4ee]">
     <div class="container mx-auto px-4 py-8">
       <button

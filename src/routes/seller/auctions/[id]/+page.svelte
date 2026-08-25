@@ -42,7 +42,7 @@
   </div>
 
   <div class="container mx-auto px-4 py-8">
-    <div class="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+    <div class="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
       <a href={`/seller/auctions/${auction.id}/control-room`} class="rounded-2xl bg-slate-950 p-6 text-white shadow-sm transition hover:-translate-y-0.5 hover:shadow-md">
         <p class="text-xs font-bold uppercase tracking-[0.18em] text-red-300">Live sale</p>
         <h2 class="mt-3 text-xl font-black">Control room</h2>
@@ -53,6 +53,12 @@
         <p class="text-xs font-bold uppercase tracking-[0.18em] text-violet-600">Catalog</p>
         <h2 class="mt-3 text-xl font-black text-slate-950">Manage lots</h2>
         <p class="mt-2 text-sm text-slate-600">Add, edit, reorder, and mark lots ready for the sale.</p>
+      </a>
+
+      <a href={`/seller/auctions/${auction.id}/interest`} class="rounded-2xl bg-white p-6 shadow-sm transition hover:-translate-y-0.5 hover:shadow-md">
+        <p class="text-xs font-bold uppercase tracking-[0.18em] text-amber-700">Analytics</p>
+        <h2 class="mt-3 text-xl font-black text-slate-950">Interest</h2>
+        <p class="mt-2 text-sm text-slate-600">Unique page views and time on page for this auction and its lots.</p>
       </a>
 
       <a href={`/seller/auctions/${auction.id}/settings`} class="rounded-2xl bg-white p-6 shadow-sm transition hover:-translate-y-0.5 hover:shadow-md">

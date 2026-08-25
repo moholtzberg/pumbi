@@ -6,6 +6,7 @@
   import CountdownTimer from '$lib/components/CountdownTimer.svelte';
   import LiveAuctionDashboard from '$lib/components/LiveAuctionDashboard.svelte';
   import PumbiLoader from '$lib/components/PumbiLoader.svelte';
+  import InterestTracker from '$lib/components/InterestTracker.svelte';
   
   let auction = $state(null);
   let lots = $state([]);
@@ -90,6 +91,7 @@
     </div>
   </div>
 {:else if auction}
+  <InterestTracker entityType="AUCTION" entityId={auction.id} />
   <div class="min-h-screen bg-[#f7f4ee]">
     {#if auction.status === 'live' || auction.status === 'LIVE'}
       <LiveAuctionDashboard {auction} videoUrl={liveVideoUrl} videoTitle={liveVideoTitle} audioUrl={liveAudioUrl} audioTitle={liveAudioTitle} />
