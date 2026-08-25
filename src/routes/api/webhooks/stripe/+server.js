@@ -9,6 +9,7 @@ import {
   syncIdentitySession,
   syncSellerConnectedAccount
 } from '$lib/server/verification.js';
+import { syncInvoiceCheckoutSession } from '$lib/server/invoiceCheckout.js';
 
 export async function POST({ request }) {
   const signature = request.headers.get('stripe-signature');
@@ -34,11 +35,20 @@ export async function POST({ request }) {
         syncSellerConnectedAccount(event.data.object)
       ]);
     }
-    if (event.type === 'identity.verification_session.verified' || event.type === 'identity.verification_session.requires_input') {
+    if (
+      event.type === 'identity.verification_session.verified' ||
+      event.type === 'identity.verification_session.requires_input'
+    ) {
       await syncIdentitySession(event.data.object);
     }
-    if (event.type === 'checkout.session.completed' && event.data.object.mode === 'setup') {
-      await syncCardCheckoutSession(event.data.object.id);
+    if (event.type === 'checkout.session.completed') {
+      const session = event.data.object;
+      if (session.mode === 'setup') {
+        await syncCardCheckoutSession(session.id);
+      }
+      if (session.mode === 'payment') {
+        await syncInvoiceCheckoutSession(session);
+      }
     }
     return json({ received: true });
   } catch (err) {

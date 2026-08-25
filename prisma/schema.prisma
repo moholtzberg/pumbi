@@ -60,6 +60,7 @@ model AuctionHouse {
   memberships          AuctionHouseMembership[]
   invitations          AuctionHouseInvitation[]
   payoutReleases       PayoutRelease[]
+  invoices             Invoice[]
 
   @@index([slug])
   @@index([isActive])
@@ -121,6 +122,7 @@ model User {
   watchedLots                     LotWatch[]
   contactVerificationCodes        ContactVerificationCode[]
   loginSecurityEvents             LoginSecurityEvent[]
+  invoicesAsBuyer                 Invoice[]                 @relation("InvoiceBuyer")
 
   @@index([auctionHouseId])
   @@index([role])
@@ -240,6 +242,7 @@ model Auction {
   lots           Lot[]
   registrations  AuctionRegistration[] // Users registered for this auction
   lotSubmissions LotSubmission[]
+  invoices       Invoice[]
 
   @@unique([seriesId, seriesOccurrenceAt])
   @@index([auctionHouseId])
@@ -336,6 +339,7 @@ model Lot {
   submission              LotSubmission? @relation(fields: [submissionId], references: [id], onDelete: SetNull)
   owner                   User?          @relation("LotOwner", fields: [ownerUserId], references: [id], onDelete: SetNull)
   watchers                LotWatch[]
+  invoice                 Invoice?
 
   @@unique([auctionId, lotNumber])
   @@index([auctionId])
@@ -837,4 +841,119 @@ model PayoutRelease {
   @@index([approvedById])
   @@index([sourceReference])
   @@map("payout_releases")
+}
+
+enum InvoiceStatus {
+  UNPAID
+  AWAITING_EXTERNAL
+  PENDING_CHECKOUT
+  PAID
+  CANCELLED
+  REFUNDED
+}
+
+enum InvoicePaymentChannel {
+  PUMBI_STRIPE
+  EXTERNAL
+}
+
+enum ShipmentStatus {
+  DRAFT
+  RATES_READY
+  LABEL_PURCHASED
+  IN_TRANSIT
+  OUT_FOR_DELIVERY
+  DELIVERED
+  RETURNED
+  FAILURE
+  CANCELLED
+}
+
+model Invoice {
+  id                      String                 @id @default(cuid())
+  number                  String                 @unique
+  lotId                   String                 @unique @map("lot_id")
+  auctionId               String                 @map("auction_id")
+  auctionHouseId          String                 @map("auction_house_id")
+  buyerId                 String                 @map("buyer_id")
+  status                  InvoiceStatus          @default(UNPAID)
+  currency                String                 @default("usd")
+  hammerPrice             Decimal                @map("hammer_price") @db.Decimal(14, 2)
+  buyerPremiumRate        Decimal                @default(0) @map("buyer_premium_rate") @db.Decimal(7, 4)
+  buyerPremiumAmount      Decimal                @default(0) @map("buyer_premium_amount") @db.Decimal(14, 2)
+  shippingAmount          Decimal                @default(0) @map("shipping_amount") @db.Decimal(14, 2)
+  totalAmount             Decimal                @map("total_amount") @db.Decimal(14, 2)
+  buyerPaysShipping       Boolean                @default(false) @map("buyer_pays_shipping")
+  paymentChannel          InvoicePaymentChannel? @map("payment_channel")
+  externalPaymentMethod   String?                @map("external_payment_method")
+  stripeCheckoutSessionId String?                @unique @map("stripe_checkout_session_id")
+  stripePaymentIntentId   String?                @unique @map("stripe_payment_intent_id")
+  paidAt                  DateTime?              @map("paid_at")
+  notes                   String?
+  createdAt               DateTime               @default(now()) @map("created_at")
+  updatedAt               DateTime               @updatedAt @map("updated_at")
+
+  lot          Lot           @relation(fields: [lotId], references: [id], onDelete: Cascade)
+  auction      Auction       @relation(fields: [auctionId], references: [id], onDelete: Cascade)
+  auctionHouse AuctionHouse  @relation(fields: [auctionHouseId], references: [id], onDelete: Cascade)
+  buyer        User          @relation("InvoiceBuyer", fields: [buyerId], references: [id], onDelete: Restrict)
+  shipment     Shipment?
+
+  @@index([buyerId, status])
+  @@index([auctionHouseId, status])
+  @@index([auctionId])
+  @@index([status])
+  @@map("invoices")
+}
+
+model Shipment {
+  id                   String         @id @default(cuid())
+  invoiceId            String         @unique @map("invoice_id")
+  status               ShipmentStatus @default(DRAFT)
+  shippoShipmentId     String?        @map("shippo_shipment_id")
+  shippoRateId         String?        @map("shippo_rate_id")
+  shippoTransactionId  String?        @unique @map("shippo_transaction_id")
+  carrier              String?
+  serviceLevel         String?        @map("service_level")
+  trackingNumber       String?        @map("tracking_number")
+  trackingUrl          String?        @map("tracking_url")
+  labelUrl             String?        @map("label_url")
+  shippingAmount       Decimal?       @map("shipping_amount") @db.Decimal(14, 2)
+  currency             String         @default("usd")
+  fromName             String?        @map("from_name")
+  fromStreet1          String?        @map("from_street1")
+  fromStreet2          String?        @map("from_street2")
+  fromCity             String?        @map("from_city")
+  fromState            String?        @map("from_state")
+  fromZip              String?        @map("from_zip")
+  fromCountry          String?        @map("from_country")
+  toName               String?        @map("to_name")
+  toStreet1            String?        @map("to_street1")
+  toStreet2            String?        @map("to_street2")
+  toCity               String?        @map("to_city")
+  toState              String?        @map("to_state")
+  toZip                String?        @map("to_zip")
+  toCountry            String?        @map("to_country")
+  toPhone              String?        @map("to_phone")
+  toEmail              String?        @map("to_email")
+  parcelWeightOz       Float?         @map("parcel_weight_oz")
+  parcelLengthIn       Float?         @map("parcel_length_in")
+  parcelWidthIn        Float?         @map("parcel_width_in")
+  parcelHeightIn       Float?         @map("parcel_height_in")
+  ratesJson            Json?          @map("rates_json")
+  trackingEventsJson   Json?          @map("tracking_events_json")
+  trackingStatusDetail String?        @map("tracking_status_detail")
+  eta                  DateTime?
+  labeledAt            DateTime?      @map("labeled_at")
+  shippedAt            DateTime?      @map("shipped_at")
+  deliveredAt          DateTime?      @map("delivered_at")
+  createdAt            DateTime       @default(now()) @map("created_at")
+  updatedAt            DateTime       @updatedAt @map("updated_at")
+
+  invoice Invoice @relation(fields: [invoiceId], references: [id], onDelete: Cascade)
+
+  @@index([status])
+  @@index([trackingNumber])
+  @@index([shippoShipmentId])
+  @@map("shipments")
 }

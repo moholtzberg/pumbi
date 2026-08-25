@@ -148,6 +148,7 @@ export const auctionSettingsSchema = z.object({
   autoAdvanceNextLot: z.boolean().default(false),
   // Runtime: current lot on the auctioneer block (not edited in settings UI)
   onBlockLotId: z.string().optional().nullable(),
+  buyerPaysShipping: z.boolean().default(true),
   liveVideoUrl: z.string().url('Invalid live video URL').or(z.literal('')).optional().nullable(),
   liveVideoTitle: z.string().max(120).optional().nullable(),
   liveAudioUrl: z.string().url('Invalid live audio URL').or(z.literal('')).optional().nullable(),

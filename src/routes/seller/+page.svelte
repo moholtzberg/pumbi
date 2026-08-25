@@ -324,6 +324,12 @@
       <div class="flex items-center gap-4">
         {#if currentUser?.auctionHouseId}
           <a
+            href="/seller/sold"
+            class="bg-emerald-700 text-white px-6 py-3 rounded-lg hover:bg-emerald-800 transition-colors font-semibold"
+          >
+            Sold & shipping
+          </a>
+          <a
             href="/seller/settings"
             class="bg-gray-600 text-white px-6 py-3 rounded-lg hover:bg-gray-700 transition-colors font-semibold"
           >

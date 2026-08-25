@@ -302,6 +302,16 @@ export async function POST({ params, request, locals }) {
   });
   await clearOnBlockLot(auction);
 
+  let invoice = null;
+  if (updated.status === 'SOLD' && lot.highestBidderId) {
+    try {
+      const { createInvoiceForSoldLot } = await import('$lib/server/invoices.js');
+      invoice = await createInvoiceForSoldLot(updated.id);
+    } catch (err) {
+      console.error('Failed to create invoice for sold lot', updated.id, err);
+    }
+  }
+
   const remainingReady = await prisma.lot.count({
     where: {
       auctionId: auction.id,
@@ -341,6 +351,7 @@ export async function POST({ params, request, locals }) {
     lot: { id: updated.id, endTime: updated.endTime, status: updated.status },
     auctionEnded,
     autoAdvanced: Boolean(advancedLot),
-    nextLot: advancedLot
+    nextLot: advancedLot,
+    invoiceId: invoice?.id || null
   });
 }

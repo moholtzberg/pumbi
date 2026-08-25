@@ -188,21 +188,43 @@
       {#if data.wonLots?.length}
         <div class="mt-5 divide-y divide-[#e2dcd1]">
           {#each data.wonLots as lot}
-            <a href={`/lots/${lot.id}`} class="grid gap-4 py-4 first:pt-0 last:pb-0 sm:grid-cols-[72px_minmax(0,1fr)_auto] sm:items-center">
-              <div class="h-[72px] overflow-hidden border border-[#ddd6ca] bg-[#efe8dc]">
+            <div class="grid gap-4 py-4 first:pt-0 last:pb-0 sm:grid-cols-[72px_minmax(0,1fr)_auto] sm:items-center">
+              <a href={`/lots/${lot.id}`} class="h-[72px] overflow-hidden border border-[#ddd6ca] bg-[#efe8dc]">
                 {#if lot.imageUrl}<img src={lot.imageUrl} alt={lot.title} class="h-full w-full object-cover" />{:else}<span class="grid h-full place-items-center text-slate-400">◇</span>{/if}
-              </div>
+              </a>
               <div class="min-w-0">
                 <p class="text-xs font-bold uppercase tracking-wide text-slate-400">
                   Lot #{lot.lotNumber} · {lot.auction.auctionHouseName || 'Auction'} · {lot.auction.title}
                 </p>
-                <p class="mt-1 truncate font-bold text-[#1a2821]">{lot.title}</p>
-                <p class="mt-1 text-sm text-[#435048]">Won for <strong class="text-[#1a2821]">{money(lot.currentBid)}</strong></p>
+                <a href={`/lots/${lot.id}`} class="mt-1 block truncate font-bold text-[#1a2821] hover:text-[#a95739]">{lot.title}</a>
+                <p class="mt-1 text-sm text-[#435048]">
+                  Won for <strong class="text-[#1a2821]">{money(lot.currentBid)}</strong>
+                  {#if lot.invoice}
+                    · Invoice total <strong class="text-[#1a2821]">{money(lot.invoice.totalAmount)}</strong>
+                  {/if}
+                </p>
               </div>
-              <div class="text-left sm:text-right">
-                <span class="inline-flex bg-[#e8eee9] px-2 py-1 text-[10px] font-bold uppercase tracking-wide text-[#18372f]">Won</span>
+              <div class="flex flex-col items-start gap-2 sm:items-end">
+                {#if lot.invoice}
+                  <span class="inline-flex bg-[#e8eee9] px-2 py-1 text-[10px] font-bold uppercase tracking-wide text-[#18372f]">
+                    {lot.invoice.status.replaceAll('_', ' ')}
+                  </span>
+                  <a
+                    href={`/dashboard/invoices/${lot.invoice.id}`}
+                    class="bg-[#18372f] px-3 py-2 text-xs font-bold uppercase tracking-wide text-white hover:bg-[#152c26]"
+                  >
+                    {['UNPAID', 'PENDING_CHECKOUT', 'AWAITING_EXTERNAL'].includes(lot.invoice.status) ? 'Pay invoice' : 'View invoice'}
+                  </a>
+                  {#if lot.invoice.shipment?.trackingNumber}
+                    <a class="text-xs font-semibold text-[#18372f] underline" href={lot.invoice.shipment.trackingUrl || '#'} target="_blank" rel="noreferrer">
+                      Track package
+                    </a>
+                  {/if}
+                {:else}
+                  <span class="inline-flex bg-[#e8eee9] px-2 py-1 text-[10px] font-bold uppercase tracking-wide text-[#18372f]">Won</span>
+                {/if}
               </div>
-            </a>
+            </div>
           {/each}
         </div>
       {:else}

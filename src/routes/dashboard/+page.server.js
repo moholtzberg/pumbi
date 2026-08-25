@@ -2,6 +2,7 @@ import { redirect } from '@sveltejs/kit';
 import prisma from '$lib/prisma.js';
 import { convertToPresignedUrl } from '$lib/utils/s3Presigned.js';
 import { HOUSE_ROLES } from '$lib/server/authorization.js';
+import { createInvoiceForSoldLot } from '$lib/server/invoices.js';
 
 const CONTROL_ROOM_MEMBERSHIP_ROLES = new Set([
   HOUSE_ROLES.OWNER,
@@ -136,6 +137,26 @@ export async function load({ locals }) {
             status: true,
             auctionHouse: { select: { name: true } }
           }
+        },
+        invoice: {
+          select: {
+            id: true,
+            number: true,
+            status: true,
+            totalAmount: true,
+            currency: true,
+            buyerPaysShipping: true,
+            paymentChannel: true,
+            paidAt: true,
+            shipment: {
+              select: {
+                status: true,
+                trackingNumber: true,
+                trackingUrl: true,
+                labelUrl: true
+              }
+            }
+          }
         }
       }
     }),
@@ -195,8 +216,45 @@ export async function load({ locals }) {
       title: lot.auction.title,
       status: lot.auction.status,
       auctionHouseName: lot.auction.auctionHouse?.name || null
-    }
+    },
+    invoice: lot.invoice
+      ? {
+          id: lot.invoice.id,
+          number: lot.invoice.number,
+          status: lot.invoice.status,
+          totalAmount: Number(lot.invoice.totalAmount),
+          currency: lot.invoice.currency,
+          buyerPaysShipping: lot.invoice.buyerPaysShipping,
+          paymentChannel: lot.invoice.paymentChannel,
+          paidAt: lot.invoice.paidAt,
+          shipment: lot.invoice.shipment
+        }
+      : null
   });
+
+  // Backfill invoices for older sold lots (idempotent).
+  await Promise.all(
+    wonLotsRaw
+      .filter((lot) => !lot.invoice)
+      .map(async (lot) => {
+        try {
+          const invoice = await createInvoiceForSoldLot(lot.id);
+          lot.invoice = {
+            id: invoice.id,
+            number: invoice.number,
+            status: invoice.status,
+            totalAmount: invoice.totalAmount,
+            currency: invoice.currency,
+            buyerPaysShipping: invoice.buyerPaysShipping,
+            paymentChannel: invoice.paymentChannel,
+            paidAt: invoice.paidAt,
+            shipment: null
+          };
+        } catch (err) {
+          console.error('Invoice backfill failed for lot', lot.id, err?.message);
+        }
+      })
+  );
 
   const [watchedLots, leadingLotsMapped, wonLots] = await Promise.all([
     Promise.all(user.watchedLots.map(async ({ lot, createdAt }) => ({
