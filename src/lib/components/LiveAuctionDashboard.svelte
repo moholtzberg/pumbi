@@ -5,6 +5,8 @@
   import CountdownTimer from '$lib/components/CountdownTimer.svelte';
   import PumbiLoader from '$lib/components/PumbiLoader.svelte';
 
+  import { mediaEmbedUrl } from '$lib/utils/mediaEmbed.js';
+
   let { auction, videoUrl = null, videoTitle = null, audioUrl = null, audioTitle = null } = $props();
   let liveData = $state({
     currentLot: null,
@@ -66,25 +68,8 @@
     if (rate == null || rate === '') return null;
     return `${Number(rate) * 100}%`;
   });
+  let streamSrc = $derived(mediaEmbedUrl(videoUrl));
 
-  function embedUrl(url) {
-    if (!url) return null;
-    try {
-      const parsed = new URL(url);
-      if (parsed.protocol !== 'https:') return null;
-      if (parsed.hostname === 'youtu.be') return `https://www.youtube.com/embed/${parsed.pathname.slice(1)}`;
-      if (parsed.hostname.includes('youtube.com')) {
-        const id = parsed.searchParams.get('v');
-        return id ? `https://www.youtube.com/embed/${id}` : url;
-      }
-      if (parsed.hostname.includes('vimeo.com') && /^\/\d+/.test(parsed.pathname)) {
-        return `https://player.vimeo.com/video/${parsed.pathname.split('/')[1]}`;
-      }
-      return url;
-    } catch {
-      return null;
-    }
-  }
 
   async function loadSession() {
     try {
@@ -280,7 +265,38 @@
         <a href="#all-lots" class="mt-5 inline-flex border border-white/20 px-4 py-2 text-xs font-bold uppercase tracking-wide hover:bg-white/10">View lots</a>
       </div>
     {:else if !liveData.currentLot}
-      <div class="rounded-sm bg-[rgba(255,255,255,0.04)] p-12 text-center"><p class="text-xl font-bold">Waiting for the next lot</p><p class="mt-2 text-[#91a29a]">The auctioneer has not put a lot on the block yet.</p></div>
+      <div class="mx-auto max-w-4xl space-y-5">
+        {#if streamSrc}
+          <div class="overflow-hidden rounded-sm border border-[rgba(215,190,150,0.18)] bg-black shadow-2xl">
+            <div class="aspect-video">
+              <iframe
+                src={streamSrc}
+                title={videoTitle || 'Live auction video'}
+                class="h-full w-full"
+                allow="autoplay; encrypted-media; picture-in-picture; fullscreen"
+                allowfullscreen
+              ></iframe>
+            </div>
+            {#if videoTitle}
+              <p class="border-t border-[rgba(215,190,150,0.18)] px-4 py-3 text-sm font-semibold text-[#d7ded9]">{videoTitle}</p>
+            {/if}
+          </div>
+        {/if}
+        {#if audioUrl}
+          <div class="flex items-center gap-4 rounded-sm border border-[rgba(215,190,150,0.18)] bg-[rgba(255,255,255,0.04)] p-4">
+            <div class="grid h-11 w-11 shrink-0 place-items-center rounded-sm bg-[#efe8dc]/20 text-xl" aria-hidden="true">♫</div>
+            <div class="min-w-0 flex-1">
+              <p class="font-bold">{audioTitle || 'Live auction audio'}</p>
+              <p class="text-xs text-[#91a29a]">Listen to the auctioneer while you wait</p>
+              <audio controls preload="none" src={audioUrl} class="mt-2 h-9 w-full"></audio>
+            </div>
+          </div>
+        {/if}
+        <div class="rounded-sm bg-[rgba(255,255,255,0.04)] p-12 text-center">
+          <p class="text-xl font-bold">Waiting for the next lot</p>
+          <p class="mt-2 text-[#91a29a]">The auctioneer has not put a lot on the block yet.</p>
+        </div>
+      </div>
     {:else}
       <div class="grid gap-5 xl:grid-cols-[minmax(260px,0.85fr)_minmax(0,1.5fr)_minmax(260px,0.85fr)]">
         <!-- Left: past + upcoming lots -->
@@ -350,15 +366,23 @@
 
         <!-- Center: stream + current lot -->
         <div class="order-1 space-y-5 xl:order-2">
-          {#if embedUrl(videoUrl)}
+          {#if streamSrc}
             <div class="overflow-hidden rounded-sm border border-[rgba(215,190,150,0.18)] bg-black shadow-2xl">
-              <div class="aspect-video"><iframe src={embedUrl(videoUrl)} title={videoTitle || 'Live auction video'} class="h-full w-full" allow="autoplay; encrypted-media; picture-in-picture" allowfullscreen></iframe></div>
+              <div class="aspect-video">
+                <iframe
+                  src={streamSrc}
+                  title={videoTitle || 'Live auction video'}
+                  class="h-full w-full"
+                  allow="autoplay; encrypted-media; picture-in-picture; fullscreen"
+                  allowfullscreen
+                ></iframe>
+              </div>
               {#if videoTitle}<p class="border-t border-[rgba(215,190,150,0.18)] px-4 py-3 text-sm font-semibold text-[#d7ded9]">{videoTitle}</p>{/if}
             </div>
           {/if}
           {#if audioUrl}
             <div class="flex items-center gap-4 rounded-sm border border-[rgba(215,190,150,0.18)] bg-[rgba(255,255,255,0.04)] p-4">
-              <div class="grid h-11 w-11 shrink-0 place-items-center rounded-sm bg-[#efe8dc]0/20 text-xl" aria-hidden="true">♫</div>
+              <div class="grid h-11 w-11 shrink-0 place-items-center rounded-sm bg-[#efe8dc]/20 text-xl" aria-hidden="true">♫</div>
               <div class="min-w-0 flex-1"><p class="font-bold">{audioTitle || 'Live auction audio'}</p><p class="text-xs text-[#91a29a]">Listen to the auctioneer while you bid</p><audio controls preload="none" src={audioUrl} class="mt-2 h-9 w-full"></audio></div>
             </div>
           {/if}

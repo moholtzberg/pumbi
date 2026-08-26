@@ -7,6 +7,7 @@
   import LiveAuctionDashboard from '$lib/components/LiveAuctionDashboard.svelte';
   import PumbiLoader from '$lib/components/PumbiLoader.svelte';
   import InterestTracker from '$lib/components/InterestTracker.svelte';
+  import { mediaEmbedUrl } from '$lib/utils/mediaEmbed.js';
   
   let auction = $state(null);
   let lots = $state([]);
@@ -17,6 +18,10 @@
   let liveVideoTitle = $state(null);
   let liveAudioUrl = $state(null);
   let liveAudioTitle = $state(null);
+
+  let isLive = $derived(['live', 'LIVE'].includes(auction?.status));
+  let streamSrc = $derived(mediaEmbedUrl(liveVideoUrl));
+  let showHeroStream = $derived(Boolean(streamSrc && !isLive));
   
   $effect(() => {
     if ($page.params.id) {
@@ -93,7 +98,7 @@
 {:else if auction}
   <InterestTracker entityType="AUCTION" entityId={auction.id} />
   <div class="min-h-screen bg-[#f7f4ee]">
-    {#if auction.status === 'live' || auction.status === 'LIVE'}
+    {#if isLive}
       <LiveAuctionDashboard {auction} videoUrl={liveVideoUrl} videoTitle={liveVideoTitle} audioUrl={liveAudioUrl} audioTitle={liveAudioTitle} />
     {:else if ['ended', 'ENDED', 'cancelled', 'CANCELLED'].includes(auction.status)}
       <div class="border-b border-[#ddd6ca] bg-[#152c26] px-4 py-8 text-center text-[#f7f4ee]">
@@ -107,15 +112,38 @@
       <div class="container mx-auto px-4 py-8">
         <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
           <div>
-            <img
-              src={auction.imageUrl}
-              alt={auction.title}
-              class="w-full h-96 object-cover border border-[#ddd6ca]"
-            />
+            {#if showHeroStream}
+              <div class="overflow-hidden border border-[#ddd6ca] bg-black">
+                <div class="aspect-video">
+                  <iframe
+                    src={streamSrc}
+                    title={liveVideoTitle || 'Auction live stream'}
+                    class="h-full w-full"
+                    allow="autoplay; encrypted-media; picture-in-picture; fullscreen"
+                    allowfullscreen
+                  ></iframe>
+                </div>
+                {#if liveVideoTitle}
+                  <p class="border-t border-[#ddd6ca] bg-[#152c26] px-4 py-3 text-sm font-semibold text-[#f7f4ee]">{liveVideoTitle}</p>
+                {/if}
+              </div>
+              {#if liveAudioUrl}
+                <div class="mt-3 border border-[#ddd6ca] bg-[#f7f4ee] p-4">
+                  <p class="text-sm font-semibold text-[#1a2821]">{liveAudioTitle || 'Live auction audio'}</p>
+                  <audio controls preload="none" src={liveAudioUrl} class="mt-2 h-9 w-full"></audio>
+                </div>
+              {/if}
+            {:else}
+              <img
+                src={auction.imageUrl}
+                alt={auction.title}
+                class="w-full h-96 object-cover border border-[#ddd6ca]"
+              />
+            {/if}
           </div>
           <div>
             <div class="mb-4">
-              <span class="px-3 py-1 text-sm font-semibold {auction.status === 'live' ? 'bg-[#efe8dc] text-[#a95739]' : auction.status === 'upcoming' ? 'bg-[#e8eee9] text-[#18372f]' : 'bg-[#efe8dc] text-[#435048]'}">
+              <span class="px-3 py-1 text-sm font-semibold {isLive ? 'bg-[#efe8dc] text-[#a95739]' : auction.status === 'upcoming' || auction.status === 'UPCOMING' ? 'bg-[#e8eee9] text-[#18372f]' : 'bg-[#efe8dc] text-[#435048]'}">
                 {auction.status.toUpperCase()}
               </span>
               <span class="ml-2 bg-[#efe8dc] px-3 py-1 text-sm font-semibold text-[#18372f]">
@@ -150,7 +178,7 @@
                 <span class="font-semibold mr-2">Total Lots:</span>
                 <span>{auction.totalLots}</span>
               </div>
-              {#if auction.status === 'live'}
+              {#if isLive}
                 <div class="flex items-center text-red-600">
                   <span class="font-semibold mr-2">Active Bids:</span>
                   <span>{auction.currentBids}</span>
