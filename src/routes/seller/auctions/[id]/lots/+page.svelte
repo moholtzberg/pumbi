@@ -2,7 +2,6 @@
   import { onMount } from 'svelte';
   import { page } from '$app/stores';
   import { goto } from '$app/navigation';
-  import BannerGenerator from '$lib/components/BannerGenerator.svelte';
   import PumbiLoader from '$lib/components/PumbiLoader.svelte';
   
   let auction = $state(null);
@@ -43,41 +42,8 @@
   let currentAuctionId = $state(null);
   let draggedLot = $state(null);
   let reordering = $state(false);
-  let showBannerTool = $state(false);
   
-  // Banner tool state
-  let selectedBannerLotId = $state('');
-  let selectedLotImages = $state([]); // All images from selected lot
-  let selectedBannerImages = $state([]); // Images selected for banner
-  let bannerSettings = $state({
-    title: '',
-    titleHebrew: '',
-    subtitle: '',
-    subtitleHebrew: '',
-    yearEnglish: '',
-    yearHebrew: '',
-    category: '',
-    categoryHebrew: '',
-    primaryImageUrl: '',
-    width: 1200,
-    height: 630,
-    fontSize: 48,
-    fontFamily: 'Cormorant Garamond, Times New Roman, serif',
-    hebrewFontFamily: 'Frank Ruhl Libre, Cardo, serif',
-    textColor: '#2C1810',
-    backgroundColor: 'rgba(245, 241, 232, 0.95)'
-  });
-  let generatedBannerUrl = $state(null);
-  let generatingBanner = $state(false);
   
-  // Available fonts
-  const fonts = [
-    { name: 'Cormorant Garamond (Serif)', value: 'Cormorant Garamond, serif' },
-    { name: 'Playfair Display (Serif)', value: 'Playfair Display, serif' },
-    { name: 'Times New Roman (Serif)', value: 'Times New Roman, serif' },
-    { name: 'Georgia (Serif)', value: 'Georgia, serif' },
-    { name: 'Arial (Sans-serif)', value: 'Arial, sans-serif' }
-  ];
   
   const hebrewFonts = [
     { name: 'Frank Ruhl Libre (Serif, Recommended)', value: 'Frank Ruhl Libre, Times New Roman, serif' },
@@ -485,489 +451,34 @@
 </script>
 
 {#if loading}
-  <div class="min-h-screen bg-gray-50 flex items-center justify-center">
-    <div class="text-center">
-      <PumbiLoader size="lg" label="Loading" />
-      <p class="mt-4 text-gray-600">Loading...</p>
-    </div>
+  <div class="py-20 text-center">
+    <PumbiLoader size="lg" label="Loading" />
+    <p class="mt-4 text-sm text-[var(--pumbi-muted)]">Loading lots…</p>
   </div>
 {:else if auction}
-  <div class="min-h-screen bg-gray-50">
-    <div class="container mx-auto px-4 py-8">
-      <button
-        onclick={() => goto('/seller')}
-        class="text-blue-600 hover:text-blue-800 mb-6 flex items-center"
-      >
-        <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7" />
-        </svg>
-        Back to Auctions
-      </button>
-
-      <div class="flex items-center justify-between mb-8">
+  <div>
+      <div class="mb-6 flex flex-wrap items-end justify-between gap-4">
         <div>
-          <div class="flex items-center justify-between mb-4">
-            <h1 class="text-4xl font-bold text-gray-900">Manage Lots</h1>
-            <a
-              href="/seller/auctions/{auction.id}/control-room"
-              class="px-4 py-2 text-sm font-medium text-white bg-red-600 rounded-lg hover:bg-red-700"
-            >
-              Control room
-            </a>
-            <a
-              href="/seller/auctions/{auction.id}/lots/advanced"
-              class="px-4 py-2 text-sm font-medium text-white bg-green-600 rounded-lg hover:bg-green-700"
-            >
-              Advanced View
-            </a>
-            <a
-              href="/seller/auctions/{auction.id}/lots/bulk"
-              class="ml-2 px-4 py-2 text-sm font-medium text-white bg-violet-700 rounded-lg hover:bg-violet-800"
-            >
-              Bulk CSV / Grid
-            </a>
-          </div>
-          <p class="text-gray-600 text-lg">{auction.title}</p>
+          <p class="pumbi-eyebrow">Catalog</p>
+          <h2 class="mt-1 font-[family-name:var(--pumbi-serif)] text-2xl font-semibold">Lots</h2>
+          <p class="mt-1 text-sm text-[var(--pumbi-ink-soft)]">Drag to reorder. Secondary tools are in the tabs above.</p>
         </div>
-        <div class="flex gap-3">
-          <button
-            onclick={() => showBannerTool = !showBannerTool}
-            class="bg-purple-600 text-white px-6 py-3 rounded-lg hover:bg-purple-700 transition-colors font-semibold"
-          >
-            {showBannerTool ? 'Hide' : 'Show'} Banner Tool
-          </button>
-          <button
-            onclick={() => goto(`/seller/auctions/${auction.id}/lots/tools`)}
-            class="bg-gray-600 text-white px-6 py-3 rounded-lg hover:bg-gray-700 transition-colors font-semibold"
-          >
-            Full Banner Tools
-          </button>
-          <button
-            onclick={() => showCreateModal = true}
-            class="bg-blue-600 text-white px-6 py-3 rounded-lg hover:bg-blue-700 transition-colors font-semibold"
-          >
-            Add New Lot
-          </button>
-        </div>
+        <button type="button" class="pumbi-btn" onclick={() => (showCreateModal = true)}>Add lot</button>
       </div>
-
-      <!-- Banner Tool Section -->
-      {#if showBannerTool}
-        <div class="mb-8">
-          <BannerGenerator {lots} {auction} auctionHouse={auction?.auctionHouse} />
-        </div>
-      {/if}
       
-      {#if false}
-        <!-- Old banner code removed - now using BannerGenerator component -->
-        <div class="mb-8 bg-white rounded-lg shadow-lg p-6 border-2 border-purple-200">
-          <div class="flex items-center justify-between mb-4">
-            <h2 class="text-2xl font-bold text-gray-900">Quick Banner Generator</h2>
-            <button
-              onclick={() => showBannerTool = false}
-              class="text-gray-500 hover:text-gray-700"
-            >
-              ✕
-            </button>
-          </div>
-          
-          <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            <!-- Left: Settings -->
-            <div>
-              <div class="mb-4">
-                <label class="block text-sm font-medium text-gray-700 mb-2">
-                  Select Lot (Optional)
-                </label>
-                <select
-                  bind:value={selectedBannerLotId}
-                  onchange={async (e) => {
-                    const lotId = e.target.value;
-                    selectedBannerImages = [];
-                    selectedLotImages = [];
-                    
-                    if (lotId) {
-                      const lot = lots.find(l => l.id === lotId);
-                      if (lot) {
-                        bannerSettings.title = lot.title || '';
-                        bannerSettings.titleHebrew = lot.hebrewTitle || lot.HebrewTitle || '';
-                        bannerSettings.subtitle = lot.description ? lot.description.substring(0, 150) : '';
-                        bannerSettings.subtitleHebrew = lot.hebrewDescription || lot.HebrewDescription || '';
-                        
-                        // Extract year from title if it contains a year
-                        const yearMatch = lot.title?.match(/\b(18|19|20)\d{2}\b/);
-                        if (yearMatch) {
-                          bannerSettings.yearEnglish = yearMatch[0];
-                          bannerSettings.yearHebrew = convertToHebrewYear(yearMatch[0]);
-                        }
-                        
-                        // Load all images from the lot
-                        console.log('Loading images for lot:', lot.id, lot);
-                        const images = [];
-                        
-                        // Check for new images array (from LotImage relation)
-                        // Images from db.lots.getByAuctionId are already presigned URLs
-                        if (lot.images && Array.isArray(lot.images) && lot.images.length > 0) {
-                          console.log('Found images array:', lot.images);
-                          lot.images.forEach(img => {
-                            // Handle both object format {url, id, isPrimary} and string format
-                            const imageUrl = typeof img === 'string' ? img : (img.url || img);
-                            const imageId = img.id || `img-${images.length}`;
-                            const isPrimary = img.isPrimary || false;
-                            
-                            images.push({
-                              url: imageUrl,
-                              id: imageId,
-                              isPrimary: isPrimary
-                            });
-                          });
-                        }
-                        
-                        // Fallback to legacy imageUrls
-                        if (images.length === 0 && lot.imageUrls) {
-                          try {
-                            const parsed = typeof lot.imageUrls === 'string' 
-                              ? JSON.parse(lot.imageUrls) 
-                              : lot.imageUrls;
-                            if (Array.isArray(parsed) && parsed.length > 0) {
-                              console.log('Found imageUrls:', parsed);
-                              parsed.forEach((url, index) => {
-                                images.push({
-                                  url: url,
-                                  id: `legacy-${index}`,
-                                  isPrimary: index === 0
-                                });
-                              });
-                            }
-                          } catch (e) {
-                            console.warn('Failed to parse imageUrls:', e);
-                          }
-                        }
-                        
-                        // Fallback to single imageUrl
-                        if (images.length === 0 && lot.imageUrl) {
-                          console.log('Found single imageUrl:', lot.imageUrl);
-                          images.push({
-                            url: lot.imageUrl,
-                            id: 'legacy-single',
-                            isPrimary: true
-                          });
-                        }
-                        
-                        console.log('Processed images:', images);
-                        
-                        // Images from database are already presigned URLs, so use them directly
-                        const imagesWithPresigned = images.map((img) => {
-                          // The images from db.lots.getByAuctionId are already presigned
-                          // Use the url as both displayUrl and url (they're the same)
-                          return {
-                            ...img,
-                            url: img.url, // Already presigned from database
-                            displayUrl: img.url // Use same URL for display (already presigned)
-                          };
-                        });
-                        
-                        console.log('Final images with presigned:', imagesWithPresigned);
-                        
-                        selectedLotImages = imagesWithPresigned;
-                        
-                        // Auto-select first image (or primary image)
-                        const primaryImage = imagesWithPresigned.find(img => img.isPrimary) || imagesWithPresigned[0];
-                        if (primaryImage) {
-                          selectedBannerImages = [primaryImage];
-                          bannerSettings.primaryImageUrl = primaryImage.url;
-                        }
-                      }
-                    } else {
-                      // Reset to auction defaults
-                      if (auction) {
-                        bannerSettings.title = auction.title || '';
-                        bannerSettings.subtitle = auction.description ? auction.description.substring(0, 150) : '';
-                        bannerSettings.primaryImageUrl = auction.imageUrl || '';
-                        bannerSettings.titleHebrew = '';
-                        bannerSettings.subtitleHebrew = '';
-                        bannerSettings.yearEnglish = '';
-                        bannerSettings.yearHebrew = '';
-                      }
-                    }
-                  }}
-                  class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent bg-white"
-                >
-                  <option value="">-- Use Auction Defaults --</option>
-                  {#each lots as lot}
-                    <option value={lot.id}>
-                      Lot #{lot.lotNumber}: {lot.title}
-                    </option>
-                  {/each}
-                </select>
-              </div>
-              
-              <!-- Image Selection -->
-              {#if selectedLotImages.length > 0}
-                <div class="mb-6 p-4 bg-purple-50 rounded-lg border border-purple-200">
-                  <h3 class="text-lg font-semibold text-gray-900 mb-3">Select Images for Banner</h3>
-                  <div class="grid grid-cols-3 gap-3 max-h-64 overflow-y-auto">
-                    {#each selectedLotImages as image}
-                      {@const isSelected = selectedBannerImages.some(sel => sel.id === image.id || sel.url === image.url)}
-                      <div
-                        class="relative cursor-pointer border-2 rounded-lg overflow-hidden transition-all {isSelected ? 'border-purple-600 ring-2 ring-purple-300' : 'border-gray-300 hover:border-purple-400'}"
-                        onclick={() => {
-                          if (isSelected) {
-                            selectedBannerImages = selectedBannerImages.filter(sel => sel.id !== image.id && sel.url !== image.url);
-                          } else {
-                            selectedBannerImages = [...selectedBannerImages, image];
-                          }
-                          // Update primary image URL to first selected
-                          if (selectedBannerImages.length > 0) {
-                            bannerSettings.primaryImageUrl = selectedBannerImages[0].url;
-                          } else {
-                            bannerSettings.primaryImageUrl = '';
-                          }
-                        }}
-                      >
-                        <img
-                          src={image.displayUrl || image.url}
-                          alt="Lot image"
-                          class="w-full h-24 object-cover"
-                          onerror={(e) => {
-                            e.target.src = 'data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" width="100" height="100"%3E%3Crect fill="%23ddd" width="100" height="100"/%3E%3Ctext x="50" y="50" text-anchor="middle" dy=".3em" fill="%23999"%3ENo Image%3C/text%3E%3C/svg%3E';
-                          }}
-                        />
-                        {#if isSelected}
-                          <div class="absolute top-1 right-1 bg-purple-600 text-white rounded-full w-6 h-6 flex items-center justify-center text-xs font-bold">
-                            ✓
-                          </div>
-                        {/if}
-                        {#if image.isPrimary}
-                          <div class="absolute bottom-1 left-1 bg-blue-600 text-white text-xs px-1 rounded">
-                            Primary
-                          </div>
-                        {/if}
-                      </div>
-                    {/each}
-                  </div>
-                  <p class="text-xs text-gray-600 mt-2">
-                    {selectedBannerImages.length} image{selectedBannerImages.length !== 1 ? 's' : ''} selected
-                    {selectedBannerImages.length > 1 ? ' (will create collage)' : ''}
-                  </p>
-                </div>
-              {/if}
-              
-              <!-- English Fields -->
-              <div class="mb-6 p-4 bg-blue-50 rounded-lg border border-blue-200">
-                <h3 class="text-lg font-semibold text-gray-900 mb-4">English Text</h3>
-                
-                <div class="mb-4">
-                  <label for="title-en" class="block text-sm font-medium text-gray-700 mb-2">
-                    Title (English)
-                  </label>
-                  <input
-                    id="title-en"
-                    type="text"
-                    bind:value={bannerSettings.title}
-                    placeholder="Banner title"
-                    class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
-                  />
-                </div>
-                
-                <div class="mb-4">
-                  <label for="subtitle-en" class="block text-sm font-medium text-gray-700 mb-2">
-                    Subtitle (English)
-                  </label>
-                  <textarea
-                    id="subtitle-en"
-                    bind:value={bannerSettings.subtitle}
-                    placeholder="Banner subtitle"
-                    rows="2"
-                    class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
-                  ></textarea>
-                </div>
-                
-                <div class="mb-4">
-                  <label for="year-en" class="block text-sm font-medium text-gray-700 mb-2">
-                    Year (English)
-                  </label>
-                  <input
-                    id="year-en"
-                    type="text"
-                    bind:value={bannerSettings.yearEnglish}
-                    placeholder="e.g., 1890"
-                    oninput={(e) => {
-                      bannerSettings.yearEnglish = e.target.value;
-                      if (bannerSettings.yearEnglish) {
-                        bannerSettings.yearHebrew = convertToHebrewYear(bannerSettings.yearEnglish);
-                      }
-                    }}
-                    class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
-                  />
-                </div>
-              </div>
-              
-              <!-- Hebrew Fields -->
-              <div class="mb-6 p-4 bg-green-50 rounded-lg border border-green-200">
-                <h3 class="text-lg font-semibold text-gray-900 mb-4">Hebrew Text</h3>
-                
-                <div class="mb-4">
-                  <label for="title-he" class="block text-sm font-medium text-gray-700 mb-2">
-                    Title (Hebrew)
-                  </label>
-                  <input
-                    id="title-he"
-                    type="text"
-                    bind:value={bannerSettings.titleHebrew}
-                    placeholder="כותרת בעברית"
-                    dir="rtl"
-                    class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
-                  />
-                </div>
-                
-                <div class="mb-4">
-                  <label for="subtitle-he" class="block text-sm font-medium text-gray-700 mb-2">
-                    Subtitle (Hebrew)
-                  </label>
-                  <textarea
-                    id="subtitle-he"
-                    bind:value={bannerSettings.subtitleHebrew}
-                    placeholder="תת-כותרת בעברית"
-                    rows="2"
-                    dir="rtl"
-                    class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
-                  ></textarea>
-                </div>
-                
-                <div class="mb-4">
-                  <label for="year-he" class="block text-sm font-medium text-gray-700 mb-2">
-                    Year (Hebrew)
-                  </label>
-                  <input
-                    id="year-he"
-                    type="text"
-                    bind:value={bannerSettings.yearHebrew}
-                    placeholder="תר״נ"
-                    dir="rtl"
-                    class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
-                  />
-                </div>
-              </div>
-              
-              <!-- Font & Size Settings -->
-              <div class="mb-6 p-4 bg-gray-50 rounded-lg border border-gray-200">
-                <h3 class="text-lg font-semibold text-gray-900 mb-4">Typography</h3>
-                
-                <div class="mb-4">
-                  <label for="font-size" class="block text-sm font-medium text-gray-700 mb-2">
-                    Font Size: {bannerSettings.fontSize}px
-                  </label>
-                  <input
-                    id="font-size"
-                    type="range"
-                    min="24"
-                    max="72"
-                    bind:value={bannerSettings.fontSize}
-                    class="w-full"
-                  />
-                </div>
-                
-                <div class="mb-4">
-                  <label for="font-family" class="block text-sm font-medium text-gray-700 mb-2">
-                    English Font
-                  </label>
-                  <select
-                    id="font-family"
-                    bind:value={bannerSettings.fontFamily}
-                    class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
-                  >
-                    {#each fonts as font}
-                      <option value={font.value}>{font.name}</option>
-                    {/each}
-                  </select>
-                </div>
-                
-                <div class="mb-4">
-                  <label for="hebrew-font-family" class="block text-sm font-medium text-gray-700 mb-2">
-                    Hebrew Font
-                  </label>
-                  <select
-                    id="hebrew-font-family"
-                    bind:value={bannerSettings.hebrewFontFamily}
-                    class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
-                  >
-                    {#each hebrewFonts as font}
-                      <option value={font.value}>{font.name}</option>
-                    {/each}
-                  </select>
-                </div>
-              </div>
-              
-              <!-- Image Settings -->
-              <div class="mb-4">
-                <label for="image-url" class="block text-sm font-medium text-gray-700 mb-2">
-                  Image URL
-                </label>
-                <input
-                  id="image-url"
-                  type="text"
-                  bind:value={bannerSettings.primaryImageUrl}
-                  placeholder="Image URL"
-                  class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
-                />
-                <p class="text-xs text-gray-500 mt-1">Make sure the image URL is accessible (CORS enabled or presigned URL)</p>
-              </div>
-              
-              <button
-                onclick={generateQuickBanner}
-                disabled={generatingBanner || (!bannerSettings.title && !bannerSettings.titleHebrew) || (selectedBannerImages.length === 0 && !bannerSettings.primaryImageUrl)}
-                class="w-full bg-purple-600 text-white py-3 rounded-lg hover:bg-purple-700 transition-colors font-semibold disabled:bg-gray-400 disabled:cursor-not-allowed"
-              >
-                {generatingBanner ? 'Generating...' : 'Generate Banner'}
-              </button>
-              
-              {#if generatedBannerUrl}
-                <button
-                  onclick={downloadBanner}
-                  class="w-full mt-3 bg-green-600 text-white py-3 rounded-lg hover:bg-green-700 transition-colors font-semibold"
-                >
-                  Download Banner
-                </button>
-              {/if}
-            </div>
-            
-            <!-- Right: Preview -->
-            <div>
-              <h3 class="text-lg font-semibold text-gray-900 mb-4">Preview</h3>
-              {#if generatedBannerUrl}
-                <img
-                  src={generatedBannerUrl}
-                  alt="Generated Banner"
-                  class="w-full rounded-lg shadow-lg border border-gray-200"
-                />
-              {:else}
-                <div class="border-2 border-dashed border-gray-300 rounded-lg p-12 text-center bg-gray-50">
-                  <svg class="mx-auto h-12 w-12 text-gray-400 mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
-                  </svg>
-                  <p class="text-gray-600">Configure settings and click "Generate Banner"</p>
-                </div>
-              {/if}
-            </div>
-          </div>
-        </div>
-      {/if}
 
       {#if lots.length === 0}
-        <div class="bg-white rounded-lg shadow-lg p-12 text-center">
-          <p class="text-gray-600 text-lg mb-4">No lots added yet.</p>
-          <button
-            onclick={() => showCreateModal = true}
-            class="bg-blue-600 text-white px-6 py-3 rounded-lg hover:bg-blue-700 transition-colors font-semibold"
-          >
-            Add Your First Lot
+        <div class="pumbi-panel p-12 text-center">
+          <p class="mb-4 text-lg text-[var(--pumbi-muted)]">No lots added yet.</p>
+          <button type="button" onclick={() => (showCreateModal = true)} class="pumbi-btn">
+            Add your first lot
           </button>
         </div>
       {:else}
-        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        <div class="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-3">
           {#each lots as lot, index (lot.id)}
             <div 
-              class="bg-white rounded-lg shadow-md overflow-hidden cursor-move hover:shadow-lg transition-shadow"
+              class="pumbi-panel overflow-hidden cursor-move transition-shadow hover:shadow-md"
               role="button"
               tabindex="0"
               draggable="true"
@@ -980,7 +491,7 @@
                   <img
                     src={lot.imageUrl}
                     alt={lot.title}
-                    class="w-full h-48 object-cover"
+                    class="h-48 w-full object-cover"
                   />
                 {:else if lot.imageUrls}
                   {@const images = (() => { try { return JSON.parse(lot.imageUrls); } catch { return []; } })()}
@@ -988,69 +499,57 @@
                     <img
                       src={images[0]}
                       alt={lot.title}
-                      class="w-full h-48 object-cover"
+                      class="h-48 w-full object-cover"
                     />
                   {:else}
-                    <div class="w-full h-48 bg-gray-200 flex items-center justify-center">
-                      <span class="text-gray-400">No image</span>
+                    <div class="flex h-48 w-full items-center justify-center bg-[var(--pumbi-cream-deep)]">
+                      <span class="text-[var(--pumbi-muted)]">No image</span>
                     </div>
                   {/if}
                 {:else}
-                  <div class="w-full h-48 bg-gray-200 flex items-center justify-center">
-                    <span class="text-gray-400">No image</span>
+                  <div class="flex h-48 w-full items-center justify-center bg-[var(--pumbi-cream-deep)]">
+                    <span class="text-[var(--pumbi-muted)]">No image</span>
                   </div>
                 {/if}
-                <div class="absolute top-4 left-4 bg-white px-3 py-1 rounded-full text-sm font-bold">
+                <div class="absolute left-3 top-3 bg-white px-3 py-1 text-sm font-bold">
                   Lot #{lot.lotNumber}
                 </div>
-                <div class="absolute top-4 right-4 bg-blue-600 text-white px-3 py-1 rounded-full text-sm font-bold">
+                <div class="absolute right-3 top-3 bg-[var(--pumbi-forest)] px-3 py-1 text-sm font-bold text-white">
                   #{lot.position || index + 1}
                 </div>
               </div>
-              <div class="p-6">
-                <h3 class="text-lg font-bold text-gray-900 mb-2">{lot.title}</h3>
-                <p class="text-gray-600 text-sm mb-4 line-clamp-2">{lot.description}</p>
-                <div class="space-y-2 mb-4 text-sm">
+              <div class="p-5">
+                <h3 class="mb-2 font-[family-name:var(--pumbi-serif)] text-lg font-semibold">{lot.title}</h3>
+                <p class="mb-4 line-clamp-2 text-sm text-[var(--pumbi-ink-soft)]">{lot.description}</p>
+                <div class="mb-4 space-y-2 text-sm">
                   <div class="flex justify-between">
-                    <span class="text-gray-500">Starting Bid:</span>
+                    <span class="text-[var(--pumbi-muted)]">Starting</span>
                     <span class="font-semibold">{formatCurrency(lot.startingBid)}</span>
                   </div>
                   <div class="flex justify-between">
-                    <span class="text-gray-500">Current Bid:</span>
-                    <span class="font-semibold text-blue-600">{formatCurrency(lot.currentBid)}</span>
-                  </div>
-                  <div class="flex justify-between">
-                    <span class="text-gray-500">Bid Increment:</span>
-                    <span class="font-semibold">{formatCurrency(lot.bidIncrement)}</span>
+                    <span class="text-[var(--pumbi-muted)]">Current</span>
+                    <span class="font-semibold text-[var(--pumbi-terracotta)]">{formatCurrency(lot.currentBid)}</span>
                   </div>
                 </div>
-                <div class="flex gap-2 mb-2">
-                  <button
-                    onclick={() => goto(`/lots/${lot.id}`)}
-                    class="flex-1 bg-blue-600 text-white py-2 rounded-lg hover:bg-blue-700 transition-colors font-semibold text-sm"
-                  >
-                    View
-                  </button>
-                  <button
-                    onclick={() => goto(`/seller/auctions/${$page.params.id}/lots/${lot.id}/edit`)}
-                    class="flex-1 bg-green-600 text-white py-2 rounded-lg hover:bg-green-700 transition-colors font-semibold text-sm"
-                  >
-                    Edit
-                  </button>
+                <div class="mb-2 flex gap-2">
+                  <a href={`/lots/${lot.id}`} class="pumbi-btn-secondary flex-1 text-center text-sm">View</a>
+                  <a href={`/seller/auctions/${$page.params.id}/lots/${lot.id}/edit`} class="pumbi-btn flex-1 text-center text-sm">Edit</a>
                 </div>
                 <div class="flex gap-1">
                   <button
+                    type="button"
                     onclick={() => moveLotUp(index)}
                     disabled={index === 0 || reordering}
-                    class="flex-1 bg-gray-200 text-gray-700 py-1 rounded hover:bg-gray-300 transition-colors text-xs font-semibold disabled:opacity-50 disabled:cursor-not-allowed"
+                    class="flex-1 bg-[var(--pumbi-cream-deep)] py-1 text-xs font-semibold disabled:opacity-50"
                     title="Move up"
                   >
                     ↑
                   </button>
                   <button
+                    type="button"
                     onclick={() => moveLotDown(index)}
                     disabled={index === lots.length - 1 || reordering}
-                    class="flex-1 bg-gray-200 text-gray-700 py-1 rounded hover:bg-gray-300 transition-colors text-xs font-semibold disabled:opacity-50 disabled:cursor-not-allowed"
+                    class="flex-1 bg-[var(--pumbi-cream-deep)] py-1 text-xs font-semibold disabled:opacity-50"
                     title="Move down"
                   >
                     ↓
@@ -1061,7 +560,6 @@
           {/each}
         </div>
       {/if}
-    </div>
   </div>
 {/if}
 

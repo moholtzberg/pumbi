@@ -142,73 +142,117 @@
 
 <svelte:head><title>Seller team | Pumbi</title></svelte:head>
 
-<div class="min-h-screen bg-slate-50">
-  <div class="mx-auto max-w-6xl px-4 py-8 sm:px-6 lg:px-8">
-    <div class="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-      <div><p class="text-sm font-semibold uppercase tracking-wide text-blue-700">Auction house access</p><h1 class="mt-1 text-3xl font-bold text-slate-950">Team</h1><p class="mt-2 text-slate-600">Invite colleagues and control their roles and account status.</p></div>
-      <div class="flex gap-2"><a href="/seller/onboarding" class="secondary">Onboarding</a><a href="/seller" class="secondary">Seller dashboard</a></div>
-    </div>
+<main class="mx-auto w-full max-w-[1240px] px-4 py-8 sm:px-6 lg:px-8">
+  <header class="mb-6">
+    <p class="pumbi-eyebrow">Access</p>
+    <h1 class="mt-2 font-[family-name:var(--pumbi-serif)] text-3xl font-semibold">Team</h1>
+    <p class="mt-1 text-sm text-[var(--pumbi-ink-soft)]">Invite colleagues and control roles and account status.</p>
+  </header>
 
-    {#if errorMessage}<div class="mt-6 rounded-lg border border-red-200 bg-red-50 p-4 text-sm text-red-800" role="alert">{errorMessage}</div>{/if}
-    {#if successMessage}<div class="mt-6 rounded-lg border border-green-200 bg-green-50 p-4 text-sm text-green-800" role="status">{successMessage}</div>{/if}
-    {#if manualInviteLink}
-      <div class="mt-6 rounded-xl border border-amber-300 bg-amber-50 p-5">
-        <p class="font-semibold text-amber-950">Copy this one-time invitation link now</p>
-        <p class="mt-1 text-sm text-amber-800">For security, this link will not be available after you leave or refresh this page.</p>
-        <div class="mt-3 flex flex-col gap-2 sm:flex-row"><input class="min-w-0 flex-1 rounded-lg border border-amber-300 bg-white px-3 py-2 text-sm" readonly value={manualInviteLink} /><button class="primary" type="button" onclick={copyInviteLink}>Copy link</button></div>
+  {#if errorMessage}<div class="mb-4 border border-red-200 bg-red-50 p-4 text-sm text-red-800" role="alert">{errorMessage}</div>{/if}
+  {#if successMessage}<div class="mb-4 border border-emerald-200 bg-emerald-50 p-4 text-sm text-emerald-800" role="status">{successMessage}</div>{/if}
+  {#if manualInviteLink}
+    <div class="mb-4 border border-amber-300 bg-amber-50 p-5">
+      <p class="font-semibold text-amber-950">Copy this one-time invitation link now</p>
+      <p class="mt-1 text-sm text-amber-800">For security, this link will not be available after you leave or refresh this page.</p>
+      <div class="mt-3 flex flex-col gap-2 sm:flex-row">
+        <input class="min-w-0 flex-1 border border-amber-300 bg-white px-3 py-2 text-sm" readonly value={manualInviteLink} />
+        <button class="pumbi-btn" type="button" onclick={copyInviteLink}>Copy link</button>
       </div>
-    {/if}
+    </div>
+  {/if}
 
-    {#if loading}
-      <div class="mt-6 rounded-xl bg-white p-12 text-center shadow-sm"><PumbiLoader size="md" label="Loading team" /><p class="mt-4 text-slate-600">Loading team…</p></div>
-    {:else}
-      <section class="mt-6 rounded-xl bg-white p-5 shadow-sm sm:p-7">
-        <h2 class="text-xl font-bold text-slate-900">Invite a team member</h2>
-        <form class="mt-5 grid gap-4 md:grid-cols-4" onsubmit={(event) => { event.preventDefault(); inviteMember(); }}>
-          <label><span>First name *</span><input bind:value={invite.firstName} autocomplete="given-name" required /></label>
-          <label><span>Last name *</span><input bind:value={invite.lastName} autocomplete="family-name" required /></label>
-          <label><span>Email *</span><input type="email" bind:value={invite.email} autocomplete="email" required /></label>
-          <label><span>Role *</span><select bind:value={invite.role}>{#each roles.filter((role) => role !== 'OWNER') as role}<option value={role}>{label(role)}</option>{/each}</select></label>
-          <div class="md:col-span-4 flex justify-end"><button class="primary" type="submit" disabled={saving}>{saving ? 'Inviting…' : 'Create invitation'}</button></div>
-        </form>
-      </section>
-
-      <section class="mt-6 rounded-xl bg-white p-5 shadow-sm sm:p-7">
-        <h2 class="text-xl font-bold text-slate-900">Members</h2>
-        <div class="mt-5 overflow-x-auto">
-          <table class="min-w-full text-left text-sm">
-            <thead class="border-b text-xs uppercase tracking-wide text-slate-500"><tr><th class="px-3 py-3">Member</th><th class="px-3 py-3">Role</th><th class="px-3 py-3">Status</th></tr></thead>
-            <tbody class="divide-y">
-              {#each members as member}
-                <tr><td class="px-3 py-4"><p class="font-semibold text-slate-900">{member.user?.firstName || member.firstName || ''} {member.user?.lastName || member.lastName || ''}</p><p class="text-slate-500">{member.user?.email || member.email}</p></td>
-                  <td class="px-3 py-4"><select class="field min-w-44" value={member.role} disabled={saving || member.role === 'OWNER'} onchange={(event) => updateMember(member, { role: event.currentTarget.value })}>{#each roles as role}<option value={role}>{label(role)}</option>{/each}</select></td>
-                  <td class="px-3 py-4"><select class="field min-w-32" value={member.status} disabled={saving || member.role === 'OWNER'} onchange={(event) => updateMember(member, { status: event.currentTarget.value })}>{#each memberStatuses as status}<option value={status}>{label(status)}</option>{/each}</select></td></tr>
-              {:else}<tr><td colspan="3" class="px-3 py-8 text-center text-slate-500">No members returned.</td></tr>{/each}
-            </tbody>
-          </table>
+  {#if loading}
+    <div class="pumbi-panel p-12 text-center">
+      <PumbiLoader size="md" label="Loading team" />
+      <p class="mt-4 text-[var(--pumbi-muted)]">Loading team…</p>
+    </div>
+  {:else}
+    <section class="pumbi-panel p-5 sm:p-7">
+      <h2 class="font-[family-name:var(--pumbi-serif)] text-xl font-semibold">Invite a team member</h2>
+      <form class="mt-5 grid gap-4 md:grid-cols-4" onsubmit={(event) => { event.preventDefault(); inviteMember(); }}>
+        <label><span>First name *</span><input bind:value={invite.firstName} autocomplete="given-name" required /></label>
+        <label><span>Last name *</span><input bind:value={invite.lastName} autocomplete="family-name" required /></label>
+        <label><span>Email *</span><input type="email" bind:value={invite.email} autocomplete="email" required /></label>
+        <label><span>Role *</span><select bind:value={invite.role}>{#each roles.filter((role) => role !== 'OWNER') as role}<option value={role}>{label(role)}</option>{/each}</select></label>
+        <div class="md:col-span-4 flex justify-end">
+          <button class="pumbi-btn" type="submit" disabled={saving}>{saving ? 'Inviting…' : 'Create invitation'}</button>
         </div>
-      </section>
+      </form>
+    </section>
 
-      <section class="mt-6 rounded-xl bg-white p-5 shadow-sm sm:p-7">
-        <h2 class="text-xl font-bold text-slate-900">Pending and past invitations</h2>
-        <div class="mt-5 space-y-3">
-          {#each invitations as item}
-            <div class="flex flex-col justify-between gap-3 rounded-lg border p-4 sm:flex-row sm:items-center">
-              <div><p class="font-semibold text-slate-900">{item.firstName || ''} {item.lastName || ''} <span class="font-normal text-slate-500">· {item.email}</span></p><p class="mt-1 text-sm text-slate-500">{label(item.role)} · {label(item.status)}{item.expiresAt ? ` · Expires ${new Date(item.expiresAt).toLocaleDateString()}` : ''}</p></div>
-              {#if item.status === 'PENDING'}<button class="danger" type="button" disabled={saving} onclick={() => updateInvitation(item, 'REVOKED')}>Revoke</button>{/if}
+    <section class="pumbi-panel mt-6 p-5 sm:p-7">
+      <h2 class="font-[family-name:var(--pumbi-serif)] text-xl font-semibold">Members</h2>
+      <div class="mt-5 overflow-x-auto">
+        <table class="min-w-full text-left text-sm">
+          <thead class="border-b border-[var(--pumbi-line)] text-xs uppercase tracking-wide text-[var(--pumbi-muted)]">
+            <tr><th class="px-3 py-3">Member</th><th class="px-3 py-3">Role</th><th class="px-3 py-3">Status</th></tr>
+          </thead>
+          <tbody class="divide-y divide-[var(--pumbi-line-soft)]">
+            {#each members as member}
+              <tr>
+                <td class="px-3 py-4">
+                  <p class="font-semibold">{member.user?.firstName || member.firstName || ''} {member.user?.lastName || member.lastName || ''}</p>
+                  <p class="text-[var(--pumbi-muted)]">{member.user?.email || member.email}</p>
+                </td>
+                <td class="px-3 py-4">
+                  <select class="field min-w-44" value={member.role} disabled={saving || member.role === 'OWNER'} onchange={(event) => updateMember(member, { role: event.currentTarget.value })}>
+                    {#each roles as role}<option value={role}>{label(role)}</option>{/each}
+                  </select>
+                </td>
+                <td class="px-3 py-4">
+                  <select class="field min-w-32" value={member.status} disabled={saving || member.role === 'OWNER'} onchange={(event) => updateMember(member, { status: event.currentTarget.value })}>
+                    {#each memberStatuses as status}<option value={status}>{label(status)}</option>{/each}
+                  </select>
+                </td>
+              </tr>
+            {:else}
+              <tr><td colspan="3" class="px-3 py-8 text-center text-[var(--pumbi-muted)]">No members returned.</td></tr>
+            {/each}
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <section class="pumbi-panel mt-6 p-5 sm:p-7">
+      <h2 class="font-[family-name:var(--pumbi-serif)] text-xl font-semibold">Pending and past invitations</h2>
+      <div class="mt-5 space-y-3">
+        {#each invitations as item}
+          <div class="flex flex-col justify-between gap-3 border border-[var(--pumbi-line)] p-4 sm:flex-row sm:items-center">
+            <div>
+              <p class="font-semibold">{item.firstName || ''} {item.lastName || ''} <span class="font-normal text-[var(--pumbi-muted)]">· {item.email}</span></p>
+              <p class="mt-1 text-sm text-[var(--pumbi-muted)]">{label(item.role)} · {label(item.status)}{item.expiresAt ? ` · Expires ${new Date(item.expiresAt).toLocaleDateString()}` : ''}</p>
             </div>
-          {:else}<p class="rounded-lg border border-dashed p-8 text-center text-slate-500">No invitations yet.</p>{/each}
-        </div>
-      </section>
-    {/if}
-  </div>
-</div>
+            {#if item.status === 'PENDING'}
+              <button class="text-sm font-bold text-red-800" type="button" disabled={saving} onclick={() => updateInvitation(item, 'REVOKED')}>Revoke</button>
+            {/if}
+          </div>
+        {:else}
+          <p class="border border-dashed border-[var(--pumbi-line)] p-8 text-center text-[var(--pumbi-muted)]">No invitations yet.</p>
+        {/each}
+      </div>
+    </section>
+  {/if}
+</main>
 
 <style>
-  label span { display: block; margin-bottom: .4rem; font-size: .875rem; font-weight: 600; color: rgb(51 65 85); }
-  label input, label select, .field { width: 100%; border: 1px solid rgb(203 213 225); border-radius: .5rem; background: white; padding: .65rem .75rem; color: rgb(15 23 42); }
-  button.primary { border-radius: .5rem; background: rgb(37 99 235); padding: .65rem 1rem; color: white; font-weight: 700; }
-  button.primary:disabled { opacity: .5; }
-  a.secondary { border: 1px solid rgb(203 213 225); border-radius: .5rem; background: white; padding: .6rem .9rem; color: rgb(51 65 85); font-size: .875rem; font-weight: 600; }
-  button.danger { border-radius: .5rem; padding: .55rem .8rem; color: rgb(185 28 28); font-weight: 700; }
+  label span {
+    display: block;
+    margin-bottom: 0.4rem;
+    font-size: 0.875rem;
+    font-weight: 600;
+    color: var(--pumbi-ink-soft);
+  }
+  label input,
+  label select,
+  .field {
+    width: 100%;
+    border: 1px solid var(--pumbi-line);
+    background: white;
+    padding: 0.65rem 0.75rem;
+    color: var(--pumbi-ink);
+  }
+  button:disabled {
+    opacity: 0.5;
+  }
 </style>

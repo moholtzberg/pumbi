@@ -939,39 +939,27 @@
 </script>
 
 {#if loading}
-  <div class="min-h-screen bg-gray-50 flex items-center justify-center">
-    <div class="text-center">
-      <PumbiLoader size="lg" label="Loading" />
-      <p class="mt-4 text-gray-600">Loading...</p>
-    </div>
+  <div class="py-20 text-center">
+    <PumbiLoader size="lg" label="Loading" />
+    <p class="mt-4 text-[var(--pumbi-muted)]">Loading…</p>
   </div>
 {:else if auction}
-  <div class="min-h-screen bg-gray-50">
-    <div class="container mx-auto px-4 py-8">
-      <button
-        onclick={() => goto(`/seller/auctions/${auction.id}/lots`)}
-        class="text-blue-600 hover:text-blue-800 mb-6 flex items-center"
-      >
-        <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7" />
-        </svg>
-        Back to Lots Management
-      </button>
+  <div>
+      <header class="mb-6">
+        <p class="pumbi-eyebrow">Promotional</p>
+        <h2 class="mt-1 font-[family-name:var(--pumbi-serif)] text-2xl font-semibold">Banner studio</h2>
+        <p class="mt-1 text-sm text-[var(--pumbi-ink-soft)]">Create promotional banners for lots and auctions.</p>
+      </header>
 
-      <div class="mb-8">
-        <h1 class="text-4xl font-bold text-gray-900 mb-2">Banner Generator Tool</h1>
-        <p class="text-gray-600 text-lg">Create promotional banners for your Judaica lots and auctions</p>
-      </div>
-
-      <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+      <div class="grid grid-cols-1 gap-8 lg:grid-cols-3">
         <!-- Settings Panel -->
         <div class="lg:col-span-1">
-          <div class="bg-white rounded-lg shadow-lg p-6 sticky top-4">
-            <h2 class="text-2xl font-bold text-gray-900 mb-6">Banner Settings</h2>
+          <div class="pumbi-panel sticky top-4 p-6">
+            <h3 class="font-[family-name:var(--pumbi-serif)] text-xl font-semibold mb-6">Banner Settings</h3>
             
             <!-- Lot Selection -->
             <div class="mb-6">
-              <label class="block text-sm font-medium text-gray-700 mb-2">
+              <label class="block text-sm font-medium text-[var(--pumbi-ink-soft)] mb-2">
                 Select Lot (Optional)
               </label>
               <select
@@ -1903,7 +1891,6 @@
           </div>
         </div>
       </div>
-    </div>
   </div>
 {/if}
 

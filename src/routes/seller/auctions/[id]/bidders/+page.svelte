@@ -58,44 +58,42 @@
 
 <svelte:head><title>Bidder approvals</title></svelte:head>
 
-<div class="min-h-screen bg-gray-50 py-8">
-  <div class="mx-auto max-w-5xl px-4">
-    <a href="/seller/auctions/{$page.params.id}/settings" class="text-sm font-semibold text-blue-700">← Auction settings</a>
-    <div class="mt-4 flex items-start justify-between gap-4">
-      <div>
-        <p class="text-sm font-bold uppercase tracking-wide text-purple-700">Private auction</p>
-        <h1 class="text-3xl font-bold text-gray-900">Bidder approvals</h1>
-        <p class="mt-1 text-gray-600">{auction?.title || 'Auction'}</p>
-      </div>
-      <span class="rounded-full bg-yellow-100 px-3 py-1 text-sm font-semibold text-yellow-800">
-        {registrations.filter((item) => item.status === 'PENDING').length} pending
-      </span>
+<div>
+  <div class="flex flex-wrap items-start justify-between gap-4">
+    <div>
+      <p class="pumbi-eyebrow">Private auction access</p>
+      <h2 class="mt-1 font-[family-name:var(--pumbi-serif)] text-2xl font-semibold">Bidder approvals</h2>
+      <p class="mt-1 text-sm text-[var(--pumbi-ink-soft)]">{auction?.title || 'Auction'}</p>
     </div>
+    <span class="bg-[var(--pumbi-cream-deep)] px-3 py-1 text-xs font-bold uppercase tracking-wide text-[var(--pumbi-ink)]">
+      {registrations.filter((item) => item.status === 'PENDING').length} pending
+    </span>
+  </div>
 
-    {#if errorMessage}
-      <div class="mt-6 rounded-lg border border-red-200 bg-red-50 p-4 text-red-800">{errorMessage}</div>
-    {/if}
+  {#if errorMessage}
+    <div class="mt-6 border border-red-200 bg-red-50 p-4 text-red-800">{errorMessage}</div>
+  {/if}
 
-    {#if loading}
-      <p class="mt-8 text-gray-600">Loading registrations…</p>
-    {:else if registrations.length === 0}
-      <div class="mt-8 rounded-xl bg-white p-8 text-center shadow">No bidder registrations yet.</div>
-    {:else}
-      <div class="mt-8 space-y-4">
-        {#each registrations as registration}
-          <article class="rounded-xl bg-white p-6 shadow">
-            <div class="flex flex-col justify-between gap-4 sm:flex-row">
-              <div>
-                <div class="flex items-center gap-3">
-                  <h2 class="text-lg font-bold">{registration.user.name || registration.user.email}</h2>
-                  <span class="rounded-full px-2 py-1 text-xs font-bold {registration.status === 'APPROVED' ? 'bg-green-100 text-green-800' : registration.status === 'REJECTED' ? 'bg-red-100 text-red-800' : 'bg-yellow-100 text-yellow-800'}">
-                    {registration.status}
-                  </span>
-                </div>
-                <p class="text-sm text-gray-600">{registration.user.email}</p>
-                {#if registration.user.phone}<p class="text-sm text-gray-600">{registration.user.phone}</p>{/if}
-                <p class="mt-2 text-xs text-gray-500">Requested {new Date(registration.createdAt).toLocaleString()}</p>
+  {#if loading}
+    <p class="mt-8 text-[var(--pumbi-muted)]">Loading registrations…</p>
+  {:else if registrations.length === 0}
+    <div class="pumbi-panel mt-8 p-8 text-center text-[var(--pumbi-muted)]">No bidder registrations yet.</div>
+  {:else}
+    <div class="mt-8 space-y-4">
+      {#each registrations as registration}
+        <article class="pumbi-panel p-6">
+          <div class="flex flex-col justify-between gap-4 sm:flex-row">
+            <div>
+              <div class="flex items-center gap-3">
+                <h2 class="text-lg font-semibold">{registration.user.name || registration.user.email}</h2>
+                <span class="px-2 py-1 text-[10px] font-bold uppercase tracking-wide {registration.status === 'APPROVED' ? 'bg-[#e8eee9] text-[var(--pumbi-forest)]' : registration.status === 'REJECTED' ? 'bg-red-50 text-red-800' : 'bg-[var(--pumbi-cream-deep)] text-[var(--pumbi-ink)]'}">
+                  {registration.status}
+                </span>
               </div>
+              <p class="text-sm text-[var(--pumbi-ink-soft)]">{registration.user.email}</p>
+              {#if registration.user.phone}<p class="text-sm text-[var(--pumbi-ink-soft)]">{registration.user.phone}</p>{/if}
+              <p class="mt-2 text-xs text-[var(--pumbi-muted)]">Requested {new Date(registration.createdAt).toLocaleString()}</p>
+            </div>
 
               {#if registration.status === 'PENDING'}
                 <div class="w-full max-w-md space-y-2">
@@ -117,5 +115,4 @@
         {/each}
       </div>
     {/if}
-  </div>
 </div>

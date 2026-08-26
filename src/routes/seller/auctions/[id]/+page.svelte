@@ -11,82 +11,94 @@
       minute: '2-digit'
     });
   }
+
+  let isPrivate = $derived(String(auction.type || 'PRIVATE').toUpperCase() === 'PRIVATE');
+
+  let tiles = $derived([
+    {
+      href: `/seller/auctions/${auction.id}/control-room`,
+      eyebrow: 'Live sale',
+      title: 'Control room',
+      body: 'Claim the auctioneer seat, open lots, and hammer the sale.',
+      tone: 'dark'
+    },
+    {
+      href: `/seller/auctions/${auction.id}/lots`,
+      eyebrow: 'Catalog',
+      title: 'Lots',
+      body: 'Add, edit, reorder, and mark lots ready for the block.',
+      tone: 'light'
+    },
+    {
+      href: `/seller/auctions/${auction.id}/interest`,
+      eyebrow: 'Analytics',
+      title: 'Interest',
+      body: 'Unique page views and time on page for this sale and its lots.',
+      tone: 'light'
+    },
+    {
+      href: `/seller/auctions/${auction.id}/settings`,
+      eyebrow: 'Setup',
+      title: 'Auction settings',
+      body: 'Timing, live stream, gallery, and sale-specific rules.',
+      tone: 'light'
+    },
+    ...(isPrivate
+      ? [
+          {
+            href: `/seller/auctions/${auction.id}/bidders`,
+            eyebrow: 'Access',
+            title: 'Bidders',
+            body: 'Review and approve private-auction registrations.',
+            tone: 'light'
+          }
+        ]
+      : [])
+  ]);
 </script>
 
-<div class="min-h-screen bg-slate-100">
-  <div class="border-b border-slate-200 bg-white">
-    <div class="container mx-auto px-4 py-6">
-      <a href="/seller" class="text-sm font-semibold text-blue-700 hover:underline">← Back to auctions</a>
-      <div class="mt-4 flex flex-wrap items-start justify-between gap-4">
-        <div>
-          <p class="text-xs font-bold uppercase tracking-[0.18em] text-slate-500">{auction.auctionHouseName || 'Auction house'}</p>
-          <h1 class="mt-1 text-3xl font-black text-slate-950">{auction.title}</h1>
-          <p class="mt-2 text-sm text-slate-600">
-            <span class="font-semibold uppercase">{auction.status}</span>
-            · {(auction.type || 'PRIVATE').toUpperCase()}
-            · {auction.lotCount} lots
-            · {auction.registrationCount} registrations
-          </p>
-          <p class="mt-1 text-sm text-slate-500">{formatDate(auction.startDate)} → {formatDate(auction.endDate)}</p>
-        </div>
-        <a
-          href={`/auctions/${auction.id}`}
-          class="rounded-xl border border-slate-300 bg-white px-4 py-2 text-sm font-bold text-slate-800 hover:bg-slate-50"
-          target="_blank"
-          rel="noreferrer"
-        >
-          Public auction page
-        </a>
-      </div>
-    </div>
+<section class="grid gap-4 sm:grid-cols-3">
+  <div class="pumbi-panel p-5">
+    <p class="pumbi-eyebrow">Lots</p>
+    <p class="mt-2 font-[family-name:var(--pumbi-serif)] text-3xl font-semibold">{auction.lotCount}</p>
   </div>
-
-  <div class="container mx-auto px-4 py-8">
-    <div class="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
-      <a href={`/seller/auctions/${auction.id}/control-room`} class="rounded-2xl bg-slate-950 p-6 text-white shadow-sm transition hover:-translate-y-0.5 hover:shadow-md">
-        <p class="text-xs font-bold uppercase tracking-[0.18em] text-red-300">Live sale</p>
-        <h2 class="mt-3 text-xl font-black">Control room</h2>
-        <p class="mt-2 text-sm text-slate-300">Claim the auctioneer seat, start the auction, and move lots along.</p>
-      </a>
-
-      <a href={`/seller/auctions/${auction.id}/lots`} class="rounded-2xl bg-white p-6 shadow-sm transition hover:-translate-y-0.5 hover:shadow-md">
-        <p class="text-xs font-bold uppercase tracking-[0.18em] text-violet-600">Catalog</p>
-        <h2 class="mt-3 text-xl font-black text-slate-950">Manage lots</h2>
-        <p class="mt-2 text-sm text-slate-600">Add, edit, reorder, and mark lots ready for the sale.</p>
-      </a>
-
-      <a href={`/seller/auctions/${auction.id}/interest`} class="rounded-2xl bg-white p-6 shadow-sm transition hover:-translate-y-0.5 hover:shadow-md">
-        <p class="text-xs font-bold uppercase tracking-[0.18em] text-amber-700">Analytics</p>
-        <h2 class="mt-3 text-xl font-black text-slate-950">Interest</h2>
-        <p class="mt-2 text-sm text-slate-600">Unique page views and time on page for this auction and its lots.</p>
-      </a>
-
-      <a href={`/seller/auctions/${auction.id}/settings`} class="rounded-2xl bg-white p-6 shadow-sm transition hover:-translate-y-0.5 hover:shadow-md">
-        <p class="text-xs font-bold uppercase tracking-[0.18em] text-blue-600">Setup</p>
-        <h2 class="mt-3 text-xl font-black text-slate-950">Settings</h2>
-        <p class="mt-2 text-sm text-slate-600">Timing, live stream links, gallery layout, and auction rules.</p>
-      </a>
-
-      {#if (auction.type || 'PRIVATE').toUpperCase() === 'PRIVATE'}
-        <a href={`/seller/auctions/${auction.id}/bidders`} class="rounded-2xl bg-white p-6 shadow-sm transition hover:-translate-y-0.5 hover:shadow-md">
-          <p class="text-xs font-bold uppercase tracking-[0.18em] text-emerald-600">Access</p>
-          <h2 class="mt-3 text-xl font-black text-slate-950">Bidder approvals</h2>
-          <p class="mt-2 text-sm text-slate-600">Review registrations before private-auction bidding.</p>
-        </a>
-      {:else}
-        <a href="/dashboard/sell" class="rounded-2xl bg-white p-6 shadow-sm transition hover:-translate-y-0.5 hover:shadow-md">
-          <p class="text-xs font-bold uppercase tracking-[0.18em] text-emerald-600">Public</p>
-          <h2 class="mt-3 text-xl font-black text-slate-950">Seller submissions</h2>
-          <p class="mt-2 text-sm text-slate-600">Independent sellers submit lots into public auctions.</p>
-        </a>
-      {/if}
-    </div>
-
-    {#if auction.description}
-      <div class="mt-8 rounded-2xl bg-white p-6 shadow-sm">
-        <h2 class="font-black text-slate-950">Description</h2>
-        <p class="mt-3 whitespace-pre-wrap text-sm leading-6 text-slate-600">{auction.description}</p>
-      </div>
-    {/if}
+  <div class="pumbi-panel p-5">
+    <p class="pumbi-eyebrow">Registrations</p>
+    <p class="mt-2 font-[family-name:var(--pumbi-serif)] text-3xl font-semibold">{auction.registrationCount}</p>
   </div>
-</div>
+  <div class="pumbi-panel p-5">
+    <p class="pumbi-eyebrow">Window</p>
+    <p class="mt-2 text-sm leading-6 text-[var(--pumbi-ink-soft)]">
+      {formatDate(auction.startDate)}
+      <span class="text-[var(--pumbi-muted)]"> → </span>
+      {formatDate(auction.endDate)}
+    </p>
+  </div>
+</section>
+
+<section class="mt-6 grid gap-4 md:grid-cols-2">
+  {#each tiles as tile}
+    <a
+      href={tile.href}
+      class="group block border p-6 transition hover:-translate-y-0.5 {tile.tone === 'dark'
+        ? 'border-[var(--pumbi-forest-deep)] bg-[var(--pumbi-forest-deep)] text-[#f7f4ee]'
+        : 'pumbi-panel'}"
+    >
+      <p class="text-[10px] font-bold uppercase tracking-[0.18em] {tile.tone === 'dark' ? 'text-[#d6b477]' : 'text-[var(--pumbi-terracotta)]'}">
+        {tile.eyebrow}
+      </p>
+      <h2 class="mt-3 font-[family-name:var(--pumbi-serif)] text-2xl font-semibold">{tile.title}</h2>
+      <p class="mt-2 text-sm leading-6 {tile.tone === 'dark' ? 'text-[#bec9c4]' : 'text-[var(--pumbi-ink-soft)]'}">{tile.body}</p>
+      <p class="mt-4 text-xs font-bold uppercase tracking-wide {tile.tone === 'dark' ? 'text-[#d6b477]' : 'text-[var(--pumbi-forest)]'} group-hover:underline">
+        Open →
+      </p>
+    </a>
+  {/each}
+</section>
+
+{#if auction.description}
+  <section class="pumbi-panel mt-6 p-6">
+    <p class="pumbi-eyebrow">Description</p>
+    <p class="mt-3 whitespace-pre-wrap text-sm leading-7 text-[var(--pumbi-ink-soft)]">{auction.description}</p>
+  </section>
+{/if}

@@ -3,12 +3,9 @@
   import { goto } from '$app/navigation';
   import { getImageUrl } from '$lib/utils/imageUrl.js';
   import PumbiLoader from '$lib/components/PumbiLoader.svelte';
-  
-  let {
-    data
-  } = $props();
-  
-  // Session is passed from layout via slot props
+
+  let { data } = $props();
+
   let session = $state(data?.session);
   let currentUser = $state(null);
   let auctionHouse = $state(null);
@@ -17,59 +14,50 @@
   let loading = $state(true);
   let showCreateModal = $state(false);
   let errorMessage = $state('');
-  
+  let creating = $state(false);
+
   let newAuction = $state({
     title: '',
     description: '',
     startDate: '',
     endDate: '',
     imageUrl: '',
-    status: 'UPCOMING',
-    type: 'PRIVATE'
+    status: 'UPCOMING'
   });
-  
+
   onMount(async () => {
-    // Session is already checked server-side, but verify client-side as well
     if (!session?.user) {
       goto('/auth/login');
       return;
     }
     await loadUserData();
   });
-  
+
   async function loadUserData() {
     try {
       loading = true;
       errorMessage = '';
-      
-      // Get or create user in our database
-      let userResponse = await fetch(`/api/users?email=${encodeURIComponent(session.user.email)}`);
+
+      const userResponse = await fetch(`/api/users?email=${encodeURIComponent(session.user.email)}`);
       if (!userResponse.ok) {
-        // User doesn't exist in our DB yet
         errorMessage = 'User account not found. Please register an auction house first.';
-        loading = false;
         return;
       }
       currentUser = await userResponse.json();
-      
-      // Check if user has an auction house
+
       if (!currentUser.auctionHouseId) {
         errorMessage = 'You need to register an auction house first.';
-        loading = false;
         return;
       }
-      
-      // Load auction house by ID
+
       const auctionHouseResponse = await fetch(`/api/auction-houses?id=${currentUser.auctionHouseId}`);
       if (auctionHouseResponse.ok) {
         auctionHouse = await auctionHouseResponse.json();
-        // Convert logo URL to presigned URL if it's an S3 key
         if (auctionHouse?.logoUrl) {
           auctionHouseLogoUrl = await getImageUrl(auctionHouse.logoUrl);
         }
       }
-      
-      // Load auctions for this auction house
+
       await loadAuctions();
     } catch (error) {
       console.error('Error loading user data:', error);
@@ -78,114 +66,78 @@
       loading = false;
     }
   }
-  
+
   async function loadAuctions() {
-    // #region agent log
-    fetch('http://127.0.0.1:7242/ingest/3c92fc5f-a28e-4692-89ad-7cb9d7bd10c2',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'seller/+page.svelte:80',message:'loadAuctions entry',data:{hasAuctionHouseId:!!currentUser?.auctionHouseId,auctionHouseId:currentUser?.auctionHouseId},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'D'})}).catch(()=>{});
-    // #endregion
     try {
       if (!currentUser?.auctionHouseId) {
-        console.log('No auctionHouseId for user:', currentUser);
         myAuctions = [];
         return;
       }
-      
-      console.log('Loading auctions for auctionHouseId:', currentUser.auctionHouseId);
+
       const response = await fetch(`/api/auctions?auctionHouseId=${currentUser.auctionHouseId}`);
-      // #region agent log
-      fetch('http://127.0.0.1:7242/ingest/3c92fc5f-a28e-4692-89ad-7cb9d7bd10c2',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'seller/+page.svelte:89',message:'After fetch',data:{ok:response.ok,status:response.status,statusText:response.statusText},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'D'})}).catch(()=>{});
-      // #endregion
-      
       if (!response.ok) {
-        const errorText = await response.text();
-        console.error('Failed to load auctions:', response.status, response.statusText, errorText);
-        // #region agent log
-        fetch('http://127.0.0.1:7242/ingest/3c92fc5f-a28e-4692-89ad-7cb9d7bd10c2',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'seller/+page.svelte:92',message:'Response not ok',data:{status:response.status,errorText},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'D'})}).catch(()=>{});
-        // #endregion
         myAuctions = [];
         return;
       }
-      
+
       const auctions = await response.json();
-      // #region agent log
-      fetch('http://127.0.0.1:7242/ingest/3c92fc5f-a28e-4692-89ad-7cb9d7bd10c2',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'seller/+page.svelte:98',message:'After JSON parse',data:{auctionsType:typeof auctions,isArray:Array.isArray(auctions),hasError:!!auctions.error,length:auctions?.length},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'D'})}).catch(()=>{});
-      // #endregion
-      console.log('Raw auctions response:', auctions);
-      
-      // Check if response is an error object
-      if (auctions.error) {
-        console.error('API error:', auctions.error);
+      if (auctions.error || !Array.isArray(auctions)) {
         myAuctions = [];
         return;
       }
-      
-      // Ensure auctions is an array
-      if (!Array.isArray(auctions)) {
-        console.error('Auctions is not an array:', auctions);
-        myAuctions = [];
-        return;
-      }
-      
-      console.log('Total auctions found:', auctions.length);
-      console.log('Current user ID:', currentUser.id);
-      console.log('Current user role:', currentUser.role);
-      
-      // Show all auctions for the auction house (not just this user's)
-      // This allows users to see all auctions in their auction house
+
       myAuctions = auctions;
-      
-      console.log('Displaying auctions:', myAuctions.length);
-      // #region agent log
-      fetch('http://127.0.0.1:7242/ingest/3c92fc5f-a28e-4692-89ad-7cb9d7bd10c2',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'seller/+page.svelte:123',message:'Before setting myAuctions',data:{myAuctionsLength:myAuctions.length},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'D'})}).catch(()=>{});
-      // #endregion
-      
-      // Load lot counts for each auction
-      for (const auction of myAuctions) {
-        try {
-          const lotsResponse = await fetch(`/api/lots?auctionId=${auction.id}`);
-          if (lotsResponse.ok) {
-            const lots = await lotsResponse.json();
-            auction.totalLots = Array.isArray(lots) ? lots.length : 0;
-            auction.currentBids = Array.isArray(lots) ? lots.reduce((sum, lot) => sum + (lot.bids?.length || 0), 0) : 0;
+
+      await Promise.all(
+        myAuctions.map(async (auction) => {
+          try {
+            const lotsResponse = await fetch(`/api/lots?auctionId=${auction.id}`);
+            if (lotsResponse.ok) {
+              const lots = await lotsResponse.json();
+              auction.totalLots = Array.isArray(lots) ? lots.length : 0;
+              auction.currentBids = Array.isArray(lots)
+                ? lots.reduce((sum, lot) => sum + (lot.bids?.length || 0), 0)
+                : 0;
+            } else {
+              auction.totalLots = 0;
+              auction.currentBids = 0;
+            }
+          } catch {
+            auction.totalLots = 0;
+            auction.currentBids = 0;
           }
-        } catch (error) {
-          console.error(`Error loading lots for auction ${auction.id}:`, error);
-          auction.totalLots = 0;
-          auction.currentBids = 0;
-        }
-      }
-      
-      console.log('Final myAuctions:', myAuctions);
+        })
+      );
+      myAuctions = [...myAuctions];
     } catch (error) {
       console.error('Error loading auctions:', error);
-      // #region agent log
-      fetch('http://127.0.0.1:7242/ingest/3c92fc5f-a28e-4692-89ad-7cb9d7bd10c2',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({location:'seller/+page.svelte:127',message:'Error in loadAuctions',data:{errorMessage:error.message},timestamp:Date.now(),sessionId:'debug-session',runId:'run1',hypothesisId:'D'})}).catch(()=>{});
-      // #endregion
       myAuctions = [];
     }
   }
-  
+
   async function createAuction() {
     try {
       if (!currentUser?.auctionHouseId) {
         errorMessage = 'You must be linked to an auction house to create auctions.';
         return;
       }
-      
-      // Convert date strings to ISO format
-      const startDate = newAuction.startDate ? new Date(newAuction.startDate).toISOString() : new Date().toISOString();
-      const endDate = newAuction.endDate ? new Date(newAuction.endDate).toISOString() : new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString();
-      
+
+      creating = true;
+      const startDate = newAuction.startDate
+        ? new Date(newAuction.startDate).toISOString()
+        : new Date().toISOString();
+      const endDate = newAuction.endDate
+        ? new Date(newAuction.endDate).toISOString()
+        : new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString();
+
       const response = await fetch('/api/auctions', {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json'
-        },
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           title: newAuction.title,
           description: newAuction.description || null,
-          startDate: startDate,
-          endDate: endDate,
+          startDate,
+          endDate,
           imageUrl: newAuction.imageUrl || null,
           status: newAuction.status.toUpperCase(),
           type: 'PRIVATE',
@@ -193,8 +145,9 @@
           sellerId: currentUser.id
         })
       });
-      
+
       if (response.ok) {
+        const created = await response.json().catch(() => ({}));
         showCreateModal = false;
         newAuction = {
           title: '',
@@ -202,20 +155,25 @@
           startDate: '',
           endDate: '',
           imageUrl: '',
-          status: 'UPCOMING',
-          type: 'PRIVATE'
+          status: 'UPCOMING'
         };
+        if (created?.id) {
+          goto(`/seller/auctions/${created.id}`);
+          return;
+        }
         await loadAuctions();
       } else {
-        const error = await response.json();
+        const error = await response.json().catch(() => ({}));
         errorMessage = error.message || 'Failed to create auction. Please try again.';
       }
     } catch (error) {
       console.error('Error creating auction:', error);
       errorMessage = 'An error occurred while creating the auction. Please try again.';
+    } finally {
+      creating = false;
     }
   }
-  
+
   function formatDate(dateString) {
     return new Date(dateString).toLocaleDateString('en-US', {
       year: 'numeric',
@@ -225,358 +183,155 @@
       minute: '2-digit'
     });
   }
-  
-  function getStatusBadgeClass(status) {
-    const statusUpper = status?.toUpperCase();
-    switch (statusUpper) {
-      case 'LIVE':
-        return 'bg-red-100 text-red-800';
-      case 'UPCOMING':
-        return 'bg-blue-100 text-blue-800';
-      case 'ENDED':
-        return 'bg-gray-100 text-gray-800';
-      case 'CANCELLED':
-        return 'bg-gray-100 text-gray-800';
-      default:
-        return 'bg-gray-100 text-gray-800';
-    }
-  }
 
-  function getOnboardingBadgeClass(status) {
-    if (status === 'APPROVED') return 'bg-green-100 text-green-800';
-    if (status === 'REJECTED') return 'bg-red-100 text-red-800';
-    if (status === 'SUBMITTED' || status === 'UNDER_REVIEW') return 'bg-amber-100 text-amber-800';
-    return 'bg-blue-100 text-blue-800';
+  function statusTone(status) {
+    const value = String(status || '').toUpperCase();
+    if (value === 'LIVE') return 'bg-[#a95739] text-white';
+    if (value === 'UPCOMING') return 'bg-[var(--pumbi-forest)] text-white';
+    return 'bg-[var(--pumbi-cream-deep)] text-[var(--pumbi-ink-soft)]';
   }
 
   function formatOnboardingStatus(status) {
-    return (status || 'DRAFT').replaceAll('_', ' ').toLowerCase().replace(/\b\w/g, (letter) => letter.toUpperCase());
+    return (status || 'DRAFT')
+      .replaceAll('_', ' ')
+      .toLowerCase()
+      .replace(/\b\w/g, (letter) => letter.toUpperCase());
   }
 </script>
 
-<div class="min-h-screen bg-gray-50">
-  <div class="container mx-auto px-4 py-8">
-    {#if errorMessage}
-      <div class="bg-red-50 border border-red-200 rounded-lg p-4 mb-6">
-        <div class="flex items-center justify-between">
-          <p class="text-red-800">{errorMessage}</p>
-          {#if errorMessage.includes('register an auction house')}
-            <a href="/auction-houses/signup" class="text-blue-600 hover:text-blue-800 font-semibold">
-              Register Now →
-            </a>
-          {/if}
-        </div>
-      </div>
-    {/if}
-    
-    {#if auctionHouse}
-      <div class="bg-white rounded-lg shadow-lg p-6 mb-6">
-        <div class="flex items-center justify-between">
-          <div>
-            <h2 class="text-2xl font-bold text-gray-900">{auctionHouse.name}</h2>
-            {#if auctionHouse.description}
-              <p class="text-gray-600 mt-1">{auctionHouse.description}</p>
-            {/if}
-          </div>
-          {#if auctionHouseLogoUrl}
-            <img src={auctionHouseLogoUrl} alt={auctionHouse.name} class="h-16 w-16 object-contain" />
-          {/if}
-        </div>
-      </div>
-
-      <div class="mb-6 grid gap-4 md:grid-cols-2">
-        <div class="rounded-lg border border-slate-200 bg-white p-5 shadow-sm">
-          <div class="flex items-start justify-between gap-3">
-            <div>
-              <p class="text-sm font-semibold text-slate-500">Seller verification</p>
-              <h3 class="mt-1 text-lg font-bold text-slate-900">Auction house onboarding</h3>
-            </div>
-            <span class="rounded-full px-3 py-1 text-xs font-bold {getOnboardingBadgeClass(auctionHouse.onboardingStatus)}">
-              {formatOnboardingStatus(auctionHouse.onboardingStatus)}
-            </span>
-          </div>
-          {#if auctionHouse.onboardingStatus !== 'APPROVED'}
-            <p class="mt-3 text-sm text-slate-600">Auction publishing, payouts, and other seller tools remain limited until Pumbi approves your application.</p>
-          {:else}
-            <p class="mt-3 text-sm text-slate-600">Your company is approved for seller access.</p>
-          {/if}
-          {#if auctionHouse.onboardingStatus === 'REJECTED' && auctionHouse.onboardingRejectionReason}
-            <p class="mt-3 rounded-md bg-red-50 p-3 text-sm text-red-800">{auctionHouse.onboardingRejectionReason}</p>
-          {/if}
-          <a href="/seller/onboarding" class="mt-4 inline-flex rounded-lg bg-blue-600 px-4 py-2 text-sm font-semibold text-white hover:bg-blue-700">
-            {auctionHouse.onboardingStatus === 'APPROVED' ? 'View onboarding' : 'Continue onboarding'}
-          </a>
-        </div>
-        <div class="rounded-lg border border-slate-200 bg-white p-5 shadow-sm">
-          <p class="text-sm font-semibold text-slate-500">Access management</p>
-          <h3 class="mt-1 text-lg font-bold text-slate-900">Your auction house team</h3>
-          <p class="mt-3 text-sm text-slate-600">Invite colleagues and manage roles, active members, and pending invitations.</p>
-          <a href="/seller/team" class="mt-4 inline-flex rounded-lg border border-slate-300 px-4 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50">Manage team</a>
-        </div>
-      </div>
-    {/if}
-    
-    <div class="flex items-center justify-between mb-8">
-      <div>
-        <h1 class="text-4xl font-bold text-gray-900">Auction Management</h1>
-        <p class="text-gray-600 mt-2">Create and manage your auctions</p>
-      </div>
-      <div class="flex items-center gap-4">
-        {#if currentUser?.auctionHouseId}
-          <a
-            href="/seller/sold"
-            class="bg-emerald-700 text-white px-6 py-3 rounded-lg hover:bg-emerald-800 transition-colors font-semibold"
-          >
-            Sold & shipping
-          </a>
-          <a
-            href="/seller/settings"
-            class="bg-gray-600 text-white px-6 py-3 rounded-lg hover:bg-gray-700 transition-colors font-semibold"
-          >
-            Settings
-          </a>
-          <button
-            onclick={() => showCreateModal = true}
-            class="bg-blue-600 text-white px-6 py-3 rounded-lg hover:bg-blue-700 transition-colors font-semibold"
-          >
-            Create New Auction
-          </button>
-        {/if}
-      </div>
+<main class="mx-auto w-full max-w-[1240px] px-4 py-8 sm:px-6 lg:px-8">
+  {#if errorMessage}
+    <div class="mb-6 border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-800">
+      {errorMessage}
+      {#if errorMessage.includes('register an auction house')}
+        <a href="/auction-houses/signup" class="ml-2 font-bold underline">Register now</a>
+      {/if}
     </div>
+  {/if}
 
-    {#if loading}
-      <div class="text-center py-12">
-        <PumbiLoader size="lg" label="Loading auctions" />
-        <p class="mt-4 text-gray-600">Loading auctions...</p>
-      </div>
-    {:else if myAuctions.length === 0}
-      <div class="bg-white rounded-lg shadow-lg p-12 text-center">
-        <p class="text-gray-600 text-lg mb-4">You haven't created any auctions yet.</p>
-        <button
-          onclick={() => showCreateModal = true}
-          class="bg-blue-600 text-white px-6 py-3 rounded-lg hover:bg-blue-700 transition-colors font-semibold"
-        >
-          Create Your First Auction
-        </button>
-      </div>
-    {:else}
-      <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        {#each myAuctions as auction}
-          <div class="bg-white rounded-lg shadow-md overflow-hidden hover:shadow-xl transition-shadow">
-            <div class="relative">
-              <img
-                src={auction.imageUrl}
-                alt={auction.title}
-                class="w-full h-48 object-cover"
-              />
-              <span class="absolute top-4 right-4 px-3 py-1 rounded-full text-sm font-semibold {getStatusBadgeClass(auction.status)}">
-                {auction.status?.toUpperCase() || 'UNKNOWN'}
-              </span>
-            </div>
-            <div class="p-6">
-              <h3 class="text-xl font-bold text-gray-900 mb-2">
-                <button
-                  type="button"
-                  class="text-left hover:text-blue-700"
-                  onclick={() => goto(`/seller/auctions/${auction.id}`)}
-                >
-                  {auction.title}
-                </button>
-              </h3>
-              <span class="mb-3 inline-flex rounded-full bg-purple-100 px-2 py-1 text-xs font-bold text-purple-800">
-                {(auction.type || 'PRIVATE').toUpperCase()} auction
-              </span>
-              <p class="text-gray-600 text-sm mb-4 line-clamp-2">{auction.description}</p>
-              <div class="space-y-2 mb-4 text-sm">
-                <div class="flex justify-between">
-                  <span class="text-gray-500">Lots:</span>
-                  <span class="font-semibold">{auction.totalLots}</span>
-                </div>
-                <div class="flex justify-between">
-                  <span class="text-gray-500">Bids:</span>
-                  <span class="font-semibold">{auction.currentBids}</span>
-                </div>
-                <div class="flex justify-between">
-                  <span class="text-gray-500">Starts:</span>
-                  <span class="font-semibold">{formatDate(auction.startDate)}</span>
-                </div>
-                <div class="flex justify-between">
-                  <span class="text-gray-500">Ends:</span>
-                  <span class="font-semibold">{formatDate(auction.endDate)}</span>
-                </div>
-              </div>
-              <div class="flex gap-2">
-                <button
-                  onclick={() => goto(`/auctions/${auction.id}`)}
-                  class="flex-1 bg-blue-600 text-white py-2 rounded-lg hover:bg-blue-700 transition-colors font-semibold text-sm"
-                >
-                  View
-                </button>
-                <button
-                  onclick={() => goto(`/seller/auctions/${auction.id}/control-room`)}
-                  class="flex-1 bg-red-600 text-white py-2 rounded-lg hover:bg-red-700 transition-colors font-semibold text-sm"
-                >
-                  Control room
-                </button>
-                <button
-                  onclick={() => goto(`/seller/auctions/${auction.id}/lots`)}
-                  class="flex-1 bg-gray-200 text-gray-700 py-2 rounded-lg hover:bg-gray-300 transition-colors font-semibold text-sm"
-                >
-                  Manage Lots
-                </button>
-                <button
-                  onclick={() => goto(`/seller/auctions/${auction.id}/settings`)}
-                  class="flex-1 bg-purple-600 text-white py-2 rounded-lg hover:bg-purple-700 transition-colors font-semibold text-sm"
-                >
-                  Settings
-                </button>
-                {#if (auction.type || 'PRIVATE').toUpperCase() === 'PRIVATE'}
-                  <button
-                    onclick={() => goto(`/seller/auctions/${auction.id}/bidders`)}
-                    class="flex-1 bg-green-700 text-white py-2 rounded-lg hover:bg-green-800 transition-colors font-semibold text-sm"
-                  >
-                    Bidders
-                  </button>
-                {/if}
-              </div>
-            </div>
-          </div>
-        {/each}
-      </div>
+  <div class="flex flex-wrap items-end justify-between gap-4">
+    <div>
+      <p class="pumbi-eyebrow">Seller workspace</p>
+      <h1 class="mt-2 font-[family-name:var(--pumbi-serif)] text-3xl font-semibold text-[var(--pumbi-ink)] lg:text-4xl">
+        Auctions
+      </h1>
+      <p class="mt-2 max-w-xl text-sm leading-6 text-[var(--pumbi-ink-soft)]">
+        Open an auction to reach its hub — control room, lots, interest, settings, and bidders live there.
+      </p>
+    </div>
+    {#if currentUser?.auctionHouseId}
+      <button type="button" class="pumbi-btn" onclick={() => (showCreateModal = true)}>Create auction</button>
     {/if}
   </div>
-</div>
 
-<!-- Create Auction Modal -->
-{#if showCreateModal}
-  <div class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-    <div class="bg-white rounded-lg shadow-xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
-      <div class="p-6">
-        <div class="flex items-center justify-between mb-6">
-          <h2 class="text-2xl font-bold text-gray-900">Create New Auction</h2>
-          <button
-            onclick={() => showCreateModal = false}
-            class="text-gray-500 hover:text-gray-700"
-          >
-            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
-            </svg>
-          </button>
-        </div>
-
-        <form onsubmit={(e) => { e.preventDefault(); createAuction(); }}>
-          <div class="space-y-4">
-            <div class="rounded-lg border border-purple-200 bg-purple-50 p-4">
-              <p class="font-semibold text-purple-900">Private auction</p>
-              <p class="mt-1 text-sm text-purple-800">Your auction house controls every lot, its rates and terms, and which registered bidders are approved.</p>
-            </div>
-            <div>
-              <label for="title" class="block text-sm font-medium text-gray-700 mb-2">
-                Auction Title *
-              </label>
-              <input
-                id="title"
-                type="text"
-                bind:value={newAuction.title}
-                required
-                class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                placeholder="e.g., Fine Art & Collectibles Auction"
-              />
-            </div>
-
-            <div>
-              <label for="description" class="block text-sm font-medium text-gray-700 mb-2">
-                Description *
-              </label>
-              <textarea
-                id="description"
-                bind:value={newAuction.description}
-                required
-                rows="4"
-                class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                placeholder="Describe your auction..."
-              ></textarea>
-            </div>
-
-            <div class="grid grid-cols-2 gap-4">
-              <div>
-                <label for="startDate" class="block text-sm font-medium text-gray-700 mb-2">
-                  Start Date *
-                </label>
-                <input
-                  id="startDate"
-                  type="datetime-local"
-                  bind:value={newAuction.startDate}
-                  required
-                  class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                />
-              </div>
-
-              <div>
-                <label for="endDate" class="block text-sm font-medium text-gray-700 mb-2">
-                  End Date *
-                </label>
-                <input
-                  id="endDate"
-                  type="datetime-local"
-                  bind:value={newAuction.endDate}
-                  required
-                  class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                />
-              </div>
-            </div>
-
-            <div>
-              <label for="imageUrl" class="block text-sm font-medium text-gray-700 mb-2">
-                Image URL *
-              </label>
-              <input
-                id="imageUrl"
-                type="url"
-                bind:value={newAuction.imageUrl}
-                required
-                class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                placeholder="https://example.com/image.jpg"
-              />
-            </div>
-
-            <div>
-              <label for="status" class="block text-sm font-medium text-gray-700 mb-2">
-                Status *
-              </label>
-              <select
-                id="status"
-                bind:value={newAuction.status}
-                required
-                class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-              >
-                <option value="UPCOMING">Upcoming</option>
-                <option value="LIVE">Live</option>
-                <option value="ENDED">Ended</option>
-                <option value="CANCELLED">Cancelled</option>
-              </select>
-            </div>
-          </div>
-
-          <div class="flex gap-4 mt-6">
-            <button
-              type="button"
-              onclick={() => showCreateModal = false}
-              class="flex-1 bg-gray-200 text-gray-700 py-3 rounded-lg hover:bg-gray-300 transition-colors font-semibold"
-            >
-              Cancel
-            </button>
-            <button
-              type="submit"
-              class="flex-1 bg-blue-600 text-white py-3 rounded-lg hover:bg-blue-700 transition-colors font-semibold"
-            >
-              Create Auction
-            </button>
-          </div>
-        </form>
+  {#if auctionHouse && auctionHouse.onboardingStatus !== 'APPROVED'}
+    <section class="pumbi-panel mt-6 flex flex-wrap items-center justify-between gap-4 p-5">
+      <div>
+        <p class="pumbi-eyebrow">Onboarding · {formatOnboardingStatus(auctionHouse.onboardingStatus)}</p>
+        <p class="mt-2 text-sm text-[var(--pumbi-ink-soft)]">
+          Publishing and payouts stay limited until Pumbi approves your house.
+        </p>
       </div>
+      <a href="/seller/onboarding" class="pumbi-btn">Continue onboarding</a>
+    </section>
+  {/if}
+
+  {#if loading}
+    <div class="py-20 text-center">
+      <PumbiLoader size="lg" label="Loading auctions" />
+      <p class="mt-4 text-sm text-[var(--pumbi-muted)]">Loading auctions…</p>
+    </div>
+  {:else if myAuctions.length === 0}
+    <section class="pumbi-panel mt-8 px-6 py-16 text-center">
+      {#if auctionHouseLogoUrl}
+        <img src={auctionHouseLogoUrl} alt="" class="mx-auto mb-4 h-14 w-14 object-contain" />
+      {/if}
+      <h2 class="font-[family-name:var(--pumbi-serif)] text-2xl font-semibold">No auctions yet</h2>
+      <p class="mx-auto mt-2 max-w-md text-sm text-[var(--pumbi-ink-soft)]">
+        Create your first private sale. You’ll manage lots, the live floor, and bidders from its hub.
+      </p>
+      <button type="button" class="pumbi-btn mt-6" onclick={() => (showCreateModal = true)}>Create your first auction</button>
+    </section>
+  {:else}
+    <div class="mt-8 grid gap-5 md:grid-cols-2 xl:grid-cols-3">
+      {#each myAuctions as auction}
+        <article class="pumbi-panel overflow-hidden transition hover:-translate-y-0.5 hover:shadow-md">
+          <a href={`/seller/auctions/${auction.id}`} class="block">
+            <div class="relative h-44 overflow-hidden bg-[var(--pumbi-cream-deep)]">
+              {#if auction.imageUrl}
+                <img src={auction.imageUrl} alt={auction.title} class="h-full w-full object-cover" />
+              {/if}
+              <span class="absolute right-3 top-3 px-2.5 py-1 text-[10px] font-bold uppercase tracking-wide {statusTone(auction.status)}">
+                {auction.status || 'Unknown'}
+              </span>
+            </div>
+            <div class="p-5">
+              <p class="text-[10px] font-bold uppercase tracking-[0.16em] text-[var(--pumbi-muted)]">
+                {(auction.type || 'PRIVATE').toUpperCase()} · {auction.totalLots || 0} lots
+              </p>
+              <h2 class="mt-2 font-[family-name:var(--pumbi-serif)] text-xl font-semibold text-[var(--pumbi-ink)]">
+                {auction.title}
+              </h2>
+              <p class="mt-2 line-clamp-2 text-sm leading-6 text-[var(--pumbi-ink-soft)]">
+                {auction.description || 'Open the hub to manage this sale.'}
+              </p>
+              <div class="mt-4 space-y-1 border-t border-[var(--pumbi-line-soft)] pt-4 text-xs text-[var(--pumbi-ink-soft)]">
+                <p><span class="text-[var(--pumbi-muted)]">Starts</span> · {formatDate(auction.startDate)}</p>
+                <p><span class="text-[var(--pumbi-muted)]">Ends</span> · {formatDate(auction.endDate)}</p>
+              </div>
+              <p class="mt-4 text-xs font-bold uppercase tracking-wide text-[var(--pumbi-forest)]">Open hub →</p>
+            </div>
+          </a>
+        </article>
+      {/each}
+    </div>
+  {/if}
+</main>
+
+{#if showCreateModal}
+  <div class="fixed inset-0 z-50 flex items-center justify-center bg-black/45 p-4">
+    <div class="max-h-[90vh] w-full max-w-xl overflow-y-auto border border-[var(--pumbi-line)] bg-[#f7f4ee] shadow-xl">
+      <div class="flex items-center justify-between border-b border-[var(--pumbi-line)] px-5 py-4">
+        <div>
+          <p class="pumbi-eyebrow">New sale</p>
+          <h2 class="mt-1 font-[family-name:var(--pumbi-serif)] text-2xl font-semibold">Create auction</h2>
+        </div>
+        <button type="button" class="text-[var(--pumbi-ink-soft)]" onclick={() => (showCreateModal = false)} aria-label="Close">✕</button>
+      </div>
+
+      <form
+        class="space-y-4 p-5"
+        onsubmit={(e) => {
+          e.preventDefault();
+          createAuction();
+        }}
+      >
+        <p class="border border-[var(--pumbi-line)] bg-white px-4 py-3 text-sm text-[var(--pumbi-ink-soft)]">
+          Private auctions keep lot control, rates, and bidder approval with your house.
+        </p>
+        <label class="block text-sm">
+          <span class="font-semibold">Title *</span>
+          <input class="mt-1 w-full border border-[var(--pumbi-line)] bg-white px-3 py-2" bind:value={newAuction.title} required />
+        </label>
+        <label class="block text-sm">
+          <span class="font-semibold">Description</span>
+          <textarea class="mt-1 w-full border border-[var(--pumbi-line)] bg-white px-3 py-2" rows="3" bind:value={newAuction.description}></textarea>
+        </label>
+        <div class="grid gap-4 sm:grid-cols-2">
+          <label class="block text-sm">
+            <span class="font-semibold">Start</span>
+            <input type="datetime-local" class="mt-1 w-full border border-[var(--pumbi-line)] bg-white px-3 py-2" bind:value={newAuction.startDate} />
+          </label>
+          <label class="block text-sm">
+            <span class="font-semibold">End</span>
+            <input type="datetime-local" class="mt-1 w-full border border-[var(--pumbi-line)] bg-white px-3 py-2" bind:value={newAuction.endDate} />
+          </label>
+        </div>
+        <div class="flex flex-wrap justify-end gap-2 pt-2">
+          <button type="button" class="pumbi-btn-secondary" onclick={() => (showCreateModal = false)}>Cancel</button>
+          <button type="submit" class="pumbi-btn" disabled={creating}>{creating ? 'Creating…' : 'Create auction'}</button>
+        </div>
+      </form>
     </div>
   </div>
 {/if}
-

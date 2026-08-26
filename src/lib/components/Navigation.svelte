@@ -106,6 +106,12 @@
               <a href={accountHome} role="menuitem" onclick={() => (isAccountOpen = false)}>
                 {hasAuctionHouse ? 'Seller home' : 'Dashboard'}
               </a>
+              {#if hasAuctionHouse}
+                <a href="/seller/sold" role="menuitem" onclick={() => (isAccountOpen = false)}>Sold & shipping</a>
+                <a href="/seller/settings" role="menuitem" onclick={() => (isAccountOpen = false)}>House settings</a>
+                <a href="/seller/team" role="menuitem" onclick={() => (isAccountOpen = false)}>Team</a>
+                <a href="/seller/banking" role="menuitem" onclick={() => (isAccountOpen = false)}>Banking</a>
+              {/if}
               {#if !hasAuctionHouse}
                 <a href="/dashboard/sell" role="menuitem" onclick={() => (isAccountOpen = false)}>Sell with Pumbi</a>
               {/if}
@@ -136,6 +142,12 @@
       {#if session?.user}
         <p class="mobile-account-label">{displayName}</p>
         <a href={accountHome} onclick={closeMobile}>{hasAuctionHouse ? 'Seller home' : 'Dashboard'}</a>
+        {#if hasAuctionHouse}
+          <a href="/seller/sold" onclick={closeMobile}>Sold & shipping</a>
+          <a href="/seller/settings" onclick={closeMobile}>House settings</a>
+          <a href="/seller/team" onclick={closeMobile}>Team</a>
+          <a href="/seller/banking" onclick={closeMobile}>Banking</a>
+        {/if}
         {#if !hasAuctionHouse}
           <a href="/dashboard/sell" onclick={closeMobile}>Sell with Pumbi</a>
         {/if}

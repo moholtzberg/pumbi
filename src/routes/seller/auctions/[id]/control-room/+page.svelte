@@ -178,93 +178,86 @@
   });
 </script>
 
-<div class="min-h-screen bg-slate-100">
-  <div class="border-b border-slate-200 bg-slate-950 text-white">
-    <div class="container mx-auto flex flex-wrap items-center justify-between gap-4 px-4 py-5">
-      <div>
-        <p class="text-xs font-bold uppercase tracking-[0.2em] text-red-300">Auctioneer control room</p>
-        <h1 class="mt-1 text-2xl font-black">{data?.auction?.title || 'Loading…'}</h1>
+<div>
+  <div class="mb-5 flex flex-wrap items-start justify-between gap-4 border-b border-[var(--pumbi-line)] bg-[var(--pumbi-forest-deep)] px-4 py-4 text-[#f7f4ee] sm:px-5">
+    <div>
+      <p class="text-[10px] font-bold uppercase tracking-[0.16em] text-[#d6b477]">Live floor</p>
+      <p class="mt-1 text-sm text-[#bec9c4]">
         {#if data?.auction}
-          <p class="mt-1 text-sm text-slate-300">
-            Status: <span class="font-semibold text-white">{data.auction.status}</span>
-            · Finished lots: {data.finishedLots || 0}
-            · Remaining ready: {data.remainingReadyLots || 0}
-            · Approved bidders: {data.registrations?.APPROVED || 0}
-          </p>
+          Finished {data.finishedLots || 0} · Ready {data.remainingReadyLots || 0} · Approved bidders {data.registrations?.APPROVED || 0}
+        {:else}
+          Loading…
         {/if}
-      </div>
-      <div class="flex flex-wrap gap-2">
-        {#if canEndAuction}
-          <button
-            type="button"
-            class="rounded-lg bg-[#a95739] px-4 py-2 text-sm font-bold text-white hover:bg-[#8f482f] disabled:opacity-60"
-            disabled={Boolean(busyAction)}
-            onclick={() => runAction('end')}
-          >
-            {busyAction.startsWith('end') ? 'Ending…' : allLotsComplete ? 'End auction' : 'End auction early'}
-          </button>
-        {/if}
-        <a href={`/auctions/${auctionId}`} class="rounded-lg border border-white/20 px-4 py-2 text-sm font-bold hover:bg-white/10" target="_blank" rel="noreferrer">Public live room</a>
-        <a href={`/seller/auctions/${auctionId}/lots`} class="rounded-lg border border-white/20 px-4 py-2 text-sm font-bold hover:bg-white/10">Manage lots</a>
-        <a href={`/seller/auctions/${auctionId}/settings`} class="rounded-lg border border-white/20 px-4 py-2 text-sm font-bold hover:bg-white/10">Settings</a>
-        <a href="/seller" class="rounded-lg bg-white px-4 py-2 text-sm font-bold text-slate-900">Seller home</a>
-      </div>
+      </p>
+    </div>
+    <div class="flex flex-wrap gap-2">
+      {#if canEndAuction}
+        <button
+          type="button"
+          class="bg-[var(--pumbi-terracotta)] px-4 py-2 text-xs font-bold uppercase tracking-wide text-white disabled:opacity-60"
+          disabled={Boolean(busyAction)}
+          onclick={() => runAction('end')}
+        >
+          {busyAction.startsWith('end') ? 'Ending…' : allLotsComplete ? 'End auction' : 'End auction early'}
+        </button>
+      {/if}
+      <a href={`/auctions/${auctionId}`} class="border border-white/25 px-4 py-2 text-xs font-bold uppercase tracking-wide hover:bg-white/10" target="_blank" rel="noreferrer">Public live room</a>
     </div>
   </div>
 
-  <div class="container mx-auto px-4 py-6">
+  <div>
     {#if loading}
-      <div class="rounded-2xl bg-white p-12 text-center text-slate-500">
+      <div class="pumbi-panel p-12 text-center text-[var(--pumbi-muted)]">
         <PumbiLoader size="lg" label="Loading control room" />
         <p class="mt-4">Loading control room…</p>
       </div>
     {:else if errorMessage}
-      <div class="rounded-2xl border border-red-200 bg-red-50 p-8 text-center text-red-700">{errorMessage}</div>
+      <div class="border border-red-200 bg-red-50 p-8 text-center text-red-700">{errorMessage}</div>
     {:else if data}
       {#if actionError}
-        <div class="mb-4 rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm font-semibold text-red-700">{actionError}</div>
+        <div class="mb-4 border border-red-200 bg-red-50 px-4 py-3 text-sm font-semibold text-red-700">{actionError}</div>
       {/if}
       {#if actionSuccess}
-        <div class="mb-4 rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm font-semibold text-emerald-700">{actionSuccess}</div>
+        <div class="mb-4 border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm font-semibold text-emerald-700">{actionSuccess}</div>
       {/if}
 
       <div class="mb-5 grid gap-4 lg:grid-cols-3">
-        <div class="rounded-2xl bg-white p-5 shadow-sm">
-          <p class="text-xs font-bold uppercase tracking-wide text-slate-500">Auctioneer seat</p>
+        <div class="pumbi-panel p-5">
+          <p class="pumbi-eyebrow">Auctioneer seat</p>
           {#if !data.auction.auctioneerId}
-            <p class="mt-2 text-lg font-black text-slate-900">Unclaimed</p>
+            <p class="mt-2 font-[family-name:var(--pumbi-serif)] text-xl font-semibold">Unclaimed</p>
             <button
               type="button"
-              class="mt-4 w-full rounded-xl bg-slate-900 px-4 py-3 font-bold text-white hover:bg-slate-800 disabled:opacity-60"
+              class="pumbi-btn mt-4 w-full disabled:opacity-60"
               disabled={Boolean(busyAction)}
               onclick={() => runAction('claim')}
             >
               {busyAction.startsWith('claim') ? 'Claiming…' : 'Claim auctioneer seat'}
             </button>
           {:else if isAuctioneer}
-            <p class="mt-2 text-lg font-black text-emerald-700">You are the auctioneer</p>
-            <p class="mt-1 text-sm text-slate-500">Only you can start lots and move the sale along.</p>
+            <p class="mt-2 font-[family-name:var(--pumbi-serif)] text-xl font-semibold text-emerald-800">You are the auctioneer</p>
+            <p class="mt-1 text-sm text-[var(--pumbi-ink-soft)]">Only you can start lots and move the sale along.</p>
           {:else}
-            <p class="mt-2 text-lg font-black text-amber-700">Seat taken</p>
-            <p class="mt-1 text-sm text-slate-600">{data.auction.auctioneer?.name || data.auction.auctioneer?.email || 'Another team member'} is controlling this auction.</p>
+            <p class="mt-2 font-[family-name:var(--pumbi-serif)] text-xl font-semibold text-amber-800">Seat taken</p>
+            <p class="mt-1 text-sm text-[var(--pumbi-ink-soft)]">{data.auction.auctioneer?.name || data.auction.auctioneer?.email || 'Another team member'} is controlling this auction.</p>
           {/if}
         </div>
 
-        <div class="rounded-2xl bg-white p-5 shadow-sm lg:col-span-2">
+        <div class="pumbi-panel p-5 lg:col-span-2">
           <div class="flex flex-wrap items-start justify-between gap-3">
             <div>
-              <p class="text-xs font-bold uppercase tracking-wide text-slate-500">Auto-advance lots</p>
-              <p class="mt-2 text-lg font-black text-slate-900">
+              <p class="pumbi-eyebrow">Auto-advance lots</p>
+              <p class="mt-2 font-[family-name:var(--pumbi-serif)] text-xl font-semibold">
                 {autoAdvanceNextLot ? 'On — next lot opens after hammer' : 'Off — open each lot manually'}
               </p>
-              <p class="mt-1 text-sm text-slate-500">
-                Default lives under auction Settings → Live Auction. Change it here while the sale is running.
+              <p class="mt-1 text-sm text-[var(--pumbi-ink-soft)]">
+                Default lives under Auction settings → Live Auction. Change it here while the sale is running.
               </p>
             </div>
             {#if isAuctioneer && !auctionEnded}
               <button
                 type="button"
-                class="rounded-xl px-4 py-3 text-sm font-bold text-white disabled:opacity-60 {autoAdvanceNextLot ? 'bg-slate-700 hover:bg-slate-800' : 'bg-violet-700 hover:bg-violet-800'}"
+                class="px-4 py-3 text-sm font-bold text-white disabled:opacity-60 {autoAdvanceNextLot ? 'bg-[var(--pumbi-forest)]' : 'bg-[var(--pumbi-terracotta)]'}"
                 disabled={Boolean(busyAction)}
                 onclick={() => setAutoAdvance(!autoAdvanceNextLot)}
               >
@@ -275,7 +268,7 @@
                     : 'Turn auto-advance on'}
               </button>
             {:else if !isAuctioneer}
-              <a href={data.settingsPath || `/seller/auctions/${auctionId}/settings`} class="rounded-xl border border-slate-200 px-4 py-3 text-sm font-bold text-slate-700 hover:bg-slate-50">
+              <a href={data.settingsPath || `/seller/auctions/${auctionId}/settings`} class="pumbi-btn-secondary">
                 Change in Settings
               </a>
             {/if}
@@ -284,16 +277,16 @@
       </div>
 
       <div class="mb-5 grid gap-4 lg:grid-cols-2">
-        <div class="rounded-2xl bg-white p-5 shadow-sm">
-          <p class="text-xs font-bold uppercase tracking-wide text-slate-500">On the block</p>
+        <div class="pumbi-panel p-5">
+          <p class="pumbi-eyebrow">On the block</p>
           {#if openLot}
-            <p class="mt-2 text-lg font-black text-slate-900">Lot #{openLot.lotNumber} · {openLot.title}</p>
-            <p class="mt-1 text-2xl font-black text-violet-700">{money(openLot.currentBid || openLot.startingBid)}</p>
-            <p class="mt-1 text-sm text-slate-500">
+            <p class="mt-2 font-[family-name:var(--pumbi-serif)] text-xl font-semibold">Lot #{openLot.lotNumber} · {openLot.title}</p>
+            <p class="mt-1 text-2xl font-semibold text-[var(--pumbi-terracotta)]">{money(openLot.currentBid || openLot.startingBid)}</p>
+            <p class="mt-1 text-sm text-[var(--pumbi-ink-soft)]">
               High bidder: {openLot.highestBidderName || 'None yet'}
             </p>
             {#if openLot.endTime}
-              <p class="mt-2 text-sm font-semibold text-red-600">
+              <p class="mt-2 text-sm font-semibold text-red-700">
                 Time left: <CountdownTimer targetDate={openLot.endTime} label="" />
               </p>
               {#if autoAdvanceNextLot && new Date(openLot.endTime).getTime() <= Date.now()}
@@ -302,12 +295,12 @@
             {/if}
             {#if isAuctioneer && !auctionEnded}
               <div class="mt-4">
-                <p class="text-xs font-bold uppercase tracking-wide text-slate-500">Add time</p>
+                <p class="text-xs font-bold uppercase tracking-wide text-[var(--pumbi-muted)]">Add time</p>
                 <div class="mt-2 flex flex-wrap gap-2">
                   {#each extendPresets as seconds}
                     <button
                       type="button"
-                      class="rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-sm font-bold text-slate-800 hover:bg-slate-100 disabled:opacity-60"
+                      class="border border-[var(--pumbi-line)] bg-[var(--pumbi-cream-deep)] px-3 py-2 text-sm font-bold disabled:opacity-60"
                       disabled={Boolean(busyAction)}
                       onclick={() => runAction('extend', openLot.id, { seconds })}
                     >
@@ -319,27 +312,27 @@
             {/if}
             <button
               type="button"
-              class="mt-4 w-full rounded-xl bg-red-600 px-4 py-3 font-bold text-white hover:bg-red-700 disabled:opacity-60"
+              class="mt-4 w-full bg-[var(--pumbi-terracotta)] px-4 py-3 font-bold text-white disabled:opacity-60"
               disabled={!isAuctioneer || Boolean(busyAction)}
               onclick={() => runAction('close', openLot.id)}
             >
               {busyAction.startsWith(`close:${openLot.id}`) ? 'Closing…' : openLot.highestBidderId ? 'Hammer down · Mark sold' : 'Close · Mark unsold'}
             </button>
           {:else}
-            <p class="mt-2 text-lg font-black text-slate-900">No lot open</p>
-            <p class="mt-1 text-sm text-slate-500">Open the next queued lot when you are ready.</p>
+            <p class="mt-2 font-[family-name:var(--pumbi-serif)] text-xl font-semibold">No lot open</p>
+            <p class="mt-1 text-sm text-[var(--pumbi-ink-soft)]">Open the next queued lot when you are ready.</p>
           {/if}
         </div>
 
-        <div class="rounded-2xl bg-white p-5 shadow-sm">
-          <p class="text-xs font-bold uppercase tracking-wide text-slate-500">Next up</p>
+        <div class="pumbi-panel p-5">
+          <p class="pumbi-eyebrow">Next up</p>
           {#if nextLot}
-            <p class="mt-2 text-lg font-black text-slate-900">Lot #{nextLot.lotNumber} · {nextLot.title}</p>
-            <p class="mt-1 text-sm text-slate-500">Start at {money(nextLot.startingBid)}</p>
+            <p class="mt-2 font-[family-name:var(--pumbi-serif)] text-xl font-semibold">Lot #{nextLot.lotNumber} · {nextLot.title}</p>
+            <p class="mt-1 text-sm text-[var(--pumbi-ink-soft)]">Start at {money(nextLot.startingBid)}</p>
             {#if !data.auction.auctioneerStartedAt}
               <button
                 type="button"
-                class="mt-4 w-full rounded-xl bg-violet-700 px-4 py-3 font-bold text-white hover:bg-violet-800 disabled:opacity-60"
+                class="pumbi-btn mt-4 w-full disabled:opacity-60"
                 disabled={!isAuctioneer || Boolean(busyAction) || Boolean(openLot)}
                 onclick={() => runAction('start', nextLot.id)}
               >
@@ -348,7 +341,7 @@
             {:else}
               <button
                 type="button"
-                class="mt-4 w-full rounded-xl bg-violet-700 px-4 py-3 font-bold text-white hover:bg-violet-800 disabled:opacity-60"
+                class="pumbi-btn mt-4 w-full disabled:opacity-60"
                 disabled={!isAuctioneer || Boolean(busyAction) || Boolean(openLot)}
                 onclick={() => runAction('open', nextLot.id)}
               >
@@ -401,7 +394,7 @@
       {/if}
 
       <div class="grid gap-5 xl:grid-cols-[minmax(0,1.4fr)_minmax(300px,0.8fr)]">
-        <section class="overflow-hidden rounded-2xl bg-white shadow-sm">
+        <section class="pumbi-panel overflow-hidden">
           <div class="border-b border-slate-200 px-5 py-4">
             <h2 class="font-black text-slate-900">Lot order</h2>
             <p class="text-xs text-slate-500">Open, close, and advance lots in catalog order</p>
@@ -419,7 +412,7 @@
               </thead>
               <tbody class="divide-y divide-slate-100">
                 {#each data.lots as lot}
-                  <tr class={lot.id === data.openLotId ? 'bg-violet-50' : ''}>
+                  <tr class={lot.id === data.openLotId ? 'bg-[var(--pumbi-cream-deep)]' : ''}>
                     <td class="px-4 py-3 font-bold text-slate-900">#{lot.lotNumber}</td>
                     <td class="px-4 py-3">
                       <p class="font-semibold text-slate-900">{lot.title}</p>
@@ -446,7 +439,7 @@
                           {#if !data.auction.auctioneerStartedAt}
                             <button
                               type="button"
-                              class="rounded-lg bg-violet-700 px-3 py-1.5 text-xs font-bold text-white disabled:opacity-50"
+                              class="bg-[var(--pumbi-forest)] px-3 py-1.5 text-xs font-bold text-white disabled:opacity-50"
                               disabled={!isAuctioneer || Boolean(busyAction) || Boolean(openLot)}
                               onclick={() => runAction('start', lot.id)}
                             >
@@ -455,7 +448,7 @@
                           {:else}
                             <button
                               type="button"
-                              class="rounded-lg bg-violet-700 px-3 py-1.5 text-xs font-bold text-white disabled:opacity-50"
+                              class="bg-[var(--pumbi-forest)] px-3 py-1.5 text-xs font-bold text-white disabled:opacity-50"
                               disabled={!isAuctioneer || Boolean(busyAction) || Boolean(openLot)}
                               onclick={() => runAction('open', lot.id)}
                             >
@@ -473,7 +466,7 @@
           </div>
         </section>
 
-        <aside class="overflow-hidden rounded-2xl bg-white shadow-sm">
+        <aside class="pumbi-panel overflow-hidden">
           <div class="border-b border-slate-200 px-5 py-4">
             <h2 class="font-black text-slate-900">Recent bids</h2>
             <p class="text-xs text-slate-500">Live feed across the auction</p>

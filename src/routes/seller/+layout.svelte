@@ -2,21 +2,26 @@
   import { page } from '$app/stores';
   import { goto } from '$app/navigation';
   import { onMount } from 'svelte';
-  
-  let {
-    data
-  } = $props();
-  
+  import SellerNav from '$lib/components/SellerNav.svelte';
+
+  let { data, children } = $props();
+
   let session = $state(data?.session);
-  
-  // Client-side check as backup (in case session expires while on page)
+
+  let limited = $derived(
+    Boolean(
+      data?.auctionHouse &&
+        data.auctionHouse.onboardingStatus !== 'APPROVED' &&
+        data?.session?.user?.role !== 'PLATFORM_ADMIN'
+    )
+  );
+
   $effect(() => {
     if (!session?.user) {
       goto('/auth/login?redirect=' + encodeURIComponent($page.url.pathname));
     }
   });
-  
-  // Periodically check session validity (every 30 seconds)
+
   onMount(() => {
     const checkInterval = setInterval(async () => {
       try {
@@ -26,9 +31,8 @@
           goto('/auth/login?redirect=' + encodeURIComponent($page.url.pathname));
           return;
         }
-        
+
         const sessionData = await res.json();
-        
         if (!sessionData?.user) {
           clearInterval(checkInterval);
           goto('/auth/login?redirect=' + encodeURIComponent($page.url.pathname));
@@ -40,11 +44,13 @@
         clearInterval(checkInterval);
         goto('/auth/login?redirect=' + encodeURIComponent($page.url.pathname));
       }
-    }, 30000); // Check every 30 seconds
-    
+    }, 30000);
+
     return () => clearInterval(checkInterval);
   });
 </script>
 
-<slot {session} />
-
+<div class="pumbi-page">
+  <SellerNav auctionHouse={data?.auctionHouse} {limited} />
+  {@render children?.()}
+</div>

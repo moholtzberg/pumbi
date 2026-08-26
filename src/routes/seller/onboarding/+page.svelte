@@ -280,18 +280,14 @@
 
 <svelte:head><title>Seller onboarding | Pumbi</title></svelte:head>
 
-<div class="min-h-screen bg-slate-50">
-  <div class="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
+<main class="mx-auto w-full max-w-[1240px] px-4 py-8 sm:px-6 lg:px-8">
     <div class="mb-6 flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
       <div>
-        <p class="text-sm font-semibold uppercase tracking-wide text-blue-700">Seller verification</p>
-        <h1 class="mt-1 text-3xl font-bold text-slate-950">Auction house onboarding</h1>
-        <p class="mt-2 max-w-3xl text-slate-600">Complete your business profile for review. Auction publishing, payouts, and other seller tools remain limited until approval.</p>
+        <p class="pumbi-eyebrow">Verification</p>
+        <h1 class="mt-2 font-[family-name:var(--pumbi-serif)] text-3xl font-semibold">Auction house onboarding</h1>
+        <p class="mt-2 max-w-3xl text-sm text-[var(--pumbi-ink-soft)]">Complete your business profile for review. Publishing and payouts stay limited until approval.</p>
       </div>
-      <div class="flex flex-wrap gap-2">
-        <span class="rounded-full px-3 py-1 text-sm font-semibold {statusClass(status)}">{label(status)}</span>
-        <a href="/seller" class="rounded-lg border border-slate-300 bg-white px-4 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50">Seller dashboard</a>
-      </div>
+      <span class="self-start px-3 py-1 text-sm font-semibold {statusClass(status)}">{label(status)}</span>
     </div>
 
     {#if status === 'REJECTED'}
@@ -415,8 +411,7 @@
         </main>
       </div>
     {/if}
-  </div>
-</div>
+</main>
 
 <style>
   label span { margin-bottom: .4rem; display: block; font-size: .875rem; font-weight: 600; color: rgb(51 65 85); }

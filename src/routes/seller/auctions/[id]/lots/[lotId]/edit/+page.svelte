@@ -268,28 +268,21 @@
   <title>Edit Lot - {lot?.title || 'Loading...'}</title>
 </svelte:head>
 
-<div class="min-h-screen bg-gray-50 py-6">
-  <div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
-    {#if loading}
-      <div class="text-center py-12">
+<div>
+  {#if loading}
+      <div class="py-16 text-center">
         <PumbiLoader size="lg" label="Loading" />
-        <p class="mt-4 text-gray-600">Loading lot...</p>
+        <p class="mt-4 text-[var(--pumbi-muted)]">Loading lot…</p>
       </div>
     {:else if lot}
-      <div class="bg-white rounded-lg shadow-lg p-6 mb-6">
-        <div class="flex items-center justify-between mb-6">
+      <div class="pumbi-panel mb-6 p-6">
+        <div class="mb-6 flex items-center justify-between">
           <div>
-            <h1 class="text-3xl font-bold text-gray-900">Edit Lot</h1>
-            <p class="text-gray-600 mt-1">Lot #{lot.lotNumber}</p>
+            <p class="pumbi-eyebrow">Edit</p>
+            <h2 class="mt-1 font-[family-name:var(--pumbi-serif)] text-2xl font-semibold">Lot #{lot.lotNumber}</h2>
+            <p class="mt-1 text-sm text-[var(--pumbi-ink-soft)]">{lot.title}</p>
           </div>
-          <button
-            onclick={() => goto(`/seller/auctions/${$page.params.id}/lots`)}
-            class="text-gray-600 hover:text-gray-800"
-          >
-            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
-            </svg>
-          </button>
+          <a href={`/seller/auctions/${$page.params.id}/lots`} class="pumbi-link text-sm">← Catalog</a>
         </div>
         
         {#if errorMessage}
@@ -706,15 +699,9 @@
         </form>
       </div>
     {:else}
-      <div class="bg-white rounded-lg shadow-lg p-12 text-center">
-        <p class="text-gray-600 text-lg mb-4">Lot not found</p>
-        <button
-          onclick={() => goto(`/seller/auctions/${$page.params.id}/lots`)}
-          class="bg-blue-600 text-white px-6 py-3 rounded-lg hover:bg-blue-700 transition-colors font-semibold"
-        >
-          Back to Lots
-        </button>
+      <div class="pumbi-panel p-12 text-center">
+        <p class="mb-4 text-lg text-[var(--pumbi-muted)]">Lot not found</p>
+        <a href={`/seller/auctions/${$page.params.id}/lots`} class="pumbi-btn">Back to catalog</a>
       </div>
     {/if}
-  </div>
 </div>

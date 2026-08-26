@@ -279,43 +279,35 @@
   <title>Auction House Settings</title>
 </svelte:head>
 
-<div class="min-h-screen bg-gray-50 py-6">
-  <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-    {#if loading}
-      <div class="text-center py-12">
+<div class="mx-auto w-full max-w-[1240px] px-4 py-8 sm:px-6 lg:px-8">
+  {#if loading}
+      <div class="py-16 text-center">
         <PumbiLoader size="lg" label="Loading" />
-        <p class="mt-4 text-gray-600">Loading settings...</p>
+        <p class="mt-4 text-sm text-[var(--pumbi-muted)]">Loading settings…</p>
       </div>
     {:else if errorMessage && !auctionHouse}
-      <div class="bg-red-50 border border-red-200 rounded-lg p-6 text-center">
+      <div class="pumbi-panel p-6 text-center">
         <p class="text-red-800">{errorMessage}</p>
-        <a href="/auction-houses/signup" class="text-blue-600 hover:underline mt-2 inline-block">
-          Register an auction house
-        </a>
+        <a href="/auction-houses/signup" class="pumbi-link mt-2 inline-block">Register an auction house</a>
       </div>
     {:else}
-      <div class="bg-white rounded-lg shadow-lg overflow-hidden">
-        <!-- Header -->
-        <div class="bg-gradient-to-r from-blue-600 to-blue-700 px-6 py-4">
-          <div class="flex items-center justify-between">
-            <div>
-              <h1 class="text-2xl font-bold text-white">Auction House Settings</h1>
-              {#if auctionHouse}
-                <div class="mt-2 text-blue-100 text-sm">
-                  <span class="font-semibold">{auctionHouse.name}</span>
-                  <span class="mx-2">•</span>
-                  <span class="font-mono bg-blue-800 px-2 py-0.5 rounded">{auctionHouse.slug}</span>
-                </div>
-              {/if}
-            </div>
-            <button
-              onclick={saveSettings}
-              disabled={saving}
-              class="bg-white text-blue-600 px-6 py-2 rounded-lg hover:bg-blue-50 transition-colors font-semibold disabled:opacity-50 disabled:cursor-not-allowed"
-            >
-              {saving ? 'Saving...' : 'Save Settings'}
-            </button>
+      <div class="pumbi-panel overflow-hidden">
+        <div class="flex flex-wrap items-center justify-between gap-4 border-b border-[var(--pumbi-line)] bg-[var(--pumbi-forest-deep)] px-6 py-5 text-[#f7f4ee]">
+          <div>
+            <p class="text-[10px] font-bold uppercase tracking-[0.16em] text-[#d6b477]">House-wide</p>
+            <h1 class="mt-1 font-[family-name:var(--pumbi-serif)] text-2xl font-semibold">House settings</h1>
+            {#if auctionHouse}
+              <p class="mt-1 text-sm text-[#bec9c4]">{auctionHouse.name} · {auctionHouse.slug}</p>
+            {/if}
           </div>
+          <button
+            type="button"
+            onclick={saveSettings}
+            disabled={saving}
+            class="bg-white px-5 py-2 text-xs font-bold uppercase tracking-wide text-[var(--pumbi-forest)] disabled:opacity-50"
+          >
+            {saving ? 'Saving…' : 'Save settings'}
+          </button>
         </div>
 
         {#if errorMessage}
@@ -1176,5 +1168,4 @@
           </form>
       </div>
     {/if}
-  </div>
 </div>

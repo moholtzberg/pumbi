@@ -2318,46 +2318,25 @@
   <title>Advanced Lot Management - {auction?.title || 'Loading...'}</title>
 </svelte:head>
 
-<div class="min-h-screen bg-gray-50 py-6 print:bg-white">
-  <div class="max-w-[95vw] mx-auto px-4">
+<div class="print:bg-white">
     {#if loading}
-      <div class="text-center py-12">
+      <div class="py-16 text-center">
         <PumbiLoader size="lg" label="Loading" />
-        <p class="mt-4 text-gray-600">Loading lots...</p>
+        <p class="mt-4 text-[var(--pumbi-muted)]">Loading lots…</p>
       </div>
     {:else if auction}
       <!-- Header -->
-      <div class="bg-white rounded-lg shadow-lg p-6 mb-6 print:hidden">
-        <div class="flex items-center justify-between mb-4">
+      <div class="pumbi-panel mb-6 p-6 print:hidden">
+        <div class="mb-4 flex flex-wrap items-center justify-between gap-3">
           <div>
-            <h1 class="text-3xl font-bold text-gray-900">Advanced Lot Management</h1>
-            <p class="text-gray-600 mt-1">{auction.title}</p>
+            <p class="pumbi-eyebrow">Spreadsheet</p>
+            <h2 class="mt-1 font-[family-name:var(--pumbi-serif)] text-2xl font-semibold">Advanced lot grid</h2>
+            <p class="mt-1 text-sm text-[var(--pumbi-ink-soft)]">{auction.title}</p>
           </div>
-          <div class="flex items-center gap-3">
-            <a
-              href="/seller/auctions/{auction.id}/lots"
-              class="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200"
-            >
-              Standard View
-            </a>
-            <button
-              onclick={addNewLot}
-              class="px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-lg hover:bg-blue-700"
-            >
-              Add Lot
-            </button>
-            <button
-              onclick={openImportModal}
-              class="px-4 py-2 text-sm font-medium text-white bg-purple-600 rounded-lg hover:bg-purple-700"
-            >
-              Import Lots
-            </button>
-            <a
-              href="/seller/auctions/{auction.id}/lots/bulk"
-              class="px-4 py-2 text-sm font-medium text-white bg-violet-700 rounded-lg hover:bg-violet-800"
-            >
-              Bulk Grid Editor
-            </a>
+          <div class="flex flex-wrap items-center gap-2">
+            <button type="button" onclick={addNewLot} class="pumbi-btn">Add lot</button>
+            <button type="button" onclick={openImportModal} class="pumbi-btn-secondary">Import</button>
+            <a href="/seller/auctions/{auction.id}/lots/bulk" class="pumbi-btn-secondary">Bulk CSV</a>
             <button
               onclick={handleBulkImageUpload}
               disabled={lots.length === 0 || uploadingImages}
@@ -4035,5 +4014,4 @@
         </div>
       </div>
     {/if}
-  </div>
 </div>
