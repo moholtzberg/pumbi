@@ -1,4 +1,5 @@
 import prisma from '$lib/prisma.js';
+import { HOUSE_PERMISSIONS, requireAuctionHousePermission } from '$lib/server/authorization.js';
 import { getStripe } from '$lib/server/stripe.js';
 import { markInvoicePaid } from '$lib/server/invoices.js';
 import { purchaseLabelForInvoice } from '$lib/server/shipping.js';
@@ -10,7 +11,7 @@ function toCents(amount) {
 /**
  * Create a Stripe Checkout Session for an unpaid invoice (Pay with Pumbi).
  */
-export async function createInvoiceCheckoutSession({ invoiceId, origin, buyerUser }) {
+export async function createInvoiceCheckoutSession({ invoiceId, origin, buyerUser, sellerUser = null }) {
   const invoice = await prisma.invoice.findUnique({
     where: { id: invoiceId },
     include: {
@@ -27,13 +28,15 @@ export async function createInvoiceCheckoutSession({ invoiceId, origin, buyerUse
     error.status = 404;
     throw error;
   }
-  if (invoice.buyerId !== buyerUser.id) {
+  if (sellerUser) {
+    await requireAuctionHousePermission(sellerUser, invoice.auctionHouseId, HOUSE_PERMISSIONS.MANAGE_AUCTIONS);
+  } else if (invoice.buyerId !== buyerUser?.id) {
     const error = new Error('Not allowed to pay this invoice');
     error.status = 403;
     throw error;
   }
-  if (invoice.status === 'PAID') {
-    const error = new Error('Invoice is already paid');
+  if (['PAID', 'CANCELLED', 'REFUNDED'].includes(invoice.status)) {
+    const error = new Error('This invoice cannot accept payment');
     error.status = 409;
     throw error;
   }
@@ -44,6 +47,26 @@ export async function createInvoiceCheckoutSession({ invoiceId, origin, buyerUse
   }
 
   const stripe = getStripe();
+  // Close the previous session before issuing another checkout link.
+  if (invoice.stripeCheckoutSessionId) {
+    const existing = await stripe.checkout.sessions.retrieve(invoice.stripeCheckoutSessionId);
+    if (existing.payment_status === 'paid') {
+      await syncInvoiceCheckoutSession(existing);
+      const error = new Error('Invoice is already paid. Refresh to see the payment.');
+      error.status = 409;
+      throw error;
+    }
+    if (existing.status === 'complete') {
+      const error = new Error('A card payment is being processed');
+      error.status = 409;
+      throw error;
+    }
+    if (existing.status === 'open') {
+      // Expire before changing the return destination or amount.
+      await stripe.checkout.sessions.expire(existing.id);
+    }
+  }
+  const returnPath = sellerUser ? `/seller/sold/${invoice.id}` : `/dashboard/invoices/${invoice.id}`;
   const currency = (invoice.currency || 'usd').toLowerCase();
   const lineItems = [
     {
@@ -89,10 +112,11 @@ export async function createInvoiceCheckoutSession({ invoiceId, origin, buyerUse
 
   const sessionParams = {
     mode: 'payment',
-    customer_email: invoice.buyer.email || buyerUser.email,
+    ...(sellerUser ? { payment_method_types: ['card'] } : {}),
+    customer_email: invoice.buyer.email || buyerUser?.email,
     line_items: lineItems,
-    success_url: `${origin}/dashboard/invoices/${invoice.id}?paid=1`,
-    cancel_url: `${origin}/dashboard/invoices/${invoice.id}?canceled=1`,
+    success_url: `${origin}${returnPath}?paid=1`,
+    cancel_url: `${origin}${returnPath}?canceled=1`,
     client_reference_id: invoice.id,
     metadata: {
       invoiceId: invoice.id,
@@ -145,7 +169,7 @@ export async function syncInvoiceCheckoutSession(session) {
   if (!invoice) return null;
   if (invoice.status === 'PAID') return invoice;
 
-  if (session.payment_status !== 'paid' && session.status !== 'complete') {
+  if (session.payment_status !== 'paid') {
     return invoice;
   }
 

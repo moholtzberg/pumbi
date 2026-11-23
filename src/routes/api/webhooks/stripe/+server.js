@@ -41,7 +41,7 @@ export async function POST({ request }) {
     ) {
       await syncIdentitySession(event.data.object);
     }
-    if (event.type === 'checkout.session.completed') {
+    if (event.type === 'checkout.session.completed' || event.type === 'checkout.session.async_payment_succeeded') {
       const session = event.data.object;
       if (session.mode === 'setup') {
         await syncCardCheckoutSession(session.id);

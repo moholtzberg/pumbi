@@ -88,12 +88,12 @@
   </section>
 
   <main class="mx-auto max-w-7xl space-y-16 px-4 py-12 sm:px-6 lg:px-8 lg:py-16">
-    {#if data.mostWatchedLots.length}
-      <section aria-labelledby="watched-heading">
+    <section id="watched-heading" class="scroll-mt-24" aria-label="Most watched lots">
         <div class="mb-6 flex items-end justify-between gap-4">
-          <div><p class="text-sm font-semibold uppercase tracking-widest text-[#a95739]">Trending now</p><h2 id="watched-heading" class="mt-1 text-3xl font-semibold">Most watched lots</h2></div>
+          <div><p class="text-sm font-semibold uppercase tracking-widest text-[#a95739]">Trending now</p><h2 class="mt-1 text-3xl font-semibold">Most watched lots</h2></div>
           <span class="hidden text-sm text-slate-500 sm:block">Ranked by watchlists</span>
         </div>
+        {#if data.mostWatchedLots.length}
         <div class="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
           {#each data.mostWatchedLots as lot, index}
             <a href={`/lots/${lot.id}`} class="group overflow-hidden rounded-sm border border-slate-200 bg-white shadow-sm transition hover:-translate-y-1 hover:shadow-xl">
@@ -112,12 +112,14 @@
             </a>
           {/each}
         </div>
-      </section>
-    {/if}
+        {:else}
+          <p class="text-sm text-slate-500">No watched lots yet.</p>
+        {/if}
+    </section>
 
-    {#if data.popularAuctions.length}
-      <section aria-labelledby="popular-heading">
-        <div class="mb-6"><p class="text-sm font-semibold uppercase tracking-widest text-[#a95739]">The crowd is gathering</p><h2 id="popular-heading" class="mt-1 text-3xl font-semibold">Most subscribed auctions</h2></div>
+    <section id="popular-heading" class="scroll-mt-24" aria-label="Most subscribed auctions">
+        <div class="mb-6"><p class="text-sm font-semibold uppercase tracking-widest text-[#a95739]">The crowd is gathering</p><h2 class="mt-1 text-3xl font-semibold">Most subscribed auctions</h2></div>
+        {#if data.popularAuctions.length}
         <div class="grid gap-5 md:grid-cols-2 lg:grid-cols-3">
           {#each data.popularAuctions as auction}
             <a href={`/auctions/${auction.id}`} class="group flex min-h-64 flex-col justify-between overflow-hidden rounded-sm bg-slate-900 p-6 text-white shadow-sm transition hover:-translate-y-1 hover:bg-slate-800 hover:shadow-xl">
@@ -130,12 +132,14 @@
             </a>
           {/each}
         </div>
-      </section>
-    {/if}
+        {:else}
+          <p class="text-sm text-slate-500">No auctions to show yet.</p>
+        {/if}
+    </section>
 
-    {#if data.mostActiveLots.length}
-      <section aria-labelledby="active-heading">
-        <div class="mb-6"><p class="text-sm font-semibold uppercase tracking-widest text-[#a95739]">Watchers + bids</p><h2 id="active-heading" class="mt-1 text-3xl font-semibold">Items with the most activity</h2></div>
+    <section id="active-heading" class="scroll-mt-24" aria-label="Items with the most activity">
+        <div class="mb-6"><p class="text-sm font-semibold uppercase tracking-widest text-[#a95739]">Watchers + bids</p><h2 class="mt-1 text-3xl font-semibold">Items with the most activity</h2></div>
+        {#if data.mostActiveLots.length}
         <div class="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
           {#each data.mostActiveLots as lot}
             <a href={`/lots/${lot.id}`} class="group flex gap-4 rounded-sm border border-slate-200 bg-white p-3 shadow-sm transition hover:border-[#a95739] hover:shadow-lg">
@@ -152,12 +156,14 @@
             </a>
           {/each}
         </div>
-      </section>
-    {/if}
+        {:else}
+          <p class="text-sm text-slate-500">No active lots yet.</p>
+        {/if}
+    </section>
 
-    <section aria-labelledby="all-auctions-heading">
+    <section id="all-auctions-heading" class="scroll-mt-24" aria-label="All auctions">
       <div class="mb-6 flex flex-col gap-5 sm:flex-row sm:items-end sm:justify-between">
-        <div><p class="text-sm font-semibold uppercase tracking-widest text-[#a95739]">Browse the catalog</p><h2 id="all-auctions-heading" class="mt-1 text-3xl font-semibold">All auctions</h2></div>
+        <div><p class="text-sm font-semibold uppercase tracking-widest text-[#a95739]">Browse the catalog</p><h2 class="mt-1 text-3xl font-semibold">All auctions</h2></div>
         <div class="flex flex-wrap gap-2" aria-label="Filter auctions by status">
           {#each [['all', 'All'], ['live', 'Live now'], ['upcoming', 'Upcoming'], ['ended', 'Ended']] as filter}
             <button onclick={() => statusFilter = filter[0]} class="rounded-sm px-4 py-2 text-sm font-semibold transition {statusFilter === filter[0] ? 'bg-slate-950 text-white' : 'bg-white text-slate-700 hover:bg-slate-100'}">{filter[1]}</button>

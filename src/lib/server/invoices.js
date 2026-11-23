@@ -149,7 +149,8 @@ export async function markInvoicePaid(invoiceId, {
   paymentChannel,
   externalPaymentMethod = null,
   stripeCheckoutSessionId = null,
-  stripePaymentIntentId = null
+  stripePaymentIntentId = null,
+  notes
 } = {}) {
   return prisma.invoice.update({
     where: { id: invoiceId },
@@ -159,6 +160,7 @@ export async function markInvoicePaid(invoiceId, {
       externalPaymentMethod,
       stripeCheckoutSessionId: stripeCheckoutSessionId || undefined,
       stripePaymentIntentId: stripePaymentIntentId || undefined,
+      notes,
       paidAt: new Date()
     }
   });

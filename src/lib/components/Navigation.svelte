@@ -3,6 +3,7 @@
   import { signOut } from '@auth/sveltekit/client';
   import { goto } from '$app/navigation';
   import { browser } from '$app/environment';
+  import { onMount } from 'svelte';
 
   let isMenuOpen = $state(false);
   let isAccountOpen = $state(false);
@@ -15,7 +16,7 @@
   let accountHome = $derived(hasAuctionHouse ? '/seller' : '/dashboard');
   let isAdmin = $derived(currentUser?.role?.toUpperCase() === 'PLATFORM_ADMIN');
 
-  $effect(async () => {
+  onMount(async () => {
     try {
       const response = await fetch('/auth/session');
       session = await response.json();
@@ -42,7 +43,7 @@
   });
 
   $effect(() => {
-    if (!browser || !isAccountOpen) return;
+    if (!browser || (!isAccountOpen && !isMenuOpen)) return;
 
     function onPointerDown(event) {
       if (accountRoot && !accountRoot.contains(event.target)) {
@@ -51,7 +52,7 @@
     }
 
     function onKeyDown(event) {
-      if (event.key === 'Escape') isAccountOpen = false;
+      if (event.key === 'Escape') { isAccountOpen = false; isMenuOpen = false; }
     }
 
     document.addEventListener('pointerdown', onPointerDown);
@@ -79,10 +80,10 @@
     <a href="/" class="brand" aria-label="Pumbi home"><span>P</span><strong>Pumbi</strong></a>
 
     <div class="desktop-links">
-      <a class:active={$page.url.pathname === '/'} href="/#auctions">Auctions</a>
-      <a href="/#category-heading">Categories</a>
-      <a href="/#category-heading">Auction houses</a>
-      <a href="/#partner">How it works</a>
+      <a class:active={$page.url.pathname === '/'} href="/#all-auctions-heading">Auctions</a>
+      <a href="/#watched-heading">Most watched</a>
+      <a href="/#popular-heading">Popular auctions</a>
+      <a href="/#active-heading">Active lots</a>
     </div>
 
     <div class="desktop-actions">
@@ -134,10 +135,10 @@
 
   {#if isMenuOpen}
     <div class="mobile-menu">
-      <a href="/#auctions" onclick={closeMobile}>Auctions</a>
-      <a href="/#category-heading" onclick={closeMobile}>Categories</a>
-      <a href="/#category-heading" onclick={closeMobile}>Auction houses</a>
-      <a href="/#partner" onclick={closeMobile}>How it works</a>
+      <a href="/#all-auctions-heading" onclick={closeMobile}>Auctions</a>
+      <a href="/#watched-heading" onclick={closeMobile}>Most watched</a>
+      <a href="/#popular-heading" onclick={closeMobile}>Popular auctions</a>
+      <a href="/#active-heading" onclick={closeMobile}>Active lots</a>
 
       {#if session?.user}
         <p class="mobile-account-label">{displayName}</p>
@@ -179,7 +180,8 @@
     height: 100%;
     margin: auto;
     display: grid;
-    grid-template-columns: 1fr auto 1fr;
+    grid-template-columns: auto minmax(0, 1fr) auto;
+    gap: 28px;
     align-items: center;
   }
 
@@ -209,7 +211,8 @@
     display: flex;
     align-items: stretch;
     height: 100%;
-    gap: 30px;
+    gap: 24px;
+    justify-content: center;
   }
 
   .desktop-links a {
@@ -354,6 +357,8 @@
     background: #f7f4ee;
     border-top: 1px solid #ddd6ca;
     padding: 18px 24px 30px;
+    max-height: calc(100dvh - 62px);
+    overflow-y: auto;
     display: grid;
   }
 

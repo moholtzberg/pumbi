@@ -1,4 +1,5 @@
 <script>
+  import RecordPayment from '$lib/components/RecordPayment.svelte';
   let { data } = $props();
 
   let invoice = $state(data.invoice);
@@ -8,6 +9,8 @@
   let busy = $state('');
   let errorMessage = $state('');
   let notice = $state('');
+
+  $effect(() => { invoice = data.invoice; });
 
   function money(amount) {
     return new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(Number(amount || 0));
@@ -32,14 +35,6 @@
     } finally {
       busy = '';
     }
-  }
-
-  async function markPaid() {
-    try {
-      const result = await api('mark_paid');
-      invoice = result.invoice;
-      notice = 'Invoice marked paid';
-    } catch { /* */ }
   }
 
   async function getRates() {
@@ -87,6 +82,7 @@
     <p class="text-sm text-[var(--pumbi-muted)]">{invoice.buyer?.name || invoice.buyer?.email} · {money(invoice.totalAmount)} · {invoice.status}</p>
   </header>
 
+  {#if data.paymentNotice}<div role="status" class="mt-4 border border-[var(--pumbi-line)] px-4 py-3 text-sm">{data.paymentNotice}</div>{/if}
   {#if errorMessage}<div class="mt-4 border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">{errorMessage}</div>{/if}
   {#if notice}<div class="mt-4 border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-700">{notice}</div>{/if}
 
@@ -96,11 +92,11 @@
       <p>Hammer {money(invoice.hammerPrice)} · Premium {money(invoice.buyerPremiumAmount)} · Shipping {money(invoice.shippingAmount)}</p>
       <p class="font-semibold">Total {money(invoice.totalAmount)}</p>
     </div>
-    {#if invoice.status !== 'PAID'}
-      <button type="button" class="pumbi-btn mt-4" disabled={Boolean(busy)} onclick={markPaid}>
-        {busy === 'mark_paid' ? 'Saving…' : 'Mark paid'}
-      </button>
+    {#if invoice.paymentChannel}
+      <p class="mt-3 text-sm">{invoice.paymentChannel === 'PUMBI_STRIPE' ? 'Credit card · Stripe' : invoice.externalPaymentMethod}{invoice.paidAt ? ` · Paid ${new Date(invoice.paidAt).toLocaleDateString()}` : ''}</p>
     {/if}
+    {#if invoice.notes}<p class="mt-2 whitespace-pre-line text-sm text-[var(--pumbi-ink-soft)]">{invoice.notes}</p>{/if}
+    <div class="mt-4"><RecordPayment {invoice} disabled={Boolean(busy)} /></div>
   </section>
 
   <section class="pumbi-panel mt-6 p-5">

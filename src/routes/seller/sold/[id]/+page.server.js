@@ -5,9 +5,11 @@ import {
   requireAuthenticatedUser,
   requireAuctionHousePermission
 } from '$lib/server/authorization.js';
+import { getStripe } from '$lib/server/stripe.js';
+import { syncInvoiceCheckoutSession } from '$lib/server/invoiceCheckout.js';
 import { publicInvoice } from '$lib/server/invoices.js';
 
-export async function load({ locals, params }) {
+export async function load({ locals, params, url }) {
   const user = await requireAuthenticatedUser(locals);
   const invoice = await prisma.invoice.findUnique({
     where: { id: params.id },
@@ -22,9 +24,24 @@ export async function load({ locals, params }) {
   if (!invoice) throw error(404, 'Invoice not found');
   await requireAuctionHousePermission(user, invoice.auctionHouseId, HOUSE_PERMISSIONS.MANAGE_AUCTIONS);
 
+  let paymentNotice = url.searchParams.has('canceled') ? 'Card payment canceled. No payment was recorded.' : '';
+  if (url.searchParams.get('paid') === '1' && invoice.stripeCheckoutSessionId) {
+    try {
+      const session = await getStripe().checkout.sessions.retrieve(invoice.stripeCheckoutSessionId);
+      const synced = await syncInvoiceCheckoutSession(session);
+      if (synced) Object.assign(invoice, synced);
+      paymentNotice = invoice.status === 'PAID' ? 'Card payment recorded.' : 'Stripe is confirming the payment. Refresh to check its status.';
+    } catch (err) {
+      console.error('Seller payment sync failed', err?.message);
+      paymentNotice = 'Unable to check Stripe payment status. Refresh to try again.';
+    }
+  }
+
   return {
+    paymentNotice,
     invoice: {
       ...publicInvoice(invoice),
+      notes: invoice.notes,
       buyer: invoice.buyer
     },
     rates: Array.isArray(invoice.shipment?.ratesJson) ? invoice.shipment.ratesJson : [],

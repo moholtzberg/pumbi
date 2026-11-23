@@ -1,4 +1,5 @@
 <script>
+  import RecordPayment from '$lib/components/RecordPayment.svelte';
   let { data } = $props();
   let busyId = $state('');
   let notice = $state('');
@@ -26,12 +27,7 @@
       });
       const body = await response.json().catch(() => ({}));
       if (!response.ok) throw new Error(body.message || `Failed to ${action}`);
-      notice =
-        action === 'mark_paid'
-          ? 'Invoice marked paid'
-          : action === 'purchase_label'
-            ? 'Shipping label ready'
-            : 'Updated';
+      notice = action === 'purchase_label' ? 'Shipping label ready' : 'Updated';
       window.location.reload();
     } catch (err) {
       errorMessage = err.message || 'Request failed';
@@ -88,6 +84,7 @@
             </div>
             <div class="text-sm text-[var(--pumbi-ink-soft)]">
               <p><span class="font-semibold text-[var(--pumbi-ink)]">Payment:</span> {invoice.status.replaceAll('_', ' ')}</p>
+              {#if invoice.paymentChannel}<p class="mt-1 text-xs">{invoice.paymentChannel === 'PUMBI_STRIPE' ? 'Credit card · Stripe' : invoice.externalPaymentMethod}</p>{/if}
               {#if invoice.shipment}
                 <p class="mt-2"><span class="font-semibold text-[var(--pumbi-ink)]">Shipment:</span> {invoice.shipment.status.replaceAll('_', ' ')}</p>
                 {#if invoice.shipment.trackingNumber}
@@ -100,16 +97,7 @@
               {/if}
             </div>
             <div class="flex flex-col gap-2">
-              {#if invoice.status !== 'PAID'}
-                <button
-                  type="button"
-                  class="pumbi-btn"
-                  disabled={Boolean(busyId)}
-                  onclick={() => run(invoice.id, 'mark_paid')}
-                >
-                  {busyId === `${invoice.id}:mark_paid` ? 'Saving…' : 'Mark paid'}
-                </button>
-              {/if}
+              <RecordPayment {invoice} disabled={Boolean(busyId)} />
               {#if invoice.shipment?.labelUrl}
                 <a href={invoice.shipment.labelUrl} target="_blank" rel="noreferrer" class="pumbi-btn-secondary text-center">Print label</a>
               {:else if invoice.status === 'PAID' && invoice.shipment?.carrier}
