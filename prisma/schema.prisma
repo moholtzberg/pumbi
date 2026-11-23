@@ -105,6 +105,7 @@ model User {
   auctions                        Auction[] // Auctions created by this user (if seller)
   conductedAuctions               Auction[]              @relation("Auctioneer")
   bids                            Bid[]
+  recordedPhoneBids               Bid[]                  @relation("RecordedPhoneBid")
   auctionRegistrations            AuctionRegistration[] // Auctions this user registered for
   auctionRegistrationsReviewed    AuctionRegistration[]     @relation("AuctionRegistrationReviewer")
   auctionSeriesCreated            AuctionSeries[]           @relation("AuctionSeriesCreator")
@@ -405,6 +406,11 @@ enum LotStatus {
   WITHDRAWN
 }
 
+enum BidSource {
+  ONLINE
+  PHONE
+}
+
 // Bid model - represents a bid placed on a lot
 model Bid {
   id        String   @id @default(cuid())
@@ -413,14 +419,18 @@ model Bid {
   userName  String?  @map("user_name")
   amount    Float
   timestamp DateTime @default(now())
+  source    BidSource @default(ONLINE)
+  recordedById String? @map("recorded_by_id")
 
   // Relations
   lot  Lot  @relation(fields: [lotId], references: [id], onDelete: Cascade)
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  recordedBy User? @relation("RecordedPhoneBid", fields: [recordedById], references: [id], onDelete: SetNull)
 
   @@index([lotId])
   @@index([userId])
   @@index([timestamp])
+  @@index([recordedById])
   @@map("bids")
 }
 

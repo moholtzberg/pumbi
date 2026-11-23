@@ -107,6 +107,7 @@ export async function GET({ params, locals }) {
       id: bid.id,
       amount: bid.amount,
       bidderName: bid.userName,
+      source: bid.source,
       timestamp: bid.timestamp,
       lotNumber: bid.lot.lotNumber,
       lotTitle: bid.lot.title

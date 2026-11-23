@@ -477,7 +477,7 @@
                 <div class={`p-4 ${index === 0 ? 'bg-[#efe8dc]0/10' : ''}`}>
                   <div class="flex items-center justify-between gap-4">
                     <div class="min-w-0">
-                      <p class="truncate font-bold">{bid.bidderName}</p>
+                      <p class="truncate font-bold">{bid.bidderName}{#if bid.source === 'PHONE'}<span class="ml-2 rounded border border-[#d6b477]/40 px-1.5 py-0.5 text-[10px] font-semibold uppercase text-[#d6b477]">Phone</span>{/if}</p>
                       <p class="text-xs text-[#91a29a]">{index === 0 ? 'High bid' : `Bid #${lotBids.length - index}`}</p>
                     </div>
                     <div class="text-right">

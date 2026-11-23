@@ -162,7 +162,8 @@ function mapBid(prismaBid) {
     userId: prismaBid.userId,
     userName: prismaBid.userName,
     amount: prismaBid.amount,
-    timestamp: prismaBid.timestamp
+    timestamp: prismaBid.timestamp,
+    source: prismaBid.source || 'ONLINE'
   };
 }
 

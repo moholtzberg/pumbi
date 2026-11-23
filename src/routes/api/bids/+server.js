@@ -3,6 +3,7 @@ import { db } from '$lib/db.js';
 import prisma from '$lib/prisma.js';
 import { requireAuthenticatedUser } from '$lib/server/authorization.js';
 import { extendedEndTime, resolveLotTiming } from '$lib/server/lotTiming.js';
+import { bidAmount, minimumLotBid, requireOpenLot } from '$lib/server/bidRules.js';
 
 export async function GET({ url }) {
   const lotId = url.searchParams.get('lotId');
@@ -28,7 +29,7 @@ export async function POST({ request, locals }) {
   );
   const data = await request.json();
   const lotId = data.lotId;
-  const amount = Number(data.amount);
+  const amount = bidAmount(data.amount);
   
   if (!lotId || !Number.isFinite(amount) || amount <= 0) {
     throw error(400, 'A valid lot ID and positive bid amount are required');
@@ -38,6 +39,10 @@ export async function POST({ request, locals }) {
   }
 
   const bid = await prisma.$transaction(async (tx) => {
+    const target = await tx.lot.findUnique({ where: { id: lotId }, select: { auctionId: true } });
+    if (!target) throw error(404, 'Lot not found');
+    await tx.$queryRaw`SELECT id FROM auctions WHERE id = ${target.auctionId} FOR UPDATE`;
+    await tx.$queryRaw`SELECT id FROM lots WHERE id = ${lotId} FOR UPDATE`;
     const lot = await tx.lot.findUnique({
       where: { id: lotId },
       include: { auction: { include: { auctionHouse: true } } }
@@ -49,6 +54,7 @@ export async function POST({ request, locals }) {
 
     const auction = lot.auction;
     const now = new Date();
+    requireOpenLot(lot, now);
 
     // Auctioneer-run sales are gated by LIVE status + lot timers, not the catalog endDate.
     // Scheduled start/end only apply before the auctioneer has opened the floor.
@@ -114,10 +120,7 @@ export async function POST({ request, locals }) {
       }
     }
 
-    const minimumBid = Math.max(
-      lot.startingBid,
-      lot.currentBid + lot.bidIncrement
-    );
+    const minimumBid = minimumLotBid(lot);
     if (amount < minimumBid) {
       throw error(400, `Bid must be at least $${minimumBid}`);
     }

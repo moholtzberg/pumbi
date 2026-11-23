@@ -7,6 +7,7 @@
   import AuctionActivity from '$lib/components/AuctionActivity.svelte';
   import InterestTracker from '$lib/components/InterestTracker.svelte';
   import { broadcastInfo } from '$lib/utils/broadcastInfo.js';
+  import PhoneBidForm from '$lib/components/PhoneBidForm.svelte';
 
   let data = $state(null);
   let loading = $state(true);
@@ -14,6 +15,7 @@
   let actionError = $state('');
   let actionSuccess = $state('');
   let busyAction = $state('');
+  let phoneBidBusy = $state(false);
   let autoClosingExpired = $state(false);
   let refreshTimer;
   let successTimer;
@@ -54,7 +56,7 @@
           if (lot.id !== blockId || lot.status !== 'ACTIVE' || !lot.endTime) return false;
           return new Date(lot.endTime).getTime() <= Date.now();
         });
-      if (expiredOpen && !autoClosingExpired && !busyAction) {
+      if (expiredOpen && !autoClosingExpired && !busyAction && !phoneBidBusy) {
         autoClosingExpired = true;
         try {
           await runAction('close', expiredOpen.id);
@@ -206,7 +208,7 @@
         <button
           type="button"
           class="bg-[var(--pumbi-terracotta)] px-4 py-2 text-xs font-bold uppercase tracking-wide text-white disabled:opacity-60"
-          disabled={Boolean(busyAction)}
+          disabled={(Boolean(busyAction) || phoneBidBusy)}
           onclick={() => runAction('end')}
         >
           {busyAction.startsWith('end') ? 'Ending…' : allLotsComplete ? 'End auction' : 'End auction early'}
@@ -251,7 +253,7 @@
             <button
               type="button"
               class="pumbi-btn mt-4 w-full disabled:opacity-60"
-              disabled={Boolean(busyAction)}
+              disabled={(Boolean(busyAction) || phoneBidBusy)}
               onclick={() => runAction('claim')}
             >
               {busyAction.startsWith('claim') ? 'Claiming…' : 'Claim auctioneer seat'}
@@ -280,7 +282,7 @@
               <button
                 type="button"
                 class="px-4 py-3 text-sm font-bold text-white disabled:opacity-60 {autoAdvanceNextLot ? 'bg-[var(--pumbi-forest)]' : 'bg-[var(--pumbi-terracotta)]'}"
-                disabled={Boolean(busyAction)}
+                disabled={(Boolean(busyAction) || phoneBidBusy)}
                 onclick={() => setAutoAdvance(!autoAdvanceNextLot)}
               >
                 {busyAction === 'settings:autoAdvance'
@@ -323,7 +325,7 @@
                     <button
                       type="button"
                       class="border border-[var(--pumbi-line)] bg-[var(--pumbi-cream-deep)] px-3 py-2 text-sm font-bold disabled:opacity-60"
-                      disabled={Boolean(busyAction)}
+                      disabled={(Boolean(busyAction) || phoneBidBusy)}
                       onclick={() => runAction('extend', openLot.id, { seconds })}
                     >
                       {busyAction.startsWith(`extend:${openLot.id}:${seconds}`) ? 'Adding…' : `+${seconds}s`}
@@ -332,10 +334,18 @@
                 </div>
               </div>
             {/if}
+            {#if isAuctioneer && !auctionEnded}
+              {#key openLot.id}
+                <PhoneBidForm {auctionId} lot={openLot} disabled={Boolean(busyAction)} onbusychange={busy => { phoneBidBusy = busy; }} onrecorded={async result => {
+                  actionSuccess = `Phone bid ${money(result.bid.amount)} recorded for ${result.bid.userName}${result.newBuyer ? ' · new caller registered' : ''}`;
+                  await refresh();
+                }} />
+              {/key}
+            {/if}
             <button
               type="button"
               class="mt-4 w-full bg-[var(--pumbi-terracotta)] px-4 py-3 font-bold text-white disabled:opacity-60"
-              disabled={!isAuctioneer || Boolean(busyAction)}
+              disabled={!isAuctioneer || (Boolean(busyAction) || phoneBidBusy)}
               onclick={() => runAction('close', openLot.id)}
             >
               {busyAction.startsWith(`close:${openLot.id}`) ? 'Closing…' : openLot.highestBidderId ? 'Hammer down · Mark sold' : 'Close · Mark unsold'}
@@ -355,7 +365,7 @@
               <button
                 type="button"
                 class="pumbi-btn mt-4 w-full disabled:opacity-60"
-                disabled={!isAuctioneer || Boolean(busyAction) || Boolean(openLot)}
+                disabled={!isAuctioneer || (Boolean(busyAction) || phoneBidBusy) || Boolean(openLot)}
                 onclick={() => runAction('start', nextLot.id)}
               >
                 {busyAction === `start:${nextLot.id}` ? 'Starting…' : 'Start auction on this lot'}
@@ -364,7 +374,7 @@
               <button
                 type="button"
                 class="pumbi-btn mt-4 w-full disabled:opacity-60"
-                disabled={!isAuctioneer || Boolean(busyAction) || Boolean(openLot)}
+                disabled={!isAuctioneer || (Boolean(busyAction) || phoneBidBusy) || Boolean(openLot)}
                 onclick={() => runAction('open', nextLot.id)}
               >
                 {busyAction === `open:${nextLot.id}` ? 'Opening…' : 'Open this lot for bidding'}
@@ -382,7 +392,7 @@
               <button
                 type="button"
                 class="mt-4 w-full rounded-xl bg-[#18372f] px-4 py-3 font-bold text-white hover:bg-[#152c26] disabled:opacity-60"
-                disabled={!canEndAuction || Boolean(busyAction)}
+                disabled={!canEndAuction || (Boolean(busyAction) || phoneBidBusy)}
                 onclick={() => runAction('end')}
               >
                 {busyAction.startsWith('end') ? 'Ending…' : 'End auction'}
@@ -407,7 +417,7 @@
           <button
             type="button"
             class="rounded-xl bg-[#18372f] px-4 py-2.5 text-sm font-bold text-white hover:bg-[#152c26] disabled:opacity-60"
-            disabled={Boolean(busyAction)}
+            disabled={(Boolean(busyAction) || phoneBidBusy)}
             onclick={() => runAction('end')}
           >
             {busyAction.startsWith('end') ? 'Ending…' : 'End auction'}
@@ -452,7 +462,7 @@
                           <button
                             type="button"
                             class="rounded-lg bg-red-600 px-3 py-1.5 text-xs font-bold text-white disabled:opacity-50"
-                            disabled={!isAuctioneer || Boolean(busyAction)}
+                            disabled={!isAuctioneer || (Boolean(busyAction) || phoneBidBusy)}
                             onclick={() => runAction('close', lot.id)}
                           >
                             Close
@@ -462,7 +472,7 @@
                             <button
                               type="button"
                               class="bg-[var(--pumbi-forest)] px-3 py-1.5 text-xs font-bold text-white disabled:opacity-50"
-                              disabled={!isAuctioneer || Boolean(busyAction) || Boolean(openLot)}
+                              disabled={!isAuctioneer || (Boolean(busyAction) || phoneBidBusy) || Boolean(openLot)}
                               onclick={() => runAction('start', lot.id)}
                             >
                               Start here
@@ -471,7 +481,7 @@
                             <button
                               type="button"
                               class="bg-[var(--pumbi-forest)] px-3 py-1.5 text-xs font-bold text-white disabled:opacity-50"
-                              disabled={!isAuctioneer || Boolean(busyAction) || Boolean(openLot)}
+                              disabled={!isAuctioneer || (Boolean(busyAction) || phoneBidBusy) || Boolean(openLot)}
                               onclick={() => runAction('open', lot.id)}
                             >
                               Open
@@ -501,7 +511,7 @@
                 <div class="px-5 py-3">
                   <div class="flex items-start justify-between gap-3">
                     <div class="min-w-0">
-                      <p class="truncate font-bold text-slate-900">{bid.bidderName}</p>
+                      <p class="truncate font-bold text-slate-900">{bid.bidderName}{#if bid.source === 'PHONE'}<span class="ml-2 rounded bg-amber-100 px-2 py-0.5 text-[10px] font-semibold uppercase text-amber-900">Phone</span>{/if}</p>
                       <p class="truncate text-xs text-slate-500">Lot #{bid.lotNumber} · {bid.lotTitle}</p>
                     </div>
                     <div class="text-right">

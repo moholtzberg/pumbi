@@ -139,6 +139,7 @@ export async function GET({ params }) {
       id: bid.id,
       amount: bid.amount,
       bidderName: bid.userName,
+      source: bid.source,
       timestamp: bid.timestamp
     }))
   }, { headers: { 'cache-control': 'no-store' } });
@@ -269,14 +270,17 @@ export async function POST({ params, request, locals }) {
   if (lot.status !== 'ACTIVE') {
     throw error(409, 'Only an active lot can be closed');
   }
-  const updated = await prisma.lot.update({
-    where: { id: lot.id },
-    data: { endTime: new Date(), status: lot.highestBidderId ? 'SOLD' : 'UNSOLD' }
+  const updated = await prisma.$transaction(async tx => {
+    await tx.$queryRaw`SELECT id FROM auctions WHERE id = ${auction.id} FOR UPDATE`;
+    await tx.$queryRaw`SELECT id FROM lots WHERE id = ${lot.id} FOR UPDATE`;
+    const fresh = await tx.lot.findUnique({ where: { id: lot.id } });
+    if (!fresh || fresh.status !== 'ACTIVE') throw error(409, 'Only an active lot can be closed');
+    return tx.lot.update({ where: { id: fresh.id }, data: { endTime: new Date(), status: fresh.highestBidderId ? 'SOLD' : 'UNSOLD' } });
   });
   await clearOnBlockLot(auction);
 
   let invoice = null;
-  if (updated.status === 'SOLD' && lot.highestBidderId) {
+  if (updated.status === 'SOLD' && updated.highestBidderId) {
     try {
       const { createInvoiceForSoldLot } = await import('$lib/server/invoices.js');
       invoice = await createInvoiceForSoldLot(updated.id);

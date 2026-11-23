@@ -108,6 +108,33 @@ settlement must ensure the platform has sufficient available funds, or extend
 the payment flow to retain and supply the originating charge or balance
 transaction dependency where applicable.
 
+## Phone bids in the control room
+
+The assigned auctioneer can click **+ Phone bid** on the current lot. Choose an
+approved registered bidder, or add a new caller using a real name, email for
+invoices, and phone number. Confirm the caller's identity, acceptance of the
+auction terms, and authorization of the bid, then record the amount. Available
+auction terms are shown in the form. Both auction-management and bidder-management
+permissions are required.
+
+New callers are registered/approved for this auction. An existing account matching
+the email is reused without overwriting its contact details; rejected registrations
+must be reviewed separately. New accounts have no password and do not receive
+email, phone, identity, card, or online-bidding verification automatically. Online
+bidding continues to enforce the normal verification requirements.
+
+Phone bids obey minimum increments, the on-block lot and timer, and inherited
+bid-extension rules. The auctioneer, seller, lot owner, and current highest bidder
+cannot be selected as the caller. Auction/lot row locks serialize phone bids,
+online bids, and hammering. Winning phone bids use the caller's buyer ID for the
+ordinary invoice and fulfillment flow.
+
+Bid history labels these records **Phone**. `Bid.source` defaults old and normal
+online bids to `ONLINE`; `PHONE` bids retain the recording auctioneer's user ID.
+Apply the additive migration before deploying against another database:
+`npx prisma migrate deploy`. The migration is already applied to the database
+configured in this workspace. No email or SMS is sent when adding a caller.
+
 ## Relist unsold lots in the same auction
 
 From the seller dashboard, open **Unsold lot settings** (or **House settings →

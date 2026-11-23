@@ -377,7 +377,7 @@
                 {#each bids as bid}
                   <div class="flex items-center justify-between p-4 bg-[#f7f4ee] rounded-lg">
                     <div>
-                      <p class="font-semibold text-gray-900">{bid.userName}</p>
+                      <p class="font-semibold text-gray-900">{bid.userName}{#if bid.source === 'PHONE'}<span class="ml-2 rounded bg-amber-100 px-2 py-0.5 text-[10px] font-semibold uppercase text-amber-900">Phone</span>{/if}</p>
                       <p class="text-sm text-gray-500">{formatDate(bid.timestamp)}</p>
                     </div>
                     <p class="text-xl font-bold text-[#18372f]">{formatCurrency(bid.amount)}</p>
