@@ -4,6 +4,8 @@
 
 Use Node.js 24 (`nvm use`). The `engines.node` setting in `package.json` pins
 Vercel builds to 24.x and overrides an older project-level Node.js setting.
+The Vercel adapter in `svelte.config.js` also targets `nodejs24.x`; `npm run build`
+generates the deployable `.vercel/output` directory locally and on Vercel.
 
 ## Database
 

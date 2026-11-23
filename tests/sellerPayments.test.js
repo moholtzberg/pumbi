@@ -24,6 +24,7 @@ const server = await createServer({
   configFile: false,
   server: { middlewareMode: true },
   appType: 'custom',
+  optimizeDeps: { noDiscovery: true },
   plugins: [{
     name: 'payment-test-adapters',
     resolveId(id) {
