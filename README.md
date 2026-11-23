@@ -26,6 +26,29 @@ npm run admin:promote -- admin@example.com
 
 Sign in again, then open `/admin` to publish Pumbi rates and terms, configure the monthly PUBLIC auction series, and review independent-seller submissions.
 
+The **Data manager** at `/admin/data` provides create/read/update/delete controls
+for every Prisma model: users, houses, auctions, lots, bids, registrations,
+submissions, policies, invoices, shipments, payouts, analytics, and associated
+records. Collections have search, enum/boolean filters, sortable columns, and
+pagination. Record editors offer typed forms, JSON editing, relationship lookup,
+and links to dependent records. Existing Users/Lots/Houses/Auctions screens link
+to the manager as well.
+
+Every page and API operation checks the current database role for `PLATFORM_ADMIN`.
+Passwords and verification/reset/session secrets are write-only; new user passwords
+are hashed and invalidate old password-reset tokens. Record IDs stay fixed after
+creation. Updates and deletes check the original `updatedAt` revision while holding
+a row lock; stale editors must reload. An admin cannot delete or demote their own
+account, and the last platform admin cannot be removed.
+
+Deletion requires typing the record ID and follows the schema's cascade/restrict/
+set-null rules. The editor lists directly related records and their delete behavior;
+nested cascades also apply. Foreign-key restrictions return an actionable error.
+This is a direct data editor: changing stored invoice, payout, shipment, or auction
+state does not call external payment/shipping services or run auction workflows.
+Use the existing operational screens for those actions. No schema migration is
+needed; collection metadata is derived from the schema at build time.
+
 ## Live auction video (LiveKit Cloud)
 
 Create a LiveKit Cloud project and set `LIVEKIT_URL` (`wss://your-project.livekit.cloud`),
@@ -50,6 +73,15 @@ available as a fallback when the browser broadcast is offline.
 For a live smoke test, use two browsers: broadcast from the control room in one,
 open the auction page in the other, then verify automatic video, Enable sound,
 microphone mute/unmute, stopping/restarting the broadcast, and leaving the page.
+
+When an auction goes live, its public page automatically switches to a split view:
+current lot and bidding on the left, live video on the right, stacking on mobile.
+Broadcast graphics show Pumbi, the actual auction-house name, auction title,
+current lot and bid, countdown, and next lot. The auctioneer preview shows the same
+graphics. The video panel's Fullscreen control includes the graphics on supported
+browsers. These are in-page overlays; the outgoing camera media is unchanged.
+Existing embedded video URLs remain supported in the video panel. Room analytics,
+the lot queue, and bid history remain below the live view.
 
 ## Stripe Connect and payout releases
 

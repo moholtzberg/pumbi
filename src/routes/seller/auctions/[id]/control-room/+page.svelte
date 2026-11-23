@@ -6,6 +6,7 @@
   import AuctionLiveVideo from '$lib/components/AuctionLiveVideo.svelte';
   import AuctionActivity from '$lib/components/AuctionActivity.svelte';
   import InterestTracker from '$lib/components/InterestTracker.svelte';
+  import { broadcastInfo } from '$lib/utils/broadcastInfo.js';
 
   let data = $state(null);
   let loading = $state(true);
@@ -21,6 +22,9 @@
   let isAuctioneer = $derived(Boolean(data?.auction?.auctioneerId && data.auction.auctioneerId === data.currentUserId));
   let openLot = $derived(data?.lots?.find((lot) => lot.id === data.openLotId) || null);
   let nextLot = $derived(data?.lots?.find((lot) => lot.id === data.nextLotId) || null);
+  let broadcastLot = $derived(openLot || nextLot);
+  let broadcastNextLot = $derived(data?.lots?.find(lot => lot.status === 'ACTIVE' && lot.isReady && lot.id !== broadcastLot?.id) || null);
+  let overlay = $derived(broadcastInfo({ auction: data?.auction, currentLot: broadcastLot, nextLot: broadcastNextLot, biddingOpen: Boolean(openLot?.endTime && new Date(openLot.endTime).getTime() > Date.now()) }));
   let auctionEnded = $derived(['ENDED', 'CANCELLED'].includes(data?.auction?.status));
   let canEndAuction = $derived(Boolean(isAuctioneer && data?.canEndAuction && !auctionEnded));
   let allLotsComplete = $derived(Boolean(data?.allLotsComplete));
@@ -235,7 +239,7 @@
       <AuctionActivity {auctionId} lotId={data.openLotId || data.onBlockLotId} />
       <div class="mb-5">
         {#key auctionId}
-          <AuctionLiveVideo {auctionId} publisher allowed={isAuctioneer && !auctionEnded} />
+          <AuctionLiveVideo {auctionId} {overlay} publisher allowed={isAuctioneer && !auctionEnded} />
         {/key}
       </div>
 

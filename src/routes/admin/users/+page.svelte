@@ -13,6 +13,7 @@
     <div><p class="text-xs font-bold uppercase tracking-[0.2em] text-sky-600">Identity & access</p><h1 class="mt-1 text-3xl font-black">Users</h1><p class="mt-1 text-sm text-slate-500">Review accounts, roles, verification, memberships, and bidding activity.</p></div>
     <span class="rounded-full bg-white px-3 py-1.5 text-sm font-semibold shadow-sm">{data.total} accounts</span>
   </header>
+  <div class="flex flex-wrap gap-2"><a href="/admin/data/user?create=1" class="rounded-lg bg-indigo-600 px-4 py-2 text-sm font-semibold text-white">Add user</a><a href="/admin/data/user" class="rounded-lg border bg-white px-4 py-2 text-sm font-semibold text-indigo-700">Edit / delete users</a></div>
 
   <form class="grid gap-3 rounded-2xl border bg-white p-4 shadow-sm sm:grid-cols-[minmax(0,1fr)_220px_auto]">
     <input name="q" value={data.filters.search} class="rounded-lg border-slate-300 text-sm" placeholder="Search name or email" aria-label="Search users" />
@@ -26,7 +27,7 @@
       <tbody class="divide-y divide-slate-100">
         {#each data.users as user}
           <tr class="hover:bg-slate-50">
-            <td class="px-5 py-4"><div class="font-semibold text-slate-950">{user.name || 'Unnamed user'}</div><div class="text-xs text-slate-500">{user.email}</div></td>
+            <td class="px-5 py-4"><a href={`/admin/data/user?record=${user.id}`} class="font-semibold text-indigo-700">{user.name || 'Unnamed user'}</a><div class="text-xs text-slate-500">{user.email}</div></td>
             <td class="px-5 py-4"><span class="rounded-full bg-slate-100 px-2 py-1 text-xs font-bold">{user.role.replaceAll('_', ' ')}</span></td>
             <td class="px-5 py-4 text-slate-600">{user.auctionHouse?.name || '—'}<div class="text-xs text-slate-400">{user._count.auctionHouseMemberships} memberships</div></td>
             <td class="px-5 py-4">

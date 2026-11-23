@@ -15,6 +15,7 @@
 <div class="mx-auto max-w-7xl space-y-6">
   <header class="flex flex-wrap items-end justify-between gap-4"><div><p class="text-xs font-bold uppercase tracking-[0.2em] text-violet-600">Partner operations</p><h1 class="mt-1 text-3xl font-black">Auction houses</h1><p class="mt-1 text-sm text-slate-500">Track onboarding, catalog activity, team access, and payment readiness.</p></div><span class="rounded-full bg-white px-3 py-1.5 text-sm font-semibold shadow-sm">{data.total} partners</span></header>
 
+  <div class="flex flex-wrap gap-2"><a href="/admin/data/auctionHouse?create=1" class="rounded-lg bg-indigo-600 px-4 py-2 text-sm font-semibold text-white">Add auction house</a><a href="/admin/data/auctionHouse" class="rounded-lg border bg-white px-4 py-2 text-sm font-semibold text-indigo-700">Edit / delete houses</a></div>
   <form class="grid gap-3 rounded-2xl border bg-white p-4 shadow-sm sm:grid-cols-[minmax(0,1fr)_220px_auto]">
     <input name="q" value={data.filters.search} class="rounded-lg border-slate-300 text-sm" placeholder="Search auction houses" aria-label="Search auction houses" />
     <select name="status" value={data.filters.status} class="rounded-lg border-slate-300 text-sm" aria-label="Filter onboarding status"><option value="">All onboarding states</option>{#each data.statuses as status}<option value={status}>{status.replaceAll('_', ' ')}</option>{/each}</select>

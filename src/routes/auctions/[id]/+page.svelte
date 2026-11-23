@@ -30,6 +30,26 @@
       loadAuction();
     }
   });
+
+  onMount(() => {
+    let disposed = false;
+    let refreshing = false;
+    async function refreshStatus() {
+      if (refreshing || document.visibilityState !== 'visible') return;
+      refreshing = true;
+      const id = $page.params.id;
+      try {
+        const response = await fetch(`/api/auctions/${id}/stream`, { cache: 'no-store' });
+        if (!response.ok) return;
+        const result = await response.json();
+        if (!disposed && auction?.id === id && result.auctionStatus && auction.status.toUpperCase() !== result.auctionStatus) auction = { ...auction, status: result.auctionStatus.toLowerCase() };
+      } catch { /* Keep the loaded auction during a transient connection failure. */ }
+      finally { refreshing = false; }
+    }
+    const timer = setInterval(refreshStatus, 5000);
+    document.addEventListener('visibilitychange', refreshStatus);
+    return () => { disposed = true; clearInterval(timer); document.removeEventListener('visibilitychange', refreshStatus); };
+  });
   
   async function loadAuction() {
     try {
@@ -100,7 +120,7 @@
 {:else if auction}
   <InterestTracker entityType="AUCTION" entityId={auction.id} />
   <div class="min-h-screen bg-[#f7f4ee]">
-    {#if !['ended', 'ENDED', 'cancelled', 'CANCELLED'].includes(auction.status)}
+    {#if !isLive && !['ended', 'ENDED', 'cancelled', 'CANCELLED'].includes(auction.status)}
       <div class="mx-auto max-w-[1240px] px-4 pt-5 sm:px-6 lg:px-8">
         {#key auction.id}
           <AuctionLiveVideo auctionId={auction.id} onlivechange={live => { broadcastLive = live; }} />
@@ -108,7 +128,7 @@
       </div>
     {/if}
     {#if isLive}
-      <LiveAuctionDashboard {auction} videoUrl={broadcastLive ? null : liveVideoUrl} videoTitle={liveVideoTitle} audioUrl={broadcastLive ? null : liveAudioUrl} audioTitle={liveAudioTitle} />
+      <LiveAuctionDashboard {auction} videoUrl={liveVideoUrl} videoTitle={liveVideoTitle} audioUrl={liveAudioUrl} audioTitle={liveAudioTitle} />
     {:else if ['ended', 'ENDED', 'cancelled', 'CANCELLED'].includes(auction.status)}
       <div class="border-b border-[#ddd6ca] bg-[#152c26] px-4 py-8 text-center text-[#f7f4ee]">
         <p class="text-xs font-bold uppercase tracking-[0.18em] text-[#d6b477]">Auction finished</p>

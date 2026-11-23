@@ -1,6 +1,6 @@
 const scalars = new Set(['String', 'Boolean', 'Int', 'Float', 'Decimal', 'BigInt', 'DateTime', 'Json', 'Bytes']);
 const secrets = new Set(['password', 'resetPasswordToken', 'tokenHash', 'codeHash', 'sessionKey']);
-const labels = { AuctionHouse: 'Auction houses', AuctionSeries: 'Auction series', PlatformPolicy: 'Platform policies', User: 'Users', Lot: 'Lots', Auction: 'Auctions', Bid: 'Bids', Invoice: 'Invoices', Shipment: 'Shipments', ContentView: 'Page views' };
+const labels = { AuctionHouse: 'Auction houses', AuctionSeries: 'Auction series', PlatformPolicy: 'Platform policies', LotWatch: 'Lot watches', User: 'Users', Lot: 'Lots', Auction: 'Auctions', Bid: 'Bids', Invoice: 'Invoices', Shipment: 'Shipments', ContentView: 'Page views' };
 
 export function parseAdminSchema(schema) {
   const blocks = [...schema.matchAll(/^(model|enum)\s+(\w+)\s*\{([\s\S]*?)^\}/gm)];
@@ -39,7 +39,7 @@ export function parseAdminSchema(schema) {
       });
     }
     const key = block[2][0].toLowerCase() + block[2].slice(1);
-    return { name: block[2], key, label: labels[block[2]] || block[2].replace(/([a-z])([A-Z])/g, '$1 $2') + 's', fields, relations };
+    return { name: block[2], key, table: block[3].match(/@@map\("([^"]+)"\)/)?.[1] || block[2], label: labels[block[2]] || block[2].replace(/([a-z])([A-Z])/g, '$1 $2') + 's', fields, relations };
   });
   for (const model of models) {
     model.dependents = models.flatMap(child => child.relations.filter(relation => relation.model === model.name).map(relation => ({ model: child.key, label: child.label, relation: relation.name, fields: relation.fields, references: relation.references, onDelete: relation.onDelete })));

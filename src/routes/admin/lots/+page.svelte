@@ -8,6 +8,7 @@
 <div class="mx-auto max-w-7xl space-y-6">
   <header class="flex flex-wrap items-end justify-between gap-4"><div><p class="text-xs font-bold uppercase tracking-[0.2em] text-amber-600">Catalog inventory</p><h1 class="mt-1 text-3xl font-black">Lots</h1><p class="mt-1 text-sm text-slate-500">Inspect catalog readiness, bidding activity, and auction placement.</p></div><span class="rounded-full bg-white px-3 py-1.5 text-sm font-semibold shadow-sm">{data.total} lots</span></header>
 
+  <div class="flex flex-wrap gap-2"><a href="/admin/data/lot?create=1" class="rounded-lg bg-indigo-600 px-4 py-2 text-sm font-semibold text-white">Add lot</a><a href="/admin/data/lot" class="rounded-lg border bg-white px-4 py-2 text-sm font-semibold text-indigo-700">Edit / delete lots</a></div>
   <form class="grid gap-3 rounded-2xl border bg-white p-4 shadow-sm sm:grid-cols-[minmax(0,1fr)_220px_auto]">
     <input name="q" value={data.filters.search} class="rounded-lg border-slate-300 text-sm" placeholder="Search lot or auction" aria-label="Search lots" />
     <select name="status" value={data.filters.status} class="rounded-lg border-slate-300 text-sm" aria-label="Filter by status"><option value="">All statuses</option><option value="ACTIVE">Active</option><option value="SOLD">Sold</option><option value="UNSOLD">Unsold</option><option value="WITHDRAWN">Withdrawn</option></select>
@@ -24,7 +25,7 @@
           <td class="px-5 py-4"><span class="rounded-full bg-slate-100 px-2 py-1 text-xs font-bold">{lot.status}</span></td>
           <td class="px-5 py-4 text-slate-600">{money(lot.currentBid)}<div class="text-xs text-slate-400">starts {money(lot.startingBid)}</div></td>
           <td class="px-5 py-4 text-slate-600">{lot._count.images} images · {lot._count.bids} bids</td>
-          <td class="px-5 py-4 text-right"><a href={`/lots/${lot.id}`} class="text-sm font-semibold text-indigo-600">View →</a></td>
+          <td class="px-5 py-4 text-right"><a href={`/admin/data/lot?record=${lot.id}`} class="mr-3 text-sm font-semibold text-indigo-600">Edit / delete</a><a href={`/lots/${lot.id}`} class="text-sm font-semibold text-indigo-600">View →</a></td>
         </tr>
       {/each}
       {#if data.lots.length === 0}<tr><td colspan="6" class="px-5 py-12 text-center text-slate-500">No lots match these filters.</td></tr>{/if}

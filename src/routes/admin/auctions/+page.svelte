@@ -214,6 +214,7 @@
         <p class="mt-1 text-sm text-slate-500">Manage public auction policy, schedules, and submitted lots.</p>
       </div>
       <div class="flex flex-wrap gap-2">
+        <a href="/admin/data/auction" class="rounded-md border bg-white px-3 py-2 text-sm font-medium text-indigo-700">Edit / delete all auctions</a>
         <button class="rounded-md bg-indigo-600 px-3 py-2 text-sm font-semibold text-white hover:bg-indigo-700" onclick={() => showManualAuctionForm = !showManualAuctionForm}>{showManualAuctionForm ? 'Close form' : '+ Create auction'}</button>
         <button class="rounded-md border bg-white px-3 py-2 text-sm font-medium hover:bg-slate-100" onclick={loadAll}>Refresh</button>
       </div>

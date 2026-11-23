@@ -24,7 +24,7 @@ async function requireBroadcaster(locals, auction) {
 
 export async function GET({ params }) {
   const auction = await loadAuction(params.id);
-  return json({ configured: streamingConfigured(), finished: streamFinished(auction), auctioneerId: auction.auctioneerId }, { headers });
+  return json({ configured: streamingConfigured(), finished: streamFinished(auction), auctioneerId: auction.auctioneerId, auctionStatus: auction.status }, { headers });
 }
 
 export async function POST({ params, request, locals }) {

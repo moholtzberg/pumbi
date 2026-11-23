@@ -68,6 +68,7 @@ export async function GET({ params, locals }) {
     auction: {
       id: auction.id,
       title: auction.title,
+      auctionHouse: { id: auction.auctionHouse.id, name: auction.auctionHouse.name },
       status: auction.status,
       startDate: auction.startDate,
       endDate: auction.endDate,

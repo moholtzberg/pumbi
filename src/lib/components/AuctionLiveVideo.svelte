@@ -1,8 +1,9 @@
 <script>
   import { onMount } from 'svelte';
   import { AuctionStream } from '$lib/utils/auctionStream.js';
+  import BroadcastOverlay from '$lib/components/BroadcastOverlay.svelte';
 
-  let { auctionId, publisher = false, allowed = true, onlivechange = () => {} } = $props();
+  let { auctionId, publisher = false, allowed = true, onlivechange = () => {}, overlay = null, alwaysShow = false, fallbackSrc = null, fallbackTitle = null } = $props();
   let configured = $state(false);
   let checked = $state(false);
   let finished = $state(false);
@@ -12,6 +13,7 @@
   let media = $state({ status: 'idle', video: null, audio: null, live: false, microphoneEnabled: true });
   let videoElement = $state(null);
   let audioElement = $state(null);
+  let videoStage = $state(null);
   let controller;
   let disposed = false;
   let checking = false;
@@ -102,6 +104,13 @@
     } catch { soundEnabled = false; errorMessage = 'Your browser paused audio. Click Enable sound to try again.'; }
   }
 
+  async function fullscreen() {
+    try {
+      if (document.fullscreenElement) await document.exitFullscreen();
+      else await videoStage?.requestFullscreen();
+    } catch { errorMessage = 'Fullscreen is unavailable in this browser.'; }
+  }
+
   onMount(() => {
     checkStatus();
     const timer = setInterval(checkStatus, 15000);
@@ -109,7 +118,7 @@
   });
 </script>
 
-{#if publisher || (configured && !finished) || errorMessage}
+{#if publisher || alwaysShow || (configured && !finished) || errorMessage}
   <section class="overflow-hidden border border-[var(--pumbi-line)] bg-[var(--pumbi-forest-deep)] text-[#f7f4ee]" aria-label={publisher ? 'Broadcast live video' : 'Live auction video'}>
     <div class="flex flex-wrap items-center justify-between gap-3 px-4 py-3">
       <div>
@@ -117,7 +126,9 @@
         <p class="mt-1 text-xs text-[#bec9c4]" role="status">
           {#if finished}This auction has ended.
           {:else if !checked}Checking live video…
-          {:else if !configured}Live video is not configured for this site yet. Contact your administrator.
+          {:else if !configured && publisher}Live video is not configured for this site yet. Contact your administrator.
+          {:else if !configured && fallbackSrc}Watch the auction broadcast below.
+          {:else if !configured}Waiting for the auctioneer’s video feed.
           {:else if media.status === 'reconnecting'}Reconnecting to live video…
           {:else if media.status === 'connecting'}Connecting…
           {:else if media.live}● LIVE{publisher ? ' · Your camera and microphone are being broadcast.' : ''}
@@ -126,12 +137,18 @@
           {:else}The auctioneer’s video will start here automatically when they go live.{/if}
         </p>
       </div>
+      <div class="flex flex-wrap gap-2">
       {#if !publisher && media.live}
         <button type="button" class="border border-white/30 px-3 py-2 text-sm" onclick={enableSound}>{soundEnabled ? 'Mute sound' : 'Enable sound'}</button>
       {/if}
+      {#if alwaysShow || media.video || fallbackSrc}<button type="button" class="border border-white/30 px-3 py-2 text-sm" onclick={fullscreen}>Fullscreen</button>{/if}
+      </div>
     </div>
-    <div class:hidden={!media.video} class="aspect-video bg-black">
-      <video bind:this={videoElement} autoplay playsinline muted aria-label={publisher ? 'Your camera preview' : 'Live auctioneer video'} class="h-full w-full object-contain"></video>
+    <div bind:this={videoStage} class:hidden={!media.video && !alwaysShow && !fallbackSrc} class="broadcast-stage relative aspect-video overflow-hidden bg-black">
+      <video bind:this={videoElement} autoplay playsinline muted aria-label={publisher ? 'Your camera preview' : 'Live auctioneer video'} class="absolute inset-0 h-full w-full object-contain" class:hidden={!media.video}></video>
+      {#if !media.video && fallbackSrc}<iframe src={fallbackSrc} title={fallbackTitle || 'Live auction broadcast'} class="absolute inset-0 h-full w-full" allow="autoplay; encrypted-media; picture-in-picture; fullscreen" allowfullscreen></iframe>
+      {:else if !media.video}<div class="absolute inset-0 grid place-items-center bg-gradient-to-br from-[#142c25] via-[#1c3c31] to-black px-6 pb-16 pt-12 text-center"><p class="text-sm text-white/50">{publisher ? 'Your camera preview will appear here' : media.status === 'connecting' || media.status === 'reconnecting' ? 'Connecting to the live broadcast…' : 'Waiting for the auctioneer’s video feed'}</p></div>{/if}
+      {#if overlay}<BroadcastOverlay info={overlay} cameraLive={media.live} preview={publisher && !media.live} />{/if}
     </div>
     <audio bind:this={audioElement} autoplay muted={!soundEnabled} aria-label="Live auctioneer audio"></audio>
     {#if errorMessage}<p role="alert" class="px-4 py-3 text-sm text-red-200">{errorMessage}</p>{/if}
@@ -149,3 +166,7 @@
     {/if}
   </section>
 {/if}
+
+<style>
+  .broadcast-stage:fullscreen { width: 100vw; height: 100dvh; aspect-ratio: auto; }
+</style>

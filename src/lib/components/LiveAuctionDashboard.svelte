@@ -5,6 +5,8 @@
   import CountdownTimer from '$lib/components/CountdownTimer.svelte';
   import PumbiLoader from '$lib/components/PumbiLoader.svelte';
   import AuctionActivity from '$lib/components/AuctionActivity.svelte';
+  import AuctionLiveVideo from '$lib/components/AuctionLiveVideo.svelte';
+  import { broadcastInfo } from '$lib/utils/broadcastInfo.js';
 
   import { mediaEmbedUrl } from '$lib/utils/mediaEmbed.js';
 
@@ -70,6 +72,8 @@
     return `${Number(rate) * 100}%`;
   });
   let streamSrc = $derived(mediaEmbedUrl(videoUrl));
+  let broadcastLive = $state(false);
+  let overlay = $derived(broadcastInfo({ auction, currentLot: liveData.currentLot, nextLot: upcomingLots[0], biddingOpen: liveData.biddingOpen }));
 
 
   async function loadSession() {
@@ -247,152 +251,20 @@
 <section class="live-room pb-24 md:pb-0">
   <div class="container mx-auto px-4 py-6 lg:py-8">
     <div class="mb-5 flex flex-wrap items-center justify-between gap-3">
-      <div>
-        <div class="flex items-center gap-2 text-xs font-bold uppercase tracking-[0.2em] text-[#d6b477]"><span class="h-2 w-2 animate-pulse bg-[#a95739]"></span> Live auction</div>
-        <h1 class="mt-2 font-[family-name:var(--pumbi-serif)] text-3xl font-semibold lg:text-4xl">{auction.title}</h1>
-      </div>
+      <div><div class="flex items-center gap-2 text-xs font-bold uppercase tracking-[0.2em] text-[#d6b477]"><span class="h-2 w-2 animate-pulse bg-[#a95739]"></span> Live auction</div><h1 class="mt-2 font-[family-name:var(--pumbi-serif)] text-3xl font-semibold lg:text-4xl">{auction.title}</h1></div>
       <a href="#all-lots" class="border border-white/20 px-4 py-2 text-xs font-bold uppercase tracking-wide hover:bg-white/10">Browse all lots</a>
     </div>
-
-    <AuctionActivity auctionId={auction.id} lotId={liveData.currentLot?.id} />
-
     {#if loading}
-      <div class="rounded-sm bg-[rgba(255,255,255,0.04)] p-12 text-center text-[#bec9c4]">
-        <PumbiLoader size="lg" label="Loading the live room" />
-        <p class="mt-4">Loading the live room…</p>
-      </div>
+      <div class="p-12 text-center"><PumbiLoader size="lg" label="Loading the live room" /><p class="mt-4">Loading the live room…</p></div>
     {:else if liveData.finished || ['ENDED', 'CANCELLED'].includes(String(liveData.auctionStatus || auction?.status || '').toUpperCase())}
-      <div class="rounded-sm border border-[rgba(215,190,150,0.18)] bg-[rgba(255,255,255,0.04)] p-12 text-center">
-        <p class="font-[family-name:var(--pumbi-serif)] text-2xl font-semibold">This auction has ended</p>
-        <p class="mt-2 text-[#91a29a]">Browse the catalog below for results and lot details.</p>
-        <a href="#all-lots" class="mt-5 inline-flex border border-white/20 px-4 py-2 text-xs font-bold uppercase tracking-wide hover:bg-white/10">View lots</a>
-      </div>
-    {:else if !liveData.currentLot}
-      <div class="mx-auto max-w-4xl space-y-5">
-        {#if streamSrc}
-          <div class="overflow-hidden rounded-sm border border-[rgba(215,190,150,0.18)] bg-black shadow-2xl">
-            <div class="aspect-video">
-              <iframe
-                src={streamSrc}
-                title={videoTitle || 'Live auction video'}
-                class="h-full w-full"
-                allow="autoplay; encrypted-media; picture-in-picture; fullscreen"
-                allowfullscreen
-              ></iframe>
-            </div>
-            {#if videoTitle}
-              <p class="border-t border-[rgba(215,190,150,0.18)] px-4 py-3 text-sm font-semibold text-[#d7ded9]">{videoTitle}</p>
-            {/if}
-          </div>
-        {/if}
-        {#if audioUrl}
-          <div class="flex items-center gap-4 rounded-sm border border-[rgba(215,190,150,0.18)] bg-[rgba(255,255,255,0.04)] p-4">
-            <div class="grid h-11 w-11 shrink-0 place-items-center rounded-sm bg-[#efe8dc]/20 text-xl" aria-hidden="true">♫</div>
-            <div class="min-w-0 flex-1">
-              <p class="font-bold">{audioTitle || 'Live auction audio'}</p>
-              <p class="text-xs text-[#91a29a]">Listen to the auctioneer while you wait</p>
-              <audio controls preload="none" src={audioUrl} class="mt-2 h-9 w-full"></audio>
-            </div>
-          </div>
-        {/if}
-        <div class="rounded-sm bg-[rgba(255,255,255,0.04)] p-12 text-center">
-          <p class="text-xl font-bold">Waiting for the next lot</p>
-          <p class="mt-2 text-[#91a29a]">The auctioneer has not put a lot on the block yet.</p>
-        </div>
-      </div>
+      <div class="border border-white/15 p-12 text-center"><h2 class="text-2xl font-semibold">This auction has ended</h2><p class="mt-2 text-[#91a29a]">Browse the catalog below for results and lot details.</p><a href="#all-lots" class="mt-5 inline-flex border border-white/20 px-4 py-2 text-sm">View lots</a></div>
     {:else}
-      <div class="grid gap-5 xl:grid-cols-[minmax(260px,0.85fr)_minmax(0,1.5fr)_minmax(260px,0.85fr)]">
-        <!-- Left: past + upcoming lots -->
-        <aside class="order-2 overflow-hidden rounded-sm border border-[rgba(215,190,150,0.18)] bg-[rgba(255,255,255,0.04)] xl:order-1">
-          <div class="border-b border-[rgba(215,190,150,0.18)] px-5 py-4">
-            <h2 class="font-semibold">Lots</h2>
-            <p class="text-xs text-[#91a29a]">Scroll for past and upcoming</p>
-          </div>
-          {#if lotRail.length === 0}
-            <p class="p-6 text-sm text-[#91a29a]">No other lots in this sale yet.</p>
-          {:else}
-            <div class="max-h-[720px] overflow-y-auto">
-              {#if pastLots.length}
-                <div class="sticky top-0 z-10 border-b border-[rgba(215,190,150,0.18)] bg-[rgba(21,44,38,0.92)] px-4 py-2 text-[10px] font-semibold uppercase tracking-[0.18em] text-[#91a29a] backdrop-blur">
-                  Past · {pastLots.length}
-                </div>
-                <div class="divide-y divide-white/10">
-                  {#each pastLots as lot}
-                    <a href={`/lots/${lot.id}`} class="flex gap-3 p-4 opacity-75 transition hover:bg-[rgba(255,255,255,0.04)] hover:opacity-100">
-                      <div class="relative h-16 w-16 shrink-0 overflow-hidden rounded-lg bg-[#1f3a32]">
-                        {#if lot.imageUrl}
-                          <img src={lot.imageUrl} alt="" class="h-full w-full object-cover" />
-                        {:else}
-                          <div class="grid h-full place-items-center text-[10px] text-[#84958d]">No img</div>
-                        {/if}
-                      </div>
-                      <div class="min-w-0 flex-1">
-                        <div class="flex items-center justify-between gap-2">
-                          <p class="text-xs font-bold uppercase tracking-wide text-[#84958d]">Lot #{lot.lotNumber}</p>
-                          <span class="rounded bg-[#1f3a32] px-1.5 py-0.5 text-[10px] font-bold uppercase text-[#bec9c4]">{lot.status === 'SOLD' ? 'Sold' : lot.status === 'UNSOLD' ? 'Unsold' : 'Closed'}</span>
-                        </div>
-                        <p class="truncate font-bold text-[#d7ded9]">{lot.title}</p>
-                        <p class="mt-1 text-sm font-semibold text-[#91a29a]">{money(lot.currentBid || lot.startingBid)}</p>
-                      </div>
-                    </a>
-                  {/each}
-                </div>
-              {/if}
-
-              {#if upcomingLots.length}
-                <div class="sticky top-0 z-10 border-b border-[rgba(215,190,150,0.18)] bg-[rgba(21,44,38,0.92)] px-4 py-2 text-[10px] font-semibold uppercase tracking-[0.18em] text-[#d6b477] backdrop-blur">
-                  Upcoming · {upcomingLots.length}
-                </div>
-                <div class="divide-y divide-white/10">
-                  {#each upcomingLots as lot, index}
-                    <a href={`/lots/${lot.id}`} class="flex gap-3 p-4 transition hover:bg-[rgba(255,255,255,0.04)]">
-                      <div class="relative h-16 w-16 shrink-0 overflow-hidden rounded-lg bg-[#1f3a32]">
-                        {#if lot.imageUrl}
-                          <img src={lot.imageUrl} alt="" class="h-full w-full object-cover" />
-                        {:else}
-                          <div class="grid h-full place-items-center text-[10px] text-[#84958d]">No img</div>
-                        {/if}
-                        <span class="absolute left-1 top-1 rounded bg-[#18372f]/90 px-1.5 py-0.5 text-[10px] font-bold">{index + 1}</span>
-                      </div>
-                      <div class="min-w-0 flex-1">
-                        <p class="text-xs font-bold uppercase tracking-wide text-[#91a29a]">Lot #{lot.lotNumber}</p>
-                        <p class="truncate font-bold text-white">{lot.title}</p>
-                        <p class="mt-1 text-sm font-semibold text-[#d6b477]">{money(lot.currentBid || lot.startingBid)}</p>
-                      </div>
-                    </a>
-                  {/each}
-                </div>
-              {/if}
-            </div>
-          {/if}
-        </aside>
-
-        <!-- Center: stream + current lot -->
-        <div class="order-1 space-y-5 xl:order-2">
-          {#if streamSrc}
-            <div class="overflow-hidden rounded-sm border border-[rgba(215,190,150,0.18)] bg-black shadow-2xl">
-              <div class="aspect-video">
-                <iframe
-                  src={streamSrc}
-                  title={videoTitle || 'Live auction video'}
-                  class="h-full w-full"
-                  allow="autoplay; encrypted-media; picture-in-picture; fullscreen"
-                  allowfullscreen
-                ></iframe>
-              </div>
-              {#if videoTitle}<p class="border-t border-[rgba(215,190,150,0.18)] px-4 py-3 text-sm font-semibold text-[#d7ded9]">{videoTitle}</p>{/if}
-            </div>
-          {/if}
-          {#if audioUrl}
-            <div class="flex items-center gap-4 rounded-sm border border-[rgba(215,190,150,0.18)] bg-[rgba(255,255,255,0.04)] p-4">
-              <div class="grid h-11 w-11 shrink-0 place-items-center rounded-sm bg-[#efe8dc]/20 text-xl" aria-hidden="true">♫</div>
-              <div class="min-w-0 flex-1"><p class="font-bold">{audioTitle || 'Live auction audio'}</p><p class="text-xs text-[#91a29a]">Listen to the auctioneer while you bid</p><audio controls preload="none" src={audioUrl} class="mt-2 h-9 w-full"></audio></div>
-            </div>
-          {/if}
-
-          <article class="grid overflow-hidden rounded-sm bg-white text-slate-950 shadow-2xl md:grid-cols-[minmax(200px,0.85fr)_1.15fr]">
-            <div class="bg-slate-100">
-              {#if liveData.currentLot.imageUrl}<img src={liveData.currentLot.imageUrl} alt={liveData.currentLot.title} class="h-full min-h-64 w-full object-cover" />{:else}<div class="grid h-full min-h-64 place-items-center text-[#91a29a]">No image</div>{/if}
+      <div class="grid items-start gap-5 lg:grid-cols-2" aria-label="Live auction split screen">
+        <section class="min-w-0" aria-label="Current lot on the block">
+          {#if liveData.currentLot}
+          <article class="overflow-hidden rounded-sm bg-white text-slate-950 shadow-2xl">
+            <div class="aspect-[16/10] max-h-[360px] overflow-hidden bg-slate-100">
+              {#if liveData.currentLot.imageUrl}<img src={liveData.currentLot.imageUrl} alt={liveData.currentLot.title} class="h-full w-full object-contain" />{:else}<div class="grid h-full place-items-center text-[#91a29a]">No image</div>{/if}
             </div>
             <div class="flex flex-col p-5 lg:p-7">
               <p class="text-xs font-semibold uppercase tracking-widest text-[#18372f]">
@@ -512,10 +384,85 @@
               </div>
             </div>
           </article>
-        </div>
+          {:else}
+            <div class="grid min-h-80 place-items-center border border-white/15 bg-white/5 p-8 text-center"><div><h2 class="text-2xl font-semibold">Waiting for the next lot</h2><p class="mt-2 text-sm text-[#91a29a]">The auctioneer will put the next lot on the block shortly.</p></div></div>
+          {/if}
+        </section>
+        <aside class="min-w-0 space-y-4 lg:sticky lg:top-24" aria-label="Live video broadcast">
+          <AuctionLiveVideo auctionId={auction.id} {overlay} alwaysShow fallbackSrc={streamSrc} fallbackTitle={videoTitle} onlivechange={live => { broadcastLive = live; }} />
+          {#if audioUrl && !broadcastLive}
+            <div class="border border-white/15 p-4"><p class="text-sm font-semibold">{audioTitle || 'Live auction audio'}</p><audio controls preload="none" src={audioUrl} class="mt-2 h-9 w-full"></audio></div>
+          {/if}
+          <p class="text-xs text-[#91a29a]">Video starts automatically when the auctioneer broadcasts. Enable sound to listen. The lot and next-lot graphics update with the auction.</p>
+        </aside>
+      </div>
+      <AuctionActivity auctionId={auction.id} lotId={liveData.currentLot?.id} />
+      <div class="mt-5 grid items-start gap-5 lg:grid-cols-2">
+        <aside class="overflow-hidden rounded-sm border border-[rgba(215,190,150,0.18)] bg-[rgba(255,255,255,0.04)]">
+          <div class="border-b border-[rgba(215,190,150,0.18)] px-5 py-4">
+            <h2 class="font-semibold">Lots</h2>
+            <p class="text-xs text-[#91a29a]">Scroll for past and upcoming</p>
+          </div>
+          {#if lotRail.length === 0}
+            <p class="p-6 text-sm text-[#91a29a]">No other lots in this sale yet.</p>
+          {:else}
+            <div class="max-h-[440px] overflow-y-auto">
+              {#if pastLots.length}
+                <div class="sticky top-0 z-10 border-b border-[rgba(215,190,150,0.18)] bg-[rgba(21,44,38,0.92)] px-4 py-2 text-[10px] font-semibold uppercase tracking-[0.18em] text-[#91a29a] backdrop-blur">
+                  Past · {pastLots.length}
+                </div>
+                <div class="divide-y divide-white/10">
+                  {#each pastLots as lot}
+                    <a href={`/lots/${lot.id}`} class="flex gap-3 p-4 opacity-75 transition hover:bg-[rgba(255,255,255,0.04)] hover:opacity-100">
+                      <div class="relative h-16 w-16 shrink-0 overflow-hidden rounded-lg bg-[#1f3a32]">
+                        {#if lot.imageUrl}
+                          <img src={lot.imageUrl} alt="" class="h-full w-full object-cover" />
+                        {:else}
+                          <div class="grid h-full place-items-center text-[10px] text-[#84958d]">No img</div>
+                        {/if}
+                      </div>
+                      <div class="min-w-0 flex-1">
+                        <div class="flex items-center justify-between gap-2">
+                          <p class="text-xs font-bold uppercase tracking-wide text-[#84958d]">Lot #{lot.lotNumber}</p>
+                          <span class="rounded bg-[#1f3a32] px-1.5 py-0.5 text-[10px] font-bold uppercase text-[#bec9c4]">{lot.status === 'SOLD' ? 'Sold' : lot.status === 'UNSOLD' ? 'Unsold' : 'Closed'}</span>
+                        </div>
+                        <p class="truncate font-bold text-[#d7ded9]">{lot.title}</p>
+                        <p class="mt-1 text-sm font-semibold text-[#91a29a]">{money(lot.currentBid || lot.startingBid)}</p>
+                      </div>
+                    </a>
+                  {/each}
+                </div>
+              {/if}
 
-        <!-- Right: bids for the current lot only -->
-        <aside class="order-3 overflow-hidden rounded-sm border border-[rgba(215,190,150,0.18)] bg-[rgba(255,255,255,0.04)]">
+              {#if upcomingLots.length}
+                <div class="sticky top-0 z-10 border-b border-[rgba(215,190,150,0.18)] bg-[rgba(21,44,38,0.92)] px-4 py-2 text-[10px] font-semibold uppercase tracking-[0.18em] text-[#d6b477] backdrop-blur">
+                  Upcoming · {upcomingLots.length}
+                </div>
+                <div class="divide-y divide-white/10">
+                  {#each upcomingLots as lot, index}
+                    <a href={`/lots/${lot.id}`} class="flex gap-3 p-4 transition hover:bg-[rgba(255,255,255,0.04)]">
+                      <div class="relative h-16 w-16 shrink-0 overflow-hidden rounded-lg bg-[#1f3a32]">
+                        {#if lot.imageUrl}
+                          <img src={lot.imageUrl} alt="" class="h-full w-full object-cover" />
+                        {:else}
+                          <div class="grid h-full place-items-center text-[10px] text-[#84958d]">No img</div>
+                        {/if}
+                        <span class="absolute left-1 top-1 rounded bg-[#18372f]/90 px-1.5 py-0.5 text-[10px] font-bold">{index + 1}</span>
+                      </div>
+                      <div class="min-w-0 flex-1">
+                        <p class="text-xs font-bold uppercase tracking-wide text-[#91a29a]">Lot #{lot.lotNumber}</p>
+                        <p class="truncate font-bold text-white">{lot.title}</p>
+                        <p class="mt-1 text-sm font-semibold text-[#d6b477]">{money(lot.currentBid || lot.startingBid)}</p>
+                      </div>
+                    </a>
+                  {/each}
+                </div>
+              {/if}
+            </div>
+          {/if}
+        </aside>
+        {#if liveData.currentLot}
+        <aside class="overflow-hidden rounded-sm border border-[rgba(215,190,150,0.18)] bg-[rgba(255,255,255,0.04)]">
           <div class="border-b border-[rgba(215,190,150,0.18)] px-5 py-4">
             <h2 class="font-semibold">Bid history</h2>
             <p class="text-xs text-[#91a29a]">
@@ -525,7 +472,7 @@
           {#if lotBids.length === 0}
             <p class="p-6 text-sm text-[#91a29a]">No bids on this lot yet.</p>
           {:else}
-            <div class="max-h-[720px] divide-y divide-white/10 overflow-y-auto">
+            <div class="max-h-[440px] divide-y divide-white/10 overflow-y-auto">
               {#each lotBids as bid, index}
                 <div class={`p-4 ${index === 0 ? 'bg-[#efe8dc]0/10' : ''}`}>
                   <div class="flex items-center justify-between gap-4">
@@ -543,8 +490,9 @@
             </div>
           {/if}
         </aside>
+        {/if}
       </div>
-
+      {#if liveData.currentLot}
       <!-- Sticky actions so Bid / Details stay reachable while watching video -->
       <div class="fixed inset-x-0 bottom-0 z-40 border-t border-slate-200 bg-white/95 p-3 shadow-[0_-8px_30px_rgba(15,23,42,0.18)] backdrop-blur md:hidden">
         {#if session?.user && bidAccess?.needsTermsAcceptance}
@@ -569,6 +517,8 @@
           </a>
         </div>
       </div>
+
+      {/if}
     {/if}
   </div>
 </section>

@@ -49,7 +49,7 @@ export async function parseAdminData(model, input, { creating = false } = {}) {
         data[key] = value;
         break;
       case 'Int': case 'Float':
-        if (!['string', 'number'].includes(typeof value) || value === '' || !Number.isFinite(Number(value)) || (field.type === 'Int' && (!Number.isSafeInteger(Number(value)) || Number(value) < -2147483648 || Number(value) > 2147483647))) throw error(400, `${field.label} must be a valid ${field.type === 'Int' ? '32-bit integer' : 'number'}`);
+        if (!['string', 'number'].includes(typeof value) || String(value).trim() === '' || !Number.isFinite(Number(value)) || (field.type === 'Int' && (!Number.isSafeInteger(Number(value)) || Number(value) < -2147483648 || Number(value) > 2147483647))) throw error(400, `${field.label} must be a valid ${field.type === 'Int' ? '32-bit integer' : 'number'}`);
         data[key] = Number(value);
         break;
       case 'Decimal':
@@ -81,9 +81,11 @@ export async function parseAdminData(model, input, { creating = false } = {}) {
     const missing = model.fields.filter(field => field.required && data[field.name] === undefined);
     if (missing.length) throw error(400, `Required fields: ${missing.map(field => field.label).join(', ')}`);
   }
-  if (model.name === 'User' && typeof data.password === 'string') {
-    if (data.password.length < 8 || data.password.length > 32) throw error(400, 'New passwords must contain 8–32 characters');
-    data.password = await hashPassword(data.password);
+  if (model.name === 'User' && Object.hasOwn(data, 'password')) {
+    if (typeof data.password === 'string') {
+      if (data.password.length < 8 || data.password.length > 32) throw error(400, 'New passwords must contain 8–32 characters');
+      data.password = await hashPassword(data.password);
+    }
     data.resetPasswordToken = null;
     data.resetPasswordExpires = null;
   }
@@ -159,6 +161,11 @@ export async function mutateRecord({ key, id, input, revision, actor, deleting =
     if (currentActor?.role !== 'PLATFORM_ADMIN') throw error(403, 'Platform administrator access required');
     let current;
     if (!creating) {
+      // The table identifier comes only from the server's schema catalog, never
+      // from request input. Lock before reading the revision to prevent two
+      // simultaneous editors from overwriting each other after the same check.
+      const table = Prisma.raw(`"${model.table.replaceAll('"', '""')}"`);
+      await tx.$queryRaw(Prisma.sql`SELECT "id" FROM ${table} WHERE "id" = ${id} FOR UPDATE`);
       current = await tx[model.key].findUnique({ where: { id } });
       if (!current) throw error(404, 'Record not found');
       if (current.updatedAt && (!revision || new Date(revision).getTime() !== current.updatedAt.getTime())) throw error(409, 'This record changed after you opened it. Reload before saving or deleting.');
