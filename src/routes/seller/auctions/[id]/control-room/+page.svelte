@@ -3,6 +3,7 @@
   import { page } from '$app/stores';
   import CountdownTimer from '$lib/components/CountdownTimer.svelte';
   import PumbiLoader from '$lib/components/PumbiLoader.svelte';
+  import AuctionLiveVideo from '$lib/components/AuctionLiveVideo.svelte';
 
   let data = $state(null);
   let loading = $state(true);
@@ -220,6 +221,12 @@
       {#if actionSuccess}
         <div class="mb-4 border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm font-semibold text-emerald-700">{actionSuccess}</div>
       {/if}
+
+      <div class="mb-5">
+        {#key auctionId}
+          <AuctionLiveVideo {auctionId} publisher allowed={isAuctioneer && !auctionEnded} />
+        {/key}
+      </div>
 
       <div class="mb-5 grid gap-4 lg:grid-cols-3">
         <div class="pumbi-panel p-5">

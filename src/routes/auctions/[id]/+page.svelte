@@ -8,6 +8,7 @@
   import PumbiLoader from '$lib/components/PumbiLoader.svelte';
   import InterestTracker from '$lib/components/InterestTracker.svelte';
   import { mediaEmbedUrl } from '$lib/utils/mediaEmbed.js';
+  import AuctionLiveVideo from '$lib/components/AuctionLiveVideo.svelte';
   
   let auction = $state(null);
   let lots = $state([]);
@@ -18,10 +19,11 @@
   let liveVideoTitle = $state(null);
   let liveAudioUrl = $state(null);
   let liveAudioTitle = $state(null);
+  let broadcastLive = $state(false);
 
   let isLive = $derived(['live', 'LIVE'].includes(auction?.status));
   let streamSrc = $derived(mediaEmbedUrl(liveVideoUrl));
-  let showHeroStream = $derived(Boolean(streamSrc && !isLive));
+  let showHeroStream = $derived(Boolean(streamSrc && !isLive && !broadcastLive));
   
   $effect(() => {
     if ($page.params.id) {
@@ -98,8 +100,15 @@
 {:else if auction}
   <InterestTracker entityType="AUCTION" entityId={auction.id} />
   <div class="min-h-screen bg-[#f7f4ee]">
+    {#if !['ended', 'ENDED', 'cancelled', 'CANCELLED'].includes(auction.status)}
+      <div class="mx-auto max-w-[1240px] px-4 pt-5 sm:px-6 lg:px-8">
+        {#key auction.id}
+          <AuctionLiveVideo auctionId={auction.id} onlivechange={live => { broadcastLive = live; }} />
+        {/key}
+      </div>
+    {/if}
     {#if isLive}
-      <LiveAuctionDashboard {auction} videoUrl={liveVideoUrl} videoTitle={liveVideoTitle} audioUrl={liveAudioUrl} audioTitle={liveAudioTitle} />
+      <LiveAuctionDashboard {auction} videoUrl={broadcastLive ? null : liveVideoUrl} videoTitle={liveVideoTitle} audioUrl={broadcastLive ? null : liveAudioUrl} audioTitle={liveAudioTitle} />
     {:else if ['ended', 'ENDED', 'cancelled', 'CANCELLED'].includes(auction.status)}
       <div class="border-b border-[#ddd6ca] bg-[#152c26] px-4 py-8 text-center text-[#f7f4ee]">
         <p class="text-xs font-bold uppercase tracking-[0.18em] text-[#d6b477]">Auction finished</p>

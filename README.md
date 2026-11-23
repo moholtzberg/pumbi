@@ -26,6 +26,31 @@ npm run admin:promote -- admin@example.com
 
 Sign in again, then open `/admin` to publish Pumbi rates and terms, configure the monthly PUBLIC auction series, and review independent-seller submissions.
 
+## Live auction video (LiveKit Cloud)
+
+Create a LiveKit Cloud project and set `LIVEKIT_URL` (`wss://your-project.livekit.cloud`),
+`LIVEKIT_API_KEY`, and `LIVEKIT_API_SECRET` in the server environment and Vercel's
+environment variables, then redeploy. Keep the API secret server-side. No database
+migration or LiveKit webhook is required. LiveKit usage is billed to that project.
+
+In the auction's **Control room**, claim the auctioneer seat, click **Preview camera
+& microphone**, allow the browser permissions, then click **Go live**. The preview
+is local until Go live. **Mute microphone** controls broadcast audio, and **Stop
+broadcast** stops the camera/microphone and removes the publisher from the room.
+Leaving the control room also releases the camera and microphone. Only the assigned
+auctioneer with auction-management permission can publish or stop the broadcast.
+
+The public auction page connects viewers automatically, including viewers who opened
+the page before the broadcast began. Video autoplays muted; **Enable sound** opts in
+to audio. Viewers are subscribe-only and never request camera/microphone access.
+Connections retry after disconnection and close when an auction ends. Use HTTPS
+(or localhost) for browser camera/microphone access. Existing video URL embeds remain
+available as a fallback when the browser broadcast is offline.
+
+For a live smoke test, use two browsers: broadcast from the control room in one,
+open the auction page in the other, then verify automatic video, Enable sound,
+microphone mute/unmute, stopping/restarting the broadcast, and leaving the page.
+
 ## Stripe Connect and payout releases
 
 Set `STRIPE_SECRET_KEY` and `STRIPE_WEBHOOK_SECRET`, then configure Stripe to send
