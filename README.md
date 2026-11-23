@@ -1,5 +1,10 @@
 # Pumbi
 
+## Node.js
+
+Use Node.js 24 (`nvm use`). The `engines.node` setting in `package.json` pins
+Vercel builds to 24.x and overrides an older project-level Node.js setting.
+
 ## Database
 
 ```sh

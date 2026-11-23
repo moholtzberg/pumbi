@@ -3,6 +3,9 @@
 	"private": true,
 	"version": "0.0.1",
 	"type": "module",
+	"engines": {
+		"node": "24.x"
+	},
 	"scripts": {
 		"dev": "prisma generate && vite dev",
 		"build": "prisma generate && vite build",
