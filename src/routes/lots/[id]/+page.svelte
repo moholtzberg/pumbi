@@ -4,6 +4,7 @@
   import { goto } from '$app/navigation';
   import PumbiLoader from '$lib/components/PumbiLoader.svelte';
   import InterestTracker from '$lib/components/InterestTracker.svelte';
+  import AuctionActivity from '$lib/components/AuctionActivity.svelte';
   
   let lot = $state(null);
   let bids = $state([]);
@@ -303,6 +304,7 @@
   </div>
 {:else if lot}
   <InterestTracker entityType="LOT" entityId={lot.id} />
+  <div class="mx-auto max-w-[1240px] px-4 sm:px-6 lg:px-8"><AuctionActivity auctionId={lot.auctionId} lotId={lot.id} /></div>
   <div class="min-h-screen bg-[#f7f4ee]">
     <div class="container mx-auto px-4 py-8">
       <button

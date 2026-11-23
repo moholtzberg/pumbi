@@ -3,6 +3,7 @@
   import { goto } from '$app/navigation';
   import { getImageUrl } from '$lib/utils/imageUrl.js';
   import PumbiLoader from '$lib/components/PumbiLoader.svelte';
+  import SellerAnalytics from '$lib/components/SellerAnalytics.svelte';
 
   let { data } = $props();
 
@@ -44,6 +45,7 @@
         return;
       }
       currentUser = await userResponse.json();
+      currentUser.auctionHouseId = data?.auctionHouse?.id || currentUser.auctionHouseId;
 
       if (!currentUser.auctionHouseId) {
         errorMessage = 'You need to register an auction house first.';
@@ -223,6 +225,10 @@
       <button type="button" class="pumbi-btn" onclick={() => (showCreateModal = true)}>Create auction</button>
     {/if}
   </div>
+
+  {#if data?.auctionHouse?.id || currentUser?.auctionHouseId}
+    <SellerAnalytics auctionHouseId={data?.auctionHouse?.id || currentUser?.auctionHouseId} />
+  {/if}
 
   {#if auctionHouse && auctionHouse.onboardingStatus !== 'APPROVED'}
     <section class="pumbi-panel mt-6 flex flex-wrap items-center justify-between gap-4 p-5">

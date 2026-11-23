@@ -4,6 +4,7 @@
   import { goto } from '$app/navigation';
   import CountdownTimer from '$lib/components/CountdownTimer.svelte';
   import PumbiLoader from '$lib/components/PumbiLoader.svelte';
+  import AuctionActivity from '$lib/components/AuctionActivity.svelte';
 
   import { mediaEmbedUrl } from '$lib/utils/mediaEmbed.js';
 
@@ -252,6 +253,8 @@
       </div>
       <a href="#all-lots" class="border border-white/20 px-4 py-2 text-xs font-bold uppercase tracking-wide hover:bg-white/10">Browse all lots</a>
     </div>
+
+    <AuctionActivity auctionId={auction.id} lotId={liveData.currentLot?.id} />
 
     {#if loading}
       <div class="rounded-sm bg-[rgba(255,255,255,0.04)] p-12 text-center text-[#bec9c4]">

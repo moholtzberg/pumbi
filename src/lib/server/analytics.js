@@ -127,7 +127,7 @@ export async function touchContentView({ sessionKey, durationMs, ended = false }
     data: {
       durationMs: nextDuration,
       lastSeenAt: new Date(),
-      ...(ended ? { endedAt: new Date() } : {})
+      endedAt: ended ? new Date() : null
     }
   });
 

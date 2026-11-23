@@ -76,6 +76,43 @@ settlement must ensure the platform has sufficient available funds, or extend
 the payment flow to retain and supply the originating charge or balance
 transaction dependency where applicable.
 
+## Room activity and seller analytics
+
+Live auction pages, lot detail pages, and the seller control room show room and bid
+activity. Room presence deduplicates visible page sessions by signed-in user or
+anonymous browser ID across an auction and all its lots. Sessions heartbeat every
+15 seconds and expire from the room count after 45 seconds without an update.
+Hiding or leaving a page ends presence; returning resumes the existing view without
+counting a new page view or including hidden time in dwell metrics.
+
+**Bidding now** counts distinct people currently in the room who submitted an auction
+bid within the last five minutes; it is zero after an auction ends. **Auction bidders**
+and **Total bids** cover the auction's full history. Statistics refresh every five
+seconds on visible pages. These are approximate presence counts, not LiveKit video
+connections, and work without video streaming configured.
+
+The current-lot step chart compares the running bid price in USD with cumulative
+unique bidders. The whole-auction chart compares cumulative bid count with unique
+bidders. Each axis is labeled separately. A keyboard-accessible slider exposes exact
+values at the retained events. Complete cumulative totals are calculated before long
+histories are sampled to at most 120 events; early bids are included in totals.
+
+The seller home dashboard reports all-time sold/unsold lots, auction counts,
+sell-through (sold divided by sold plus unsold), hammer sales and average sold-lot
+value. Owners, administrators, and finance members can see received/outstanding
+invoice totals, average paid-invoice amounts, and payment-method breakdowns.
+Collections include only `PAID` invoices; outstanding balances include `UNPAID`,
+`PENDING_CHECKOUT`, and `AWAITING_EXTERNAL`. Refunded and canceled invoices are
+excluded. Different currencies remain separate; hammer sales use the auction's
+existing USD bid convention. Invoice collections are not seller bank payouts.
+Use **Refresh analytics** after recording payments. No schema migration is required.
+
+`npm test` covers visibility lifecycle, chart calculations, financial definitions,
+tenant permissions, and data redaction. To additionally run the isolated PostgreSQL
+activity test, provide `TEST_DATABASE_URL` and run
+`node --test tests/auctionActivity.integration.test.js`. Its fixtures use temporary
+tables and a rolled-back transaction; application data is not read or changed.
+
 ## Monthly auction automation
 
 Configure a production scheduler to send a POST request at least hourly:

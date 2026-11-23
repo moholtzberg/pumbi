@@ -4,6 +4,8 @@
   import CountdownTimer from '$lib/components/CountdownTimer.svelte';
   import PumbiLoader from '$lib/components/PumbiLoader.svelte';
   import AuctionLiveVideo from '$lib/components/AuctionLiveVideo.svelte';
+  import AuctionActivity from '$lib/components/AuctionActivity.svelte';
+  import InterestTracker from '$lib/components/InterestTracker.svelte';
 
   let data = $state(null);
   let loading = $state(true);
@@ -222,6 +224,8 @@
         <div class="mb-4 border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm font-semibold text-emerald-700">{actionSuccess}</div>
       {/if}
 
+      <InterestTracker entityType="AUCTION" entityId={auctionId} />
+      <AuctionActivity {auctionId} lotId={data.openLotId || data.onBlockLotId} />
       <div class="mb-5">
         {#key auctionId}
           <AuctionLiveVideo {auctionId} publisher allowed={isAuctioneer && !auctionEnded} />
