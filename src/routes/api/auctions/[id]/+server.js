@@ -1,6 +1,7 @@
 import { json, error } from '@sveltejs/kit';
 import { db } from '$lib/db.js';
 import prisma from '$lib/prisma.js';
+import { finishOrRelistAuction, preserveRelistState } from '$lib/server/auctionCompletion.js';
 import { auctionUpdateSchema } from '$lib/zod.js';
 import {
   HOUSE_PERMISSIONS,
@@ -71,11 +72,22 @@ export async function PATCH({ params, request, locals }) {
     }
   }
 
-  if (updates.settings && typeof updates.settings !== 'string') {
-    updates.settings = JSON.stringify(updates.settings);
+  const ending = updates.status === 'ENDED' && existing.status !== 'ENDED';
+  if (ending) delete updates.status;
+  if (updates.settings !== undefined) {
+    await prisma.$transaction(async tx => {
+      await tx.$queryRaw`SELECT id FROM auctions WHERE id = ${params.id} FOR UPDATE`;
+      const current = await tx.auction.findUnique({ where: { id: params.id }, select: { settings: true } });
+      await tx.auction.update({ where: { id: params.id }, data: { ...updates, settings: JSON.stringify(preserveRelistState(current.settings, updates.settings)) } });
+    });
+  } else {
+    await db.auctions.update(params.id, updates);
   }
-
-  const auction = await db.auctions.update(params.id, updates);
+  if (ending) {
+    try { await finishOrRelistAuction({ auctionId: params.id, markRemainingUnsold: true }); }
+    catch (err) { if (err.status) throw error(err.status, err.message); throw err; }
+  }
+  const auction = await db.auctions.getById(params.id);
   if (!auction) {
     throw error(404, 'Auction not found');
   }

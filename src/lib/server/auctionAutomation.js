@@ -1,4 +1,5 @@
 import prisma from '$lib/prisma.js';
+import { finishOrRelistAuction } from '$lib/server/auctionCompletion.js';
 import { getNextMonthlyRunAt } from './auctionSchedule.js';
 
 function addMinutes(date, minutes) {
@@ -114,29 +115,21 @@ async function processSeriesOccurrence(client, seriesId, expectedOccurrenceAt, n
 }
 
 async function transitionAuctionStatuses(client, now) {
-	return client.$transaction(async (tx) => {
-		const ended = await tx.auction.updateMany({
-			where: {
-				status: { in: ['UPCOMING', 'LIVE'] },
-				endDate: { lte: now },
-				// Floor sales that the auctioneer has opened are driven by lot timers,
-				// not the original catalog window.
-				auctioneerStartedAt: null
-			},
-			data: { status: 'ENDED' }
-		});
-
-		const live = await tx.auction.updateMany({
-			where: {
-				status: 'UPCOMING',
-				startDate: { lte: now },
-				endDate: { gt: now }
-			},
-			data: { status: 'LIVE' }
-		});
-
-		return { live: live.count, ended: ended.count };
+	const due = await client.auction.findMany({
+		where: { status: { in: ['UPCOMING', 'LIVE'] }, endDate: { lte: now }, auctioneerStartedAt: null },
+		select: { id: true }
 	});
+	let ended = 0, relisted = 0;
+	for (const auction of due) {
+		const result = await finishOrRelistAuction({ auctionId: auction.id, now, scheduled: true, client });
+		if (!result.skipped && result.auctionEnded) ended++;
+		if (result.relistedCount) relisted++;
+	}
+	const live = await client.auction.updateMany({
+		where: { status: 'UPCOMING', startDate: { lte: now }, endDate: { gt: now } },
+		data: { status: 'LIVE' }
+	});
+	return { live: live.count, ended, relisted };
 }
 
 /**

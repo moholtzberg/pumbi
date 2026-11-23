@@ -24,6 +24,8 @@
     <p class="mt-2 max-w-2xl text-sm text-slate-500">A focused view of the marketplace, partner operations, catalog, and money movement.</p>
   </header>
 
+  <a href="/admin/data" class="flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-indigo-200 bg-indigo-50 px-5 py-4"><span><strong class="block text-indigo-950">Platform data manager</strong><span class="mt-1 block text-sm text-indigo-800">Full record management for users, auctions, lots, invoices, shipments, and every other collection.</span></span><span class="text-sm font-semibold text-indigo-700">Open data manager →</span></a>
+
   <section class="grid gap-4 sm:grid-cols-2 xl:grid-cols-6" aria-label="Admin areas">
     {#each sections as section}
       <a href={section.href} class="group rounded-2xl border border-slate-200 bg-white p-5 shadow-sm transition hover:-translate-y-0.5 hover:border-indigo-200 hover:shadow-md">

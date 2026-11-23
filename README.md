@@ -76,6 +76,27 @@ settlement must ensure the platform has sufficient available funds, or extend
 the payment flow to retain and supply the originating charge or balance
 transaction dependency where applicable.
 
+## Relist unsold lots in the same auction
+
+From the seller dashboard, open **Unsold lot settings** (or **House settings →
+Advanced**) and enable **Relist unsold lots at the end of an auction**. The default
+is off. House owners and administrators can save this setting.
+
+When the sale finishes, ready unsold lots without bids, a winning bidder, or an
+invoice are reactivated for one extra round in that same auction. Their IDs,
+lot numbers, order, descriptions, images, and opening prices are preserved.
+Current bids and lot timers reset. Sold, withdrawn, and unready lots are excluded.
+The auction ends after the extra round; ordinary settings saves cannot reset it.
+
+In an auctioneer-run sale, auto-advance opens the first relisted lot using the
+inherited time-on-block setting. With auto-advance off, the lots wait in the control
+room for the auctioneer to open them. The control room announces the extra round.
+For a scheduled sale that has not started its floor, the original auction duration
+is added to its closing window once (minimum one minute). Manual ending, last-lot
+completion, and scheduled completion all use the same transaction-locked logic.
+No schema migration is required. Enabling the setting does not reopen already-ended
+auctions.
+
 ## Room activity and seller analytics
 
 Live auction pages, lot detail pages, and the seller control room show room and bid

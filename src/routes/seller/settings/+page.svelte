@@ -4,6 +4,7 @@
   import BannerGenerator from '$lib/components/BannerGenerator.svelte';
   import { getImageUrl } from '$lib/utils/imageUrl.js';
   import PumbiLoader from '$lib/components/PumbiLoader.svelte';
+  let { data: pageData } = $props();
 
   let session = $state(null);
   let currentUser = $state(null);
@@ -69,6 +70,7 @@
     
     // Bidding Rules
     russianUsersRequireApproval: false,
+    relistUnsoldLotsAtEnd: false,
     automaticAuctionInitialTimerSeconds: null,
     automaticAuctionTimerResetSeconds: null,
     
@@ -158,6 +160,7 @@
   }
 
   onMount(async () => {
+    if (new URLSearchParams(window.location.search).get('tab') === 'advanced') activeTab = 'advanced';
     await loadSession();
     if (session?.user) {
       await loadUserData();
@@ -188,6 +191,7 @@
         return;
       }
       currentUser = await userResponse.json();
+      currentUser.auctionHouseId = pageData?.auctionHouse?.id || currentUser.auctionHouseId;
 
       if (!currentUser.auctionHouseId) {
         errorMessage = 'You need to register an auction house first.';
@@ -911,6 +915,12 @@
           <!-- Advanced Tab -->
           {#if activeTab === 'advanced'}
             <div class="space-y-4">
+              <section class="rounded-lg border border-gray-200 bg-white p-4">
+                <label class="flex cursor-pointer items-start gap-3">
+                  <input type="checkbox" bind:checked={settings.relistUnsoldLotsAtEnd} class="mt-1 rounded border-gray-300 text-[#18372f]" />
+                  <span><span class="font-semibold text-gray-900">Relist unsold lots at the end of an auction</span><span class="mt-1 block text-sm text-gray-600">Reoffer unsold, ready lots once in another round of the same auction. Lot numbers and catalog details stay the same; bidding restarts at the opening price. Sold, withdrawn, invoiced, and previously bid-on lots are excluded. The auction ends after this extra round.</span><span class="mt-2 block text-xs text-gray-500">With auto-advance enabled, the first relisted lot opens automatically. Otherwise, open it from the control room.</span></span>
+                </label>
+              </section>
               <!-- Bidding Rules -->
               <div class="border border-gray-200 rounded-lg">
                 <button

@@ -2,12 +2,13 @@ import { json, error } from '@sveltejs/kit';
 import prisma from '$lib/prisma.js';
 import { db } from '$lib/db.js';
 import { resolveLotTiming } from '$lib/server/lotTiming.js';
+import { finishOrRelistAuction } from '$lib/server/auctionCompletion.js';
 import {
   findNextReadyLot,
   isAutoAdvanceEnabled,
   maybeAutoAdvanceAfterClose,
   openLotOnBlock,
-  parseAuctionSettings,
+  patchAuctionSettings,
   clearOnBlockLot,
   addTimeToLotOnBlock
 } from '$lib/server/liveAuctionFloor.js';
@@ -188,15 +189,7 @@ export async function POST({ params, request, locals }) {
     if (typeof body.autoAdvanceNextLot !== 'boolean') {
       throw error(400, 'autoAdvanceNextLot must be a boolean');
     }
-    const current = parseAuctionSettings(auction.settings);
-    const merged = {
-      ...current,
-      autoAdvanceNextLot: body.autoAdvanceNextLot
-    };
-    await prisma.auction.update({
-      where: { id: auction.id },
-      data: { settings: JSON.stringify(merged) }
-    });
+    const merged = await patchAuctionSettings(auction.id, { autoAdvanceNextLot: body.autoAdvanceNextLot });
     return json({
       action,
       autoAdvanceNextLot: Boolean(merged.autoAdvanceNextLot)
@@ -208,35 +201,15 @@ export async function POST({ params, request, locals }) {
       throw error(409, 'This auction is already finished');
     }
 
-    const now = new Date();
-    const openLots = await prisma.lot.findMany({
-      where: {
-        auctionId: auction.id,
-        status: 'ACTIVE',
-        isReady: true,
-        endTime: { gt: now }
-      },
-      select: { id: true, lotNumber: true }
-    });
-    if (openLots.length > 0) {
-      throw error(409, `Close lot #${openLots[0].lotNumber} before ending the auction`);
-    }
-
-    // Any remaining queued ready lots are marked unsold when the auctioneer ends the sale.
-    await prisma.lot.updateMany({
-      where: { auctionId: auction.id, status: 'ACTIVE', isReady: true },
-      data: { status: 'UNSOLD', endTime: now }
-    });
-
-    await clearOnBlockLot(auction);
-
-    const ended = await prisma.auction.update({
-      where: { id: auction.id },
-      data: { status: 'ENDED', endDate: now }
-    });
+    let result;
+    try { result = await finishOrRelistAuction({ auctionId: auction.id, markRemainingUnsold: true }); }
+    catch (err) { if (err.status) throw error(err.status, err.message); throw err; }
     return json({
       action,
-      auction: { id: ended.id, status: ended.status, endDate: ended.endDate }
+      auction: { id: result.auction.id, status: result.auction.status, endDate: result.auction.endDate },
+      auctionEnded: result.auctionEnded,
+      relistedCount: result.relistedCount,
+      nextLot: result.nextLot
     });
   }
 
@@ -323,12 +296,12 @@ export async function POST({ params, request, locals }) {
 
   let auctionEnded = false;
   let advancedLot = null;
+  let relistedCount = 0;
   if (remainingReady === 0 && auction.auctioneerStartedAt) {
-    await prisma.auction.update({
-      where: { id: auction.id },
-      data: { status: 'ENDED', endDate: new Date() }
-    });
-    auctionEnded = true;
+    const completion = await finishOrRelistAuction({ auctionId: auction.id });
+    auctionEnded = completion.auctionEnded;
+    relistedCount = completion.relistedCount;
+    advancedLot = completion.nextLot;
   } else {
     const advance = await maybeAutoAdvanceAfterClose({
       auction,
@@ -350,6 +323,7 @@ export async function POST({ params, request, locals }) {
     action,
     lot: { id: updated.id, endTime: updated.endTime, status: updated.status },
     auctionEnded,
+    relistedCount,
     autoAdvanced: Boolean(advancedLot),
     nextLot: advancedLot,
     invoiceId: invoice?.id || null

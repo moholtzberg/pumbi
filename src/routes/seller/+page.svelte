@@ -222,7 +222,10 @@
       </p>
     </div>
     {#if currentUser?.auctionHouseId}
-      <button type="button" class="pumbi-btn" onclick={() => (showCreateModal = true)}>Create auction</button>
+      <div class="flex flex-wrap gap-2">
+        <a href="/seller/settings?tab=advanced" class="pumbi-btn-secondary">Unsold lot settings</a>
+        <button type="button" class="pumbi-btn" onclick={() => (showCreateModal = true)}>Create auction</button>
+      </div>
     {/if}
   </div>
 

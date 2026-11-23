@@ -78,7 +78,9 @@
           remaining > 0
             ? `End this auction and mark ${remaining} remaining ready lot${remaining === 1 ? '' : 's'} as unsold?`
             : 'End this auction and mark it as finished?';
-        if (!confirm(message)) {
+        const relistMessage = data?.auction?.liveSettings?.relistUnsoldLotsAtEnd && !data?.auction?.liveSettings?.unsoldRelistRoundStartedAt
+          ? ' Unsold eligible lots will be reoffered once in this auction before it finishes.' : '';
+        if (!confirm(message + relistMessage)) {
           busyAction = '';
           return;
         }
@@ -96,7 +98,9 @@
       }
       const result = await response.json().catch(() => ({}));
       actionSuccess =
-        action === 'claim'
+        result.relistedCount
+          ? `${result.relistedCount} unsold lot${result.relistedCount === 1 ? '' : 's'} relisted for one extra round${result.nextLot ? ' — first lot is open' : ' — open the next lot when ready'}`
+          : action === 'claim'
           ? 'You claimed the auctioneer seat'
           : action === 'start'
             ? 'Auction started — first lot is open'
@@ -225,6 +229,9 @@
       {/if}
 
       <InterestTracker entityType="AUCTION" entityId={auctionId} />
+      {#if data.auction.liveSettings?.unsoldRelistRoundStartedAt && !auctionEnded}
+        <p class="mb-4 border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900">Unsold-lot round · {data.auction.liveSettings.unsoldRelistCount} lots reoffered. This is the final round.</p>
+      {/if}
       <AuctionActivity {auctionId} lotId={data.openLotId || data.onBlockLotId} />
       <div class="mb-5">
         {#key auctionId}

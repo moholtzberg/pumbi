@@ -57,7 +57,7 @@ export const auctionHouseSettingsSchema = z.object({
   disclaimerInEnglish: z.string().optional().nullable(),
   
   // Contact Information
-  email: z.string().email("Invalid email address").optional().nullable(),
+  email: z.string().email("Invalid email address").or(z.literal('')).optional().nullable(),
   phone: z.string().optional().nullable(),
   phoneForWhatsapp: z.string().optional().nullable(),
   
@@ -74,10 +74,11 @@ export const auctionHouseSettingsSchema = z.object({
   // Email Notifications
   emailOnAbsenteeBid: z.boolean().default(false),
   emailOnAbsenteeBidCancel: z.boolean().default(false),
-  emailToNotifyBidsUpdate: z.string().email("Invalid email address").optional().nullable(),
+  emailToNotifyBidsUpdate: z.string().email("Invalid email address").or(z.literal('')).optional().nullable(),
   
   // Bidding Rules
   russianUsersRequireApproval: z.boolean().default(false),
+  relistUnsoldLotsAtEnd: z.boolean().default(false),
   automaticAuctionInitialTimerSeconds: z.coerce.number().int().min(1).optional().nullable(),
   automaticAuctionTimerResetSeconds: z.coerce.number().int().min(1).optional().nullable(),
   

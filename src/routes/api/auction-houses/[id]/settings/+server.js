@@ -9,10 +9,7 @@ import {
 
 export async function GET({ params, locals }) {
   try {
-    const session = await locals.auth?.();
-    if (!session?.user) {
-      throw error(401, 'Unauthorized');
-    }
+    const user = await requireAuthenticatedUser(locals);
 
     const auctionHouse = await prisma.auctionHouse.findUnique({
       where: { id: params.id }
@@ -22,14 +19,7 @@ export async function GET({ params, locals }) {
       throw error(404, 'Auction house not found');
     }
 
-    // Check if user has access to this auction house
-    const user = await prisma.user.findUnique({
-      where: { email: session.user.email }
-    });
-
-    if (!user || user.auctionHouseId !== auctionHouse.id) {
-      throw error(403, 'Forbidden');
-    }
+    await requireAuctionHousePermission(user, auctionHouse.id, HOUSE_PERMISSIONS.VIEW);
 
     // Parse settings JSON or return empty object
     const settings = auctionHouse.settings ? JSON.parse(auctionHouse.settings) : {};
@@ -65,7 +55,8 @@ export async function PATCH({ params, request, locals }) {
     const data = await request.json();
 
     // Validate the settings data
-    const validated = await auctionHouseSettingsSchema.parseAsync(data);
+    const existing = auctionHouse.settings ? JSON.parse(auctionHouse.settings) : {};
+    const validated = { ...existing, ...await auctionHouseSettingsSchema.parseAsync({ ...existing, ...data }) };
 
     // Update the auction house settings
     const updated = await prisma.auctionHouse.update({

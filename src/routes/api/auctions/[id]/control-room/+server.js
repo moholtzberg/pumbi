@@ -78,6 +78,9 @@ export async function GET({ params, locals }) {
         try {
           const settings = auction.settings ? JSON.parse(auction.settings) : {};
           return {
+            relistUnsoldLotsAtEnd: (() => { try { return JSON.parse(auction.auctionHouse.settings || '{}').relistUnsoldLotsAtEnd === true; } catch { return false; } })(),
+            unsoldRelistRoundStartedAt: settings.unsoldRelistRoundStartedAt || null,
+            unsoldRelistCount: settings.unsoldRelistCount || 0,
             liveVideoUrl: settings.liveVideoUrl || null,
             liveVideoTitle: settings.liveVideoTitle || null,
             liveAudioUrl: settings.liveAudioUrl || null,

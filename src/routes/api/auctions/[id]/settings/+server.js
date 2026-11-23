@@ -1,6 +1,7 @@
 import { json, error } from '@sveltejs/kit';
 import { auctionSettingsSchema } from '$lib/zod.js';
 import prisma from '$lib/prisma.js';
+import { preserveRelistState } from '$lib/server/auctionCompletion.js';
 import {
   HOUSE_PERMISSIONS,
   canManageAuctionHouse,
@@ -83,14 +84,14 @@ export async function PATCH({ params, request, locals }) {
     const data = await request.json();
 
     // Validate the settings data
-    const validated = await auctionSettingsSchema.parseAsync(data);
+    let validated = await auctionSettingsSchema.parseAsync(data);
 
     // Update the auction settings
-    const updated = await prisma.auction.update({
-      where: { id: params.id },
-      data: {
-        settings: JSON.stringify(validated)
-      }
+    await prisma.$transaction(async tx => {
+      await tx.$queryRaw`SELECT id FROM auctions WHERE id = ${params.id} FOR UPDATE`;
+      const current = await tx.auction.findUnique({ where: { id: params.id }, select: { settings: true } });
+      validated = preserveRelistState(current.settings, validated);
+      await tx.auction.update({ where: { id: params.id }, data: { settings: JSON.stringify(validated) } });
     });
 
     return json({ 

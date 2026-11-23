@@ -21,13 +21,14 @@ export function getOnBlockLotId(auction) {
   return typeof id === 'string' && id ? id : null;
 }
 
-async function writeAuctionSettings(auctionId, currentSettings, patch) {
-  const merged = { ...parseAuctionSettings(currentSettings), ...patch };
-  await prisma.auction.update({
-    where: { id: auctionId },
-    data: { settings: JSON.stringify(merged) }
+export async function patchAuctionSettings(auctionId, patch) {
+  return prisma.$transaction(async tx => {
+    await tx.$queryRaw`SELECT id FROM auctions WHERE id = ${auctionId} FOR UPDATE`;
+    const current = await tx.auction.findUnique({ where: { id: auctionId }, select: { settings: true } });
+    const merged = { ...parseAuctionSettings(current.settings), ...patch };
+    await tx.auction.update({ where: { id: auctionId }, data: { settings: JSON.stringify(merged) } });
+    return merged;
   });
-  return merged;
 }
 
 export async function findNextReadyLot(auctionId, excludeLotId = null) {
@@ -122,7 +123,7 @@ export async function openLotOnBlock({
 export async function clearOnBlockLot(auction) {
   const settings = parseAuctionSettings(auction.settings);
   if (!settings.onBlockLotId) return settings;
-  const merged = await writeAuctionSettings(auction.id, settings, { onBlockLotId: null });
+  const merged = await patchAuctionSettings(auction.id, { onBlockLotId: null });
   auction.settings = JSON.stringify(merged);
   return merged;
 }

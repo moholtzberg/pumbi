@@ -5,6 +5,7 @@
 
   const navigation = [
     { href: '/admin', label: 'Overview', description: 'Platform health' },
+    { href: '/admin/data', label: 'Data manager', description: 'Create, edit & delete all records' },
     { href: '/admin/auctions', label: 'Auctions', description: 'Series & submissions' },
     { href: '/admin/auction-houses', label: 'Auction houses', description: 'Partners & onboarding' },
     { href: '/admin/users', label: 'Users', description: 'Accounts & roles' },
