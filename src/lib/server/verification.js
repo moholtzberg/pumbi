@@ -3,6 +3,7 @@ import { env } from '$env/dynamic/private';
 import { createHash, createHmac, randomInt, timingSafeEqual } from 'node:crypto';
 import prisma from '$lib/prisma.js';
 import { connectStatusForAccount, getStripe } from '$lib/server/stripe.js';
+import { smtp2goRequest, sendTransactionalEmail } from '$lib/server/smtp2go.js';
 
 export const verificationUserSelect = {
   id: true,
@@ -115,37 +116,6 @@ export function publicVerification(user) {
   };
 }
 
-function smtp2goConfig() {
-  if (!env.SMTP2GO_API_KEY) throw error(503, 'Email and SMS verification is not configured');
-  return {
-    apiKey: env.SMTP2GO_API_KEY,
-    fromEmail: env.SMTP2GO_FROM_EMAIL || 'Pumbi <hello@ginzeyamerica.com>'
-  };
-}
-
-async function smtp2goRequest(path, body) {
-  const config = smtp2goConfig();
-  const response = await fetch(`https://api.smtp2go.com/v3/${path}`, {
-    method: 'POST',
-    headers: {
-      'X-Smtp2go-Api-Key': config.apiKey,
-      'content-type': 'application/json',
-      accept: 'application/json'
-    },
-    body: JSON.stringify(body)
-  });
-  const result = await response.json().catch(() => ({}));
-  if (!response.ok || result.data?.failed > 0 || result.data?.failures?.length) {
-    console.error('SMTP2GO delivery failed', {
-      status: response.status,
-      errorCode: result.data?.error_code,
-      failed: result.data?.failed
-    });
-    throw error(502, result.data?.error || 'Verification message could not be delivered');
-  }
-  return result;
-}
-
 function otpChannel(channel) {
   if (channel === 'email') return 'EMAIL';
   if (channel === 'sms') return 'PHONE';
@@ -166,15 +136,12 @@ function hashCode(userId, channel, code) {
 }
 
 async function deliverVerificationCode(channel, target, code) {
-  const config = smtp2goConfig();
   if (channel === 'EMAIL') {
-    await smtp2goRequest('email/send', {
-      sender: config.fromEmail,
-      to: [target],
+    await sendTransactionalEmail({
+      to: target,
       subject: 'Your Pumbi verification code',
-      text_body: `Your Pumbi verification code is ${code}. It expires in 10 minutes. If you did not request this code, you can ignore this email.`,
-      html_body: `<p>Your Pumbi verification code is:</p><p style="font-size:28px;font-weight:700;letter-spacing:4px">${code}</p><p>This code expires in 10 minutes. If you did not request it, you can ignore this email.</p>`,
-      fastaccept: true
+      text: `Your Pumbi verification code is ${code}. It expires in 10 minutes. If you did not request this code, you can ignore this email.`,
+      html: `<p>Your Pumbi verification code is:</p><p style="font-size:28px;font-weight:700;letter-spacing:4px">${code}</p><p>This code expires in 10 minutes. If you did not request it, you can ignore this email.</p>`
     });
     return;
   }

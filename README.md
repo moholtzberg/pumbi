@@ -16,6 +16,27 @@ npm run db:migrate
 
 Copy `.env.example` to `.env` and provide the required secrets. Never commit `.env`.
 
+## Transactional email (SMTP2GO)
+
+Email verification codes, password-reset links, and auction-house team invitations
+use the shared SMTP2GO HTTPS API service. Set `SMTP2GO_API_KEY`,
+`SMTP2GO_FROM_EMAIL=Pumbi <hello@ginzeyamerica.com>`, and `APP_URL` (the public
+site origin) in the server environment and in Vercel, then redeploy. The sender
+defaults to the address above, which must be authorized under SMTP2GO's Verified
+Senders. Existing SMS verification continues through SMTP2GO.
+
+Messages include plain text and HTML. Provider failures (including HTTP 200
+responses containing errors) are rejected, requests have a 15-second timeout,
+and sends are not automatically retried to avoid duplicates. API acceptance is
+not a guarantee of inbox delivery; use SMTP2GO's activity reports to investigate
+bounces. Password-reset requests keep the same response for unknown accounts
+and delivery errors, and reset tokens are never logged. Links expire after one
+hour. Invitations retain the manual-copy link when no SMTP2GO key is configured;
+when configured, a failed send reports an error and removes the pending invitation
+so it can be retried. Resend credentials are no longer used.
+
+See the [SMTP2GO sending API documentation](https://developers.smtp2go.com/docs/send-an-email).
+
 ## Platform administrator
 
 After creating a normal account, promote it from a trusted terminal:
