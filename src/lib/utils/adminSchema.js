@@ -1,5 +1,5 @@
 const scalars = new Set(['String', 'Boolean', 'Int', 'Float', 'Decimal', 'BigInt', 'DateTime', 'Json', 'Bytes']);
-const secrets = new Set(['password', 'resetPasswordToken', 'tokenHash', 'codeHash', 'sessionKey']);
+const secrets = new Set(['password', 'resetPasswordToken', 'tokenHash', 'codeHash', 'sessionKey', 'maxAmount']);
 const labels = { AuctionHouse: 'Auction houses', AuctionSeries: 'Auction series', PlatformPolicy: 'Platform policies', LotWatch: 'Lot watches', User: 'Users', Lot: 'Lots', Auction: 'Auctions', Bid: 'Bids', Invoice: 'Invoices', Shipment: 'Shipments', ContentView: 'Page views' };
 
 export function parseAdminSchema(schema) {

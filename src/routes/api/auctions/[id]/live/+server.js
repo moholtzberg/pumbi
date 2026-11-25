@@ -1,9 +1,11 @@
+import { randomUUID } from 'node:crypto';
 import { json, error } from '@sveltejs/kit';
 import prisma from '$lib/prisma.js';
 import { db } from '$lib/db.js';
 import { resolveLotTiming } from '$lib/server/lotTiming.js';
 import { finishOrRelistAuction } from '$lib/server/auctionCompletion.js';
 import {
+  getOnBlockLotId,
   findNextReadyLot,
   isAutoAdvanceEnabled,
   maybeAutoAdvanceAfterClose,
@@ -96,7 +98,7 @@ export async function GET({ params }) {
     selected
       ? prisma.bid.findMany({
           where: { lotId: selected.id },
-          orderBy: { timestamp: 'desc' },
+          orderBy: [{ timestamp: 'desc' }, { sequence: 'desc' }],
           take: 40
         })
       : Promise.resolve([]),
@@ -140,6 +142,7 @@ export async function GET({ params }) {
       amount: bid.amount,
       bidderName: bid.userName,
       source: bid.source,
+      isAutomatic: bid.isAutomatic,
       timestamp: bid.timestamp
     }))
   }, { headers: { 'cache-control': 'no-store' } });
@@ -157,8 +160,8 @@ export async function POST({ params, request, locals }) {
   const body = await request.json();
   const lotId = String(body.lotId || '');
   const action = String(body.action || '').toLowerCase();
-  if (!['claim', 'start', 'open', 'close', 'end', 'settings', 'extend'].includes(action)) {
-    throw error(400, 'action must be claim, start, open, close, end, settings, or extend');
+  if (!['claim', 'start', 'open', 'close', 'end', 'settings', 'extend', 'fair_warning'].includes(action)) {
+    throw error(400, 'action must be claim, start, open, close, end, settings, extend, or fair_warning');
   }
   if (
     action !== 'claim' &&
@@ -266,17 +269,25 @@ export async function POST({ params, request, locals }) {
     }
   }
 
-  // close lot
-  if (lot.status !== 'ACTIVE') {
-    throw error(409, 'Only an active lot can be closed');
-  }
+  // Warning and hammer both serialize with all online/phone proxy bids.
   const updated = await prisma.$transaction(async tx => {
     await tx.$queryRaw`SELECT id FROM auctions WHERE id = ${auction.id} FOR UPDATE`;
     await tx.$queryRaw`SELECT id FROM lots WHERE id = ${lot.id} FOR UPDATE`;
+    const floor = await tx.auction.findUnique({ where: { id: auction.id } });
     const fresh = await tx.lot.findUnique({ where: { id: lot.id } });
-    if (!fresh || fresh.status !== 'ACTIVE') throw error(409, 'Only an active lot can be closed');
-    return tx.lot.update({ where: { id: fresh.id }, data: { endTime: new Date(), status: fresh.highestBidderId ? 'SOLD' : 'UNSOLD' } });
+    if (!floor) throw error(404, 'Auction not found');
+    if (floor.auctioneerId !== user.id) throw error(403, 'Only the assigned auctioneer can control the floor');
+    if (floor.status !== 'LIVE' || !floor.auctioneerStartedAt || !fresh || fresh.status !== 'ACTIVE' || !fresh.isReady || !fresh.endTime || fresh.auctionId !== floor.id || (getOnBlockLotId(floor) && getOnBlockLotId(floor) !== fresh.id)) throw error(409, 'Only the current on-block lot can receive fair warning or be hammered');
+    if (action === 'fair_warning') {
+      if (fresh.fairWarningAt) return fresh;
+      const now = new Date();
+      return tx.lot.update({ where: { id: fresh.id }, data: { fairWarningAt: now, fairWarningKey: randomUUID(), endTime: new Date(Math.max(fresh.endTime.getTime(), now.getTime() + 10_000)) } });
+    }
+    if (!fresh.fairWarningAt || !fresh.fairWarningKey || body.fairWarningKey !== fresh.fairWarningKey) throw error(409, 'Give fair warning before hammering. A new bid or timer change requires a fresh warning.');
+    return tx.lot.update({ where: { id: fresh.id }, data: { endTime: new Date(), fairWarningAt: null, fairWarningKey: null, status: fresh.highestBidderId ? 'SOLD' : 'UNSOLD' } });
   });
+  if (action === 'fair_warning') return json({ action, lot: { id: updated.id, fairWarningAt: updated.fairWarningAt, fairWarningKey: updated.fairWarningKey, endTime: updated.endTime } });
+
   await clearOnBlockLot(auction);
 
   let invoice = null;

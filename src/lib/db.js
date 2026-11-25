@@ -141,6 +141,7 @@ async function mapLot(prismaLot) {
     endTime: prismaLot.endTime,
     initialTimerSeconds: prismaLot.initialTimerSeconds,
     bidExtensionSeconds: prismaLot.bidExtensionSeconds,
+    fairWarningAt: prismaLot.fairWarningAt,
     highestBidderId: prismaLot.highestBidderId,
     highestBidderName: prismaLot.highestBidderName,
     isReady: prismaLot.isReady,
@@ -163,6 +164,7 @@ function mapBid(prismaBid) {
     userName: prismaBid.userName,
     amount: prismaBid.amount,
     timestamp: prismaBid.timestamp,
+    isAutomatic: prismaBid.isAutomatic || false,
     source: prismaBid.source || 'ONLINE'
   };
 }
@@ -376,14 +378,14 @@ export const db = {
     getByLotId: async (lotId) => {
       const bids = await prisma.bid.findMany({
         where: { lotId },
-        orderBy: { timestamp: 'desc' }
+        orderBy: [{ timestamp: 'desc' }, { sequence: 'desc' }]
       });
       return bids.map(mapBid);
     },
     getByUserId: async (userId) => {
       const bids = await prisma.bid.findMany({
         where: { userId },
-        orderBy: { timestamp: 'desc' }
+        orderBy: [{ timestamp: 'desc' }, { sequence: 'desc' }]
       });
       return bids.map(mapBid);
     },

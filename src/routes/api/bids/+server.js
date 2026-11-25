@@ -2,13 +2,20 @@ import { json, error } from '@sveltejs/kit';
 import { db } from '$lib/db.js';
 import prisma from '$lib/prisma.js';
 import { requireAuthenticatedUser } from '$lib/server/authorization.js';
-import { extendedEndTime, resolveLotTiming } from '$lib/server/lotTiming.js';
-import { bidAmount, minimumLotBid, requireOpenLot } from '$lib/server/bidRules.js';
+import { submitMaximumBid } from '$lib/server/proxyBidding.js';
+import { bidAmount, requireOpenLot } from '$lib/server/bidRules.js';
 
-export async function GET({ url }) {
+export async function GET({ url, locals }) {
   const lotId = url.searchParams.get('lotId');
   const userId = url.searchParams.get('userId');
   
+  if (url.searchParams.get('view') === 'maximum') {
+    const user = await requireAuthenticatedUser(locals);
+    if (!lotId) throw error(400, 'lotId is required');
+    const maximum = await prisma.proxyBid.findUnique({ where: { lotId_userId: { lotId, userId: user.id } }, select: { maxAmount: true } });
+    return json({ maximumBid: maximum ? Number(maximum.maxAmount) : null }, { headers: { 'cache-control': 'private, no-store' } });
+  }
+
   if (lotId) {
     const bids = await db.bids.getByLotId(lotId);
     return json(bids);
@@ -31,7 +38,7 @@ export async function POST({ request, locals }) {
   const lotId = data.lotId;
   const amount = bidAmount(data.amount);
   
-  if (!lotId || !Number.isFinite(amount) || amount <= 0) {
+  if (typeof lotId !== 'string' || !lotId || !Number.isFinite(amount) || amount <= 0) {
     throw error(400, 'A valid lot ID and positive bid amount are required');
   }
   if (!user.isVerifiedBuyer) {
@@ -77,12 +84,8 @@ export async function POST({ request, locals }) {
       throw error(409, 'This lot is not open for bidding');
     }
 
-    if (lot.highestBidderId === user.id) {
-      throw error(400, 'You are already the highest bidder on this lot');
-    }
-
-    if (auction.sellerId === user.id || lot.ownerUserId === user.id) {
-      throw error(403, 'You cannot bid on your own lot');
+    if ([auction.sellerId, lot.ownerUserId, auction.auctioneerId].includes(user.id)) {
+      throw error(403, 'The seller, lot owner, and auctioneer cannot bid on this lot');
     }
 
     const registration = await tx.auctionRegistration.findUnique({
@@ -120,47 +123,8 @@ export async function POST({ request, locals }) {
       }
     }
 
-    const minimumBid = minimumLotBid(lot);
-    if (amount < minimumBid) {
-      throw error(400, `Bid must be at least $${minimumBid}`);
-    }
-
-    const userName = user.name || user.email;
-    const timing = resolveLotTiming({
-      lot,
-      auction,
-      auctionHouse: auction.auctionHouse
-    });
-    const nextEndTime = extendedEndTime(lot.endTime, now, timing.bidExtensionSeconds);
-    const updated = await tx.lot.updateMany({
-      where: {
-        id: lot.id,
-        currentBid: lot.currentBid,
-        highestBidderId: lot.highestBidderId
-      },
-      data: {
-        currentBid: amount,
-        highestBidderId: user.id,
-        highestBidderName: userName,
-        ...(nextEndTime && nextEndTime.getTime() !== lot.endTime?.getTime()
-          ? { endTime: nextEndTime }
-          : {})
-      }
-    });
-
-    if (updated.count !== 1) {
-      throw error(409, 'Another bid was placed first; refresh and try again');
-    }
-
-    return tx.bid.create({
-      data: {
-        lotId,
-        userId: user.id,
-        userName,
-        amount
-      }
-    });
+    return submitMaximumBid(tx, { lot, buyer: user, maximum: amount, now });
   });
 
-  return json(bid, { status: 201 });
+  return json(bid, { status: 201, headers: { 'cache-control': 'private, no-store' } });
 }

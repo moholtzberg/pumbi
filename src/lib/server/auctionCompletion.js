@@ -28,6 +28,8 @@ export async function finishOrRelistAuction({ auctionId, now = new Date(), markR
     if (['ENDED', 'CANCELLED'].includes(auction.status)) return { auction, auctionEnded: true, relistedCount: 0, skipped: true };
     if (scheduled && (auction.auctioneerStartedAt || auction.endDate > now)) return { auction, auctionEnded: false, relistedCount: 0, skipped: true };
     if (!scheduled) {
+      const block = settings.onBlockLotId && await tx.lot.findFirst({ where: { id: settings.onBlockLotId, auctionId, status: 'ACTIVE' }, select: { lotNumber: true } });
+      if (block) throw Object.assign(new Error(`Hammer lot #${block.lotNumber} before ending the auction`), { status: 409 });
       const open = await tx.lot.findFirst({
         where: { auctionId, status: 'ACTIVE', isReady: true, endTime: { gt: now } },
         select: { lotNumber: true }
@@ -37,7 +39,7 @@ export async function finishOrRelistAuction({ auctionId, now = new Date(), markR
     if (markRemainingUnsold || (scheduled && enabled)) {
       await tx.lot.updateMany({
         where: { auctionId, status: 'ACTIVE', isReady: true, ...(scheduled ? { highestBidderId: null } : {}) },
-        data: { status: 'UNSOLD', endTime: now }
+        data: { status: 'UNSOLD', endTime: now, fairWarningAt: null, fairWarningKey: null }
       });
     } else if (!scheduled && await tx.lot.count({ where: { auctionId, status: 'ACTIVE', isReady: true } })) {
       return { auction, auctionEnded: false, relistedCount: 0, skipped: true };
@@ -51,7 +53,7 @@ export async function finishOrRelistAuction({ auctionId, now = new Date(), markR
     if (unsold.length) {
       await tx.lot.updateMany({
         where: { id: { in: unsold.map(lot => lot.id) } },
-        data: { status: 'ACTIVE', currentBid: 0, highestBidderId: null, highestBidderName: null, endTime: null }
+        data: { status: 'ACTIVE', currentBid: 0, highestBidderId: null, highestBidderName: null, endTime: null, fairWarningAt: null, fairWarningKey: null }
       });
       let nextLot = null;
       const nextSettings = { ...settings, onBlockLotId: null, unsoldRelistRoundStartedAt: now.toISOString(), unsoldRelistCount: unsold.length };

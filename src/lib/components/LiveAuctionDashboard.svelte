@@ -2,6 +2,7 @@
   import { onMount, onDestroy } from 'svelte';
   import { page } from '$app/stores';
   import { goto } from '$app/navigation';
+  import MaximumBidForm from '$lib/components/MaximumBidForm.svelte';
   import CountdownTimer from '$lib/components/CountdownTimer.svelte';
   import PumbiLoader from '$lib/components/PumbiLoader.svelte';
   import AuctionActivity from '$lib/components/AuctionActivity.svelte';
@@ -366,22 +367,15 @@
                 {/if}
               {/if}
 
-              <div class="mt-5 grid gap-3 sm:grid-cols-2">
-                <button
-                  type="button"
-                  onclick={placeBid}
-                  disabled={bidding || !nextBidAmount || (Boolean(session?.user) && !canBidNow)}
-                  class="rounded-sm bg-[#18372f] px-5 py-3.5 text-center text-base font-semibold text-white hover:bg-[#152c26] disabled:cursor-not-allowed disabled:opacity-60"
-                >
-                  {bidButtonLabel()}
-                </button>
-                <a
-                  href={`/lots/${liveData.currentLot.id}`}
-                  class="rounded-sm border-2 border-slate-300 bg-white px-5 py-3.5 text-center text-base font-semibold text-slate-800 hover:border-slate-400 hover:bg-[#f7f4ee]"
-                >
-                  View lot details
-                </a>
-              </div>
+              {#if liveData.currentLot.fairWarningAt && liveData.biddingOpen}<p role="status" class="mt-4 border border-amber-300 bg-amber-50 p-3 text-sm font-bold text-amber-900">Fair warning — last chance to bid.</p>{/if}
+              {#if session?.user && readyToBid}
+                {#key liveData.currentLot.id}
+                  <MaximumBidForm lot={liveData.currentLot} userId={session.user.id} canBid={liveData.biddingOpen} onbid={refresh} />
+                {/key}
+              {:else}
+                <button type="button" onclick={placeBid} disabled={bidding || !nextBidAmount || (Boolean(session?.user) && !canBidNow)} class="mt-5 w-full bg-[#18372f] px-5 py-3.5 font-semibold text-white disabled:opacity-60">{bidButtonLabel()}</button>
+              {/if}
+              <a href={`/lots/${liveData.currentLot.id}`} class="mt-3 block rounded-sm border border-slate-300 bg-white p-3 text-center text-sm font-semibold text-slate-800">View lot details</a>
             </div>
           </article>
           {:else}
@@ -477,7 +471,7 @@
                 <div class={`p-4 ${index === 0 ? 'bg-[#efe8dc]0/10' : ''}`}>
                   <div class="flex items-center justify-between gap-4">
                     <div class="min-w-0">
-                      <p class="truncate font-bold">{bid.bidderName}{#if bid.source === 'PHONE'}<span class="ml-2 rounded border border-[#d6b477]/40 px-1.5 py-0.5 text-[10px] font-semibold uppercase text-[#d6b477]">Phone</span>{/if}</p>
+                      <p class="truncate font-bold">{bid.bidderName}{#if bid.isAutomatic}<span class="ml-1 rounded bg-sky-100 px-1.5 py-0.5 text-[10px] font-bold uppercase text-sky-800">Auto</span>{/if}{#if bid.source === 'PHONE'}<span class="ml-2 rounded border border-[#d6b477]/40 px-1.5 py-0.5 text-[10px] font-semibold uppercase text-[#d6b477]">Phone</span>{/if}</p>
                       <p class="text-xs text-[#91a29a]">{index === 0 ? 'High bid' : `Bid #${lotBids.length - index}`}</p>
                     </div>
                     <div class="text-right">

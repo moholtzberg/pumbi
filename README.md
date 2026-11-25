@@ -15,6 +15,10 @@ npm run db:migrate
 ```
 
 Copy `.env.example` to `.env` and provide the required secrets. Never commit `.env`.
+For pooled PostgreSQL hosts such as Neon, set `DIRECT_URL` to the unpooled connection
+for Prisma schema operations. The application continues to use pooled `DATABASE_URL`;
+`prisma.config.js` prefers `DIRECT_URL` for migrations so session migration locks
+are not retained by a transaction pooler.
 
 ## Transactional email (SMTP2GO)
 
@@ -134,7 +138,7 @@ transaction dependency where applicable.
 The assigned auctioneer can click **+ Phone bid** on the current lot. Choose an
 approved registered bidder, or add a new caller using a real name, email for
 invoices, and phone number. Confirm the caller's identity, acceptance of the
-auction terms, and authorization of the bid, then record the amount. Available
+auction terms, and authorization of automatic bidding up to the caller’s maximum. Available
 auction terms are shown in the form. Both auction-management and bidder-management
 permissions are required.
 
@@ -145,8 +149,8 @@ email, phone, identity, card, or online-bidding verification automatically. Onli
 bidding continues to enforce the normal verification requirements.
 
 Phone bids obey minimum increments, the on-block lot and timer, and inherited
-bid-extension rules. The auctioneer, seller, lot owner, and current highest bidder
-cannot be selected as the caller. Auction/lot row locks serialize phone bids,
+bid-extension rules. The auctioneer, seller, and lot owner cannot be selected as the caller. The current
+high bidder can increase their maximum without raising the public price. Auction/lot row locks serialize phone bids,
 online bids, and hammering. Winning phone bids use the caller's buyer ID for the
 ordinary invoice and fulfillment flow.
 
@@ -295,3 +299,54 @@ Run `npm test` for CRM unit/route checks. For an explicit real-PostgreSQL check,
 run `RUN_MARKETING_DATABASE_TESTS=1 node --test tests/marketing.integration.test.js`
 under Node 24. The test inserts fixtures inside a rolled-back transaction and uses
 mocked delivery; it sends no email and retains no test contacts or campaigns.
+
+
+## Maximum bids and fair warning
+
+Bidders can set a **private maximum bid** on the live auction page or lot detail
+page, or use **Bid $X only** to cap their offer at the next minimum. Phone callers
+use the same maximum-bid engine. Bidding remains limited to the current live,
+ready lot while its timer is open; this does not enable absentee/pre-auction bids.
+
+At a current price of $25 with a $5 increment, a new $100 maximum advances to $30
+when nobody has a higher maximum. If the incumbent has a $150 maximum, a new $100
+maximum is immediately outbid at $105. A higher new $150 maximum against an
+existing $100 maximum wins at $105. Equal maximums favor the existing leader;
+prices never exceed the winning maximum, even when that means a smaller final
+increment. All calculations use integer cents.
+
+A leading bidder may increase their own maximum without bidding against themselves:
+no public bid, price increase, timer extension, or warning reset occurs. Maximums
+cannot be lowered. New public bids retain bidder/source/recording-auctioneer
+attribution, and automatic defense bids are labeled **Auto** in history. A database
+sequence breaks timestamp ties between a challenger and the automatic response.
+Existing public prices remain binding; old bids are not retrospectively converted
+into hidden maximums. The winning public price drives the invoice.
+
+`ProxyBid` stores private ceilings separately from public `Bid` rows. Public lot,
+live-room, history, broadcast, and analytics responses never include private
+ceilings. `GET /api/bids?view=maximum&lotId=...` requires authentication and returns
+only the current user's ceiling with private/no-store caching. The platform admin
+Data manager treats `maxAmount` as write-only. Automatic defense rechecks bidder
+approval and public-policy acceptance; online maximums also require current buyer
+verification. Revocation stops further automatic defense without erasing an already
+accepted public bid.
+
+The auctioneer’s close button first reads **Fair warning**. Clicking it publishes
+a warning on the bidder pages and video overlay and leaves at least ten seconds on
+the lot clock. The button then becomes **Hammer down** (sold/unsold). A new competitive
+bid, opening the lot, or extending its timer clears the warning. Hammer requests
+must match the current warning's random reference under the same auction/lot locks
+used by online and phone bids. Stale hammer requests are rejected and the operator
+must give fair warning again. With auto-advance enabled, timer expiry gives fair
+warning first; it hammers only after that warning’s clock expires. Manually
+hammering remains controlled by the auctioneer. Ending the auction cannot bypass
+closing the tracked lot.
+
+Apply `20261124180000_add_proxy_bidding_and_fair_warning` using
+`npx prisma migrate deploy`, regenerate Prisma, and redeploy. Unit/route checks are
+in `tests/phoneBids.test.js`. An opt-in PostgreSQL test runs with
+`RUN_PROXY_DATABASE_TESTS=1 node --test tests/proxyBidding.integration.test.js` under
+Node 24. It creates only rolled-back fixtures, checks effective prices and warning
+locks through the real routes, and mocks invoice creation. It places no real bids
+and sends no notifications.

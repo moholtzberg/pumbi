@@ -29,12 +29,20 @@ const client = {
       state.users.push(user); return structuredClone(user);
     }
   },
+  proxyBid: {
+    findUnique: async ({ where }) => structuredClone(state.proxies.find(row => row.lotId === where.lotId_userId.lotId && row.userId === where.lotId_userId.userId) || null),
+    findMany: async () => state.proxies.map(row => ({ ...structuredClone(row), user: structuredClone(state.users.find(user => user.id === row.userId)) })),
+    upsert: async ({ where, create, update }) => {
+      const row = state.proxies.find(row => row.lotId === where.lotId_userId.lotId && row.userId === where.lotId_userId.userId);
+      if (row) Object.assign(row, update); else state.proxies.push({ id: 'proxy-' + state.proxies.length, ...create });
+    }
+  },
   auctionRegistration: {
     findUnique: async ({ where, include }) => {
       const row = state.registrations.find(row => row.auctionId === where.auctionId_userId.auctionId && row.userId === where.auctionId_userId.userId);
       return row ? { ...structuredClone(row), ...(include?.user ? { user: structuredClone(state.users.find(user => user.id === row.userId)) } : {}) } : null;
     },
-    findMany: async args => { state.searchArgs = args; return state.registrations.filter(row => row.status === 'APPROVED' && row.auctionId === args.where.auctionId).map(row => ({ user: state.users.find(user => user.id === row.userId) })); },
+    findMany: async args => { if (args.where.userId?.in) return state.registrations.filter(row => args.where.userId.in.includes(row.userId)); state.searchArgs = args; return state.registrations.filter(row => row.status === 'APPROVED' && row.auctionId === args.where.auctionId).map(row => ({ user: state.users.find(user => user.id === row.userId) })); },
     upsert: async ({ where, create, update }) => {
       const row = state.registrations.find(row => row.userId === where.auctionId_userId.userId);
       if (row) Object.assign(row, update); else state.registrations.push(create);
@@ -46,7 +54,7 @@ client.$transaction = async callback => {
   const previous = state.queue;
   let release; state.queue = new Promise(resolve => { release = resolve; });
   await previous;
-  const snapshot = structuredClone({ auction: state.auction, lot: state.lot, users: state.users, registrations: state.registrations, bids: state.bids });
+  const snapshot = structuredClone({ auction: state.auction, lot: state.lot, users: state.users, registrations: state.registrations, bids: state.bids, proxies: state.proxies });
   try { return await callback(client); } catch (err) { Object.assign(state, snapshot); throw err; } finally { release(); }
 };
 state.client = client;
@@ -74,6 +82,7 @@ const phone = await server.ssrLoadModule('/src/routes/api/auctions/[id]/phone-bi
 const online = await server.ssrLoadModule('/src/routes/api/bids/+server.js');
 const live = await server.ssrLoadModule('/src/routes/api/auctions/[id]/live/+server.js');
 const rules = await server.ssrLoadModule('/src/lib/server/bidRules.js');
+const proxyEngine = await server.ssrLoadModule('/src/lib/server/proxyBidding.js');
 after(async () => { await server.close(); delete globalThis.__phoneBidTest; });
 beforeEach(() => {
   state.actor = { id: 'auctioneer', house: 'house' }; state.canManage = true; state.queue = Promise.resolve();
@@ -81,7 +90,7 @@ beforeEach(() => {
   state.lot = { id: 'lot', auctionId: 'auction', ownerUserId: 'owner', status: 'ACTIVE', isReady: true, lotNumber: 1, currentBid: 100, startingBid: 50, bidIncrement: 10, highestBidderId: 'old-buyer', highestBidderName: 'Old bidder', endTime: new Date(Date.now() + 10000) };
   state.users = [{ id: 'buyer', name: 'Alice', email: 'alice@example.com', isVerifiedBuyer: true }, { id: 'buyer-2', name: 'Bob', email: 'bob@example.com', isVerifiedBuyer: true }];
   state.registrations = state.users.map(user => ({ auctionId: 'auction', userId: user.id, status: 'APPROVED' }));
-  state.bids = []; state.locks = []; state.createdUserData = null; state.invoiceBuyer = null;
+  state.proxies = []; state.bids = []; state.locks = []; state.createdUserData = null; state.invoiceBuyer = null;
 });
 const payload = patch => ({ lotId: 'lot', mode: 'existing', bidderId: 'buyer', amount: 110, callerConfirmed: true, ...patch });
 const event = (body = {}, locals = {}) => ({ params: { id: 'auction' }, locals, url: new URL('https://pumbi.test/api/auctions/auction/phone-bids'), request: new Request('https://pumbi.test/api/auctions/auction/phone-bids', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) }) });
@@ -147,8 +156,8 @@ test('consent, caller details, approval and minimum bid are validated', async ()
   assert.equal(state.bids.length, 0);
 });
 
-test('the seller, lot owner, auctioneer and current highest bidder are not eligible callers', async () => {
-  for (const id of ['seller', 'owner', 'auctioneer', 'old-buyer']) {
+test('the seller, lot owner and auctioneer are not eligible callers', async () => {
+  for (const id of ['seller', 'owner', 'auctioneer']) {
     state.users[0].id = id; state.registrations[0].userId = id;
     await assert.rejects(phone.POST(event(payload({ bidderId: id }))), err => [400,403].includes(err.status));
   }
@@ -194,22 +203,28 @@ test('online callers cannot spoof a phone-bid source or recording auctioneer', a
 
 test('a phone winner is hammered sold and invoiced to the caller', async () => {
   await phone.POST(event(payload()));
-  const response = await live.POST(event({ action: 'close', lotId: 'lot' }));
+  await live.POST(event({ action: 'fair_warning', lotId: 'lot' }));
+  const response = await live.POST(event({ action: 'close', lotId: 'lot', fairWarningKey: state.lot.fairWarningKey }));
   assert.equal(response.status, 200);
   assert.equal(state.lot.status, 'SOLD');
   assert.equal(state.invoiceBuyer, 'buyer');
   assert.equal(state.lot.currentBid, 110);
 });
 
-test('hammering rechecks the winner after a bid arrives between initial read and close', async () => {
+test('hammering rejects a stale warning when a bid arrives before the close lock', async () => {
+  await live.POST(event({ action: 'fair_warning', lotId: 'lot' }));
+  const oldKey = state.lot.fairWarningKey;
   const original = client.$transaction;
   let injected = false;
   client.$transaction = callback => {
-    if (!injected) { injected = true; Object.assign(state.lot, { highestBidderId: 'buyer', highestBidderName: 'Alice', currentBid: 110 }); }
+    if (!injected) { injected = true; Object.assign(state.lot, { highestBidderId: 'buyer', highestBidderName: 'Alice', currentBid: 110, fairWarningAt: null, fairWarningKey: null }); }
     return original(callback);
   };
-  try { await live.POST(event({ action: 'close', lotId: 'lot' })); }
+  try { await assert.rejects(live.POST(event({ action: 'close', lotId: 'lot', fairWarningKey: oldKey })), err => err.status === 409); }
   finally { client.$transaction = original; }
+  assert.equal(state.invoiceBuyer, null);
+  await live.POST(event({ action: 'fair_warning', lotId: 'lot' }));
+  await live.POST(event({ action: 'close', lotId: 'lot', fairWarningKey: state.lot.fairWarningKey }));
   assert.equal(state.invoiceBuyer, 'buyer');
   assert.equal(state.lot.status, 'SOLD');
 });
@@ -244,4 +259,128 @@ test('currency minimums handle decimal increments without floating point drift',
   assert.equal(rules.minimumLotBid({ startingBid: 0, currentBid: 0.1, bidIncrement: 0.2 }), 0.3);
   assert.equal(rules.bidAmount('110.50'), 110.5);
   assert.throws(() => rules.bidAmount(true), err => err.status === 400);
+});
+
+const maximum = async (user, amount) => (await online.POST(event({ lotId: 'lot', amount }, { user }))).json();
+const opening = () => Object.assign(state.lot, { startingBid: 25, currentBid: 0, bidIncrement: 5, highestBidderId: null, highestBidderName: null });
+
+test('a $100 maximum over a $25 legacy bid advances only to $30', async () => {
+  Object.assign(state.lot, { startingBid: 25, currentBid: 25, bidIncrement: 5 });
+  const result = await maximum(state.users[0], 100);
+  assert.equal(result.currentBid, 30); assert.equal(result.maximumBid, 100); assert.equal(result.isLeading, true);
+  assert.equal(state.lot.currentBid, 30); assert.equal(state.bids.length, 1); assert.equal(state.bids[0].amount, 30);
+  assert.equal(state.proxies[0].maxAmount, 100);
+  assert.ok(!JSON.stringify(state.bids).includes('maxAmount'));
+});
+
+test('a higher incumbent maximum automatically outbids the incoming offer by one increment', async () => {
+  opening();
+  await maximum(state.users[0], 150);
+  const result = await maximum(state.users[1], 100);
+  assert.equal(result.currentBid, 105); assert.equal(result.isLeading, false); assert.equal(result.maximumBid, 100);
+  assert.equal(state.lot.highestBidderId, 'buyer');
+  assert.equal(state.bids.at(-1).isAutomatic, true); assert.equal(state.bids.at(-1).userId, 'buyer');
+  assert.equal(state.bids.at(-2).amount, 100);
+  assert.ok(!JSON.stringify(result).includes('150'));
+});
+
+test('a new higher maximum wins only one increment over the old maximum', async () => {
+  opening();
+  await maximum(state.users[0], 100);
+  const result = await maximum(state.users[1], 150);
+  assert.equal(result.currentBid, 105); assert.equal(result.isLeading, true);
+  assert.equal(state.lot.highestBidderId, 'buyer-2');
+});
+
+test('equal maximums favor the earlier bidder and never exceed the winning cap', async () => {
+  opening();
+  await maximum(state.users[0], 100);
+  const result = await maximum(state.users[1], 100);
+  assert.equal(result.currentBid, 100); assert.equal(state.lot.highestBidderId, 'buyer');
+  assert.equal(result.isLeading, false);
+});
+
+test('increasing a leading maximum changes no public price, history, timer or fair warning', async () => {
+  opening();
+  await maximum(state.users[0], 100); await maximum(state.users[1], 100);
+  await live.POST(event({ action: 'fair_warning', lotId: 'lot' }));
+  const before = structuredClone(state.lot), count = state.bids.length;
+  const result = await maximum(state.users[0], 200);
+  assert.equal(result.maxUpdatedOnly, true); assert.equal(result.currentBid, 100);
+  assert.equal(state.bids.length, count); assert.deepEqual(state.lot, before);
+  await assert.rejects(maximum(state.users[0], 150), err => err.status === 400);
+});
+
+test('maximums accept cents and resolve below a full increment when the winner cap binds', async () => {
+  opening();
+  await maximum(state.users[0], 32.5);
+  const result = await maximum(state.users[1], 32.25);
+  assert.equal(result.currentBid, 32.5); assert.equal(result.isLeading, false);
+});
+
+test('a competitive proxy bid clears fair warning and rejects the old hammer reference', async () => {
+  opening(); await maximum(state.users[0], 150);
+  await live.POST(event({ action: 'fair_warning', lotId: 'lot' }));
+  const key = state.lot.fairWarningKey;
+  await maximum(state.users[1], 100);
+  assert.equal(state.lot.fairWarningAt, null); assert.equal(state.lot.fairWarningKey, null);
+  await assert.rejects(live.POST(event({ action: 'close', lotId: 'lot', fairWarningKey: key })), err => err.status === 409);
+  assert.equal(state.lot.status, 'ACTIVE');
+});
+
+test('hammering requires fair warning and queued lots cannot be warned or closed', async () => {
+  await assert.rejects(live.POST(event({ action: 'close', lotId: 'lot' })), err => err.status === 409);
+  state.lot.endTime = null;
+  await assert.rejects(live.POST(event({ action: 'fair_warning', lotId: 'lot' })), err => err.status === 409);
+});
+
+test('fair warning revives an expired lot for at least ten seconds; repeated warnings are idempotent', async () => {
+  state.lot.endTime = new Date(Date.now() - 1000);
+  await live.POST(event({ action: 'fair_warning', lotId: 'lot' }));
+  const warning = state.lot.fairWarningKey, end = state.lot.endTime.getTime();
+  assert.ok(end >= Date.now() + 9900);
+  await live.POST(event({ action: 'fair_warning', lotId: 'lot' }));
+  assert.equal(state.lot.fairWarningKey, warning); assert.equal(state.lot.endTime.getTime(), end);
+});
+
+test('phone maximums share the proxy engine and preserve automatic phone attribution', async () => {
+  opening();
+  const first = await (await phone.POST(event(payload({ amount: 150 })))).json();
+  assert.equal(first.currentBid, 25); assert.equal(first.maximumBid, 150);
+  await maximum(state.users[1], 100);
+  assert.equal(state.lot.currentBid, 105);
+  assert.equal(state.bids.at(-1).source, 'PHONE'); assert.equal(state.bids.at(-1).recordedById, 'auctioneer');
+  assert.equal(state.bids.at(-1).isAutomatic, true);
+});
+
+test('maximum lookup returns only the authenticated bidder ceiling and is not cacheable', async () => {
+  opening(); await maximum(state.users[0], 150);
+  const request = event({}, { user: state.users[1] });
+  request.url = new URL('https://pumbi.test/api/bids?view=maximum&lotId=lot&userId=buyer');
+  const response = await online.GET(request);
+  assert.equal((await response.json()).maximumBid, null);
+  assert.match(response.headers.get('cache-control'), /private, no-store/);
+  request.locals.user = state.users[0];
+  assert.equal((await (await online.GET(request)).json()).maximumBid, 150);
+});
+
+test('revoked proxy approval stops automatic defense while the existing public bid remains binding', async () => {
+  opening(); await maximum(state.users[0], 150);
+  state.registrations[0].status = 'REJECTED';
+  const result = await maximum(state.users[1], 100);
+  assert.equal(result.currentBid, 30); assert.equal(result.isLeading, true);
+});
+
+test('concurrent different maximums settle at the correct price with one final winner', async () => {
+  opening();
+  await Promise.all([maximum(state.users[0], 150), maximum(state.users[1], 100)]);
+  assert.equal(state.lot.currentBid, 105); assert.equal(state.lot.highestBidderId, 'buyer');
+});
+
+
+test('effective bid timestamps use the post-lock acceptance clock', async () => {
+  opening();
+  const acceptedAt = new Date(Date.now() - 1000);
+  await client.$transaction(tx => proxyEngine.submitMaximumBid(tx, { lot: { ...state.lot, auction: state.auction }, buyer: state.users[0], maximum: 100, now: acceptedAt }));
+  assert.equal(state.bids[0].timestamp.getTime(), acceptedAt.getTime());
 });

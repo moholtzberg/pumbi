@@ -1,8 +1,8 @@
 import { error, json } from '@sveltejs/kit';
 import prisma from '$lib/prisma.js';
 import { HOUSE_PERMISSIONS, requireAuthenticatedUser, requireAuctionAccess, requireAuctionHousePermission } from '$lib/server/authorization.js';
-import { bidAmount, minimumLotBid, phoneCaller, phoneAuctionTerms, requireOpenLot, requirePhoneBuyer } from '$lib/server/bidRules.js';
-import { resolveLotTiming, extendedEndTime } from '$lib/server/lotTiming.js';
+import { bidAmount, phoneCaller, phoneAuctionTerms, requireOpenLot, requirePhoneBuyer } from '$lib/server/bidRules.js';
+import { submitMaximumBid } from '$lib/server/proxyBidding.js';
 
 async function authorize(params, locals) {
   const user = await requireAuthenticatedUser(locals);
@@ -49,8 +49,6 @@ export async function POST({ params, locals, request }) {
       if (auction.auctioneerId !== user.id) throw error(403, 'Only the assigned auctioneer can record phone bids');
       const now = new Date();
       requireOpenLot(lot, now);
-      const minimum = minimumLotBid(lot);
-      if (amount < minimum) throw error(400, `Bid must be at least $${minimum.toFixed(2)}`);
       if (auction.type === 'PUBLIC' && (!auction.platformPolicyId || auction.policyVersionSnapshot == null || !auction.buyerTermsSnapshot)) throw error(409, 'This auction is missing its bidding policy');
       if (String(body.acceptedTerms || '') !== phoneAuctionTerms(auction)) throw error(409, 'The auction terms changed. Reload the phone bid form and confirm them with the caller.');
 
@@ -87,12 +85,8 @@ export async function POST({ params, locals, request }) {
       });
       // Never mark the caller's email, phone, identity, card, or online bidder
       // verification complete. This is a staff-recorded, attributed phone bid.
-      const userName = buyer.name || 'Phone bidder';
-      const timing = resolveLotTiming({ lot, auction, auctionHouse: auction.auctionHouse });
-      const endTime = extendedEndTime(lot.endTime, now, timing.bidExtensionSeconds);
-      await tx.lot.update({ where: { id: lot.id }, data: { currentBid: amount, highestBidderId: buyer.id, highestBidderName: userName, endTime } });
-      const bid = await tx.bid.create({ data: { lotId: lot.id, userId: buyer.id, userName, amount, source: 'PHONE', recordedById: user.id }, select: { id: true, lotId: true, userName: true, amount: true, source: true, timestamp: true } });
-      return { bid, newBuyer, endTime };
+      const result = await submitMaximumBid(tx, { lot, buyer, maximum: amount, source: 'PHONE', recordedById: user.id, now });
+      return { ...result, newBuyer };
     });
     return json(result, { status: 201, headers: { 'cache-control': 'no-store, private' } });
   } catch (err) {

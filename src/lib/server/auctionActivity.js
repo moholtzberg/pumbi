@@ -27,20 +27,20 @@ export async function getAuctionActivity({ auctionId, lotId = null, now = new Da
     // each bucket. The response stays bounded without losing early bid totals.
     prisma.$queryRaw`
       WITH ranked AS (
-        SELECT b.id, b.timestamp, b.amount,
-          ROW_NUMBER() OVER (PARTITION BY b.user_id ORDER BY b.timestamp, b.id) AS bidder_bid,
-          ROW_NUMBER() OVER (ORDER BY b.timestamp, b.id) AS bid_number,
+        SELECT b.id, b.sequence, b.timestamp, b.amount,
+          ROW_NUMBER() OVER (PARTITION BY b.user_id ORDER BY b.timestamp, b.sequence) AS bidder_bid,
+          ROW_NUMBER() OVER (ORDER BY b.timestamp, b.sequence) AS bid_number,
           MIN(b.timestamp) OVER () AS first_at,
-          NTILE(120) OVER (ORDER BY b.timestamp, b.id) AS bucket
+          NTILE(120) OVER (ORDER BY b.timestamp, b.sequence) AS bucket
         FROM bids b JOIN lots l ON l.id = b.lot_id
         WHERE l.auction_id = ${auctionId} AND (${lotId}::text IS NULL OR b.lot_id = ${lotId})
       ), cumulative AS (
-        SELECT *, SUM(CASE WHEN bidder_bid = 1 THEN 1 ELSE 0 END) OVER (ORDER BY timestamp, id) AS bidders,
-          MAX(amount) OVER (ORDER BY timestamp, id) AS price FROM ranked
+        SELECT *, SUM(CASE WHEN bidder_bid = 1 THEN 1 ELSE 0 END) OVER (ORDER BY timestamp, sequence) AS bidders,
+          MAX(amount) OVER (ORDER BY timestamp, sequence) AS price FROM ranked
       )
       SELECT DISTINCT ON (bucket) timestamp, first_at AS "firstAt", price,
         bid_number::int AS bids, bidders::int AS bidders
-      FROM cumulative ORDER BY bucket, timestamp DESC, id DESC
+      FROM cumulative ORDER BY bucket, timestamp DESC, sequence DESC
     `
   ]);
   return {

@@ -6,7 +6,7 @@ if (!process.env.DATABASE_URL) {
 
 export default {
   datasource: {
-    url: process.env.DATABASE_URL
+    url: process.env.DIRECT_URL || process.env.DATABASE_URL
   }
 };
 

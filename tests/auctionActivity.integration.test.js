@@ -13,7 +13,7 @@ test('PostgreSQL activity deduplicates presence, expires stale sessions, and sam
   try {
     await client.query('BEGIN');
     await client.query('CREATE TEMP TABLE lots (id text, auction_id text) ON COMMIT DROP');
-    await client.query('CREATE TEMP TABLE bids (id text, lot_id text, user_id text, amount double precision, timestamp timestamp) ON COMMIT DROP');
+    await client.query('CREATE TEMP TABLE bids (id text, lot_id text, user_id text, amount double precision, timestamp timestamp, sequence serial) ON COMMIT DROP');
     await client.query('CREATE TEMP TABLE content_views (visitor_key text, user_id text, entity_type text, entity_id text, last_seen_at timestamp, ended_at timestamp) ON COMMIT DROP');
     await client.query("INSERT INTO lots VALUES ('lot-a','auction'),('lot-b','auction'),('other-lot','other-auction')");
     const now = new Date('2026-11-23T12:00:00Z');
@@ -27,12 +27,12 @@ test('PostgreSQL activity deduplicates presence, expires stale sessions, and sam
     for (const [key,user,type,id,seconds,ended] of views) {
       await client.query('INSERT INTO content_views VALUES ($1,$2,$3,$4,$5,$6)', [key,user,type,id,ago(seconds),ended]);
     }
-    await client.query("INSERT INTO bids SELECT 'bid-' || i, 'lot-a', 'u' || (i % 5 + 1), i, $1::timestamp - interval '10 minutes' + i * interval '1 second' FROM generate_series(1,250) i", [now]);
+    await client.query("INSERT INTO bids (id,lot_id,user_id,amount,timestamp) SELECT 'bid-' || i, 'lot-a', 'u' || (i % 5 + 1), i, $1::timestamp - interval '10 minutes' + i * interval '1 second' FROM generate_series(1,250) i", [now]);
     for (const [id,lot,user,amount,seconds] of [
       ['recent-1','lot-a','u1',300,60], ['recent-2','lot-b','u4',301,30],
       ['recent-3','lot-a','u2',302,20], ['recent-4','lot-a','u3',303,10],
       ['other','other-lot','outside',999,1]
-    ]) await client.query('INSERT INTO bids VALUES ($1,$2,$3,$4,$5)', [id,lot,user,amount,ago(seconds)]);
+    ]) await client.query('INSERT INTO bids (id,lot_id,user_id,amount,timestamp) VALUES ($1,$2,$3,$4,$5)', [id,lot,user,amount,ago(seconds)]);
     globalThis.__activitySqlTest = { $queryRaw: async (strings, ...values) => {
       const text = strings.map((part, i) => part + (i < values.length ? `$${i + 1}` : '')).join('');
       return (await client.query(text, values)).rows;

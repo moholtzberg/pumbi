@@ -115,6 +115,7 @@ export async function openLotOnBlock({
     data: {
       status: 'ACTIVE',
       isReady: true,
+      fairWarningAt: null, fairWarningKey: null,
       endTime: lotEndTime
     }
   });
@@ -209,6 +210,6 @@ export async function addTimeToLotOnBlock({ auction, lot, seconds }) {
 
   return prisma.lot.update({
     where: { id: lot.id },
-    data: { endTime: lotEndTime }
+    data: { endTime: lotEndTime, fairWarningAt: null, fairWarningKey: null }
   });
 }

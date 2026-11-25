@@ -24,12 +24,12 @@ export async function GET({ params, locals }) {
       select: {
         id: true, lotNumber: true, title: true, status: true, isReady: true,
         currentBid: true, startingBid: true, bidIncrement: true, highestBidderId: true,
-        highestBidderName: true, endTime: true, position: true
+        highestBidderName: true, fairWarningAt: true, fairWarningKey: true, endTime: true, position: true
       }
     }),
     prisma.bid.findMany({
       where: { lot: { auctionId: auction.id } },
-      orderBy: { timestamp: 'desc' },
+      orderBy: [{ timestamp: 'desc' }, { sequence: 'desc' }],
       take: 50,
       include: { lot: { select: { lotNumber: true, title: true } } }
     }),
@@ -108,6 +108,7 @@ export async function GET({ params, locals }) {
       amount: bid.amount,
       bidderName: bid.userName,
       source: bid.source,
+      isAutomatic: bid.isAutomatic,
       timestamp: bid.timestamp,
       lotNumber: bid.lot.lotNumber,
       lotTitle: bid.lot.title

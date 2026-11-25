@@ -109,6 +109,8 @@ model User {
   auctions                        Auction[] // Auctions created by this user (if seller)
   conductedAuctions               Auction[]              @relation("Auctioneer")
   bids                            Bid[]
+  proxyBids ProxyBid[]
+  recordedProxyBids ProxyBid[] @relation("RecordedProxyBid")
   recordedPhoneBids               Bid[]                  @relation("RecordedPhoneBid")
   auctionRegistrations            AuctionRegistration[] // Auctions this user registered for
   auctionRegistrationsReviewed    AuctionRegistration[]     @relation("AuctionRegistrationReviewer")
@@ -329,6 +331,8 @@ model Lot {
   bidIncrement              Float     @map("bid_increment")
   status                    LotStatus @default(ACTIVE)
   endTime                   DateTime? @map("end_time")
+  fairWarningAt             DateTime? @map("fair_warning_at")
+  fairWarningKey            String? @map("fair_warning_key")
   initialTimerSeconds       Int?      @map("initial_timer_seconds")
   bidExtensionSeconds       Int?      @map("bid_extension_seconds")
   highestBidderId           String?   @map("highest_bidder_id")
@@ -343,6 +347,7 @@ model Lot {
 
   // Relations
   auction                 Auction        @relation(fields: [auctionId], references: [id], onDelete: Cascade)
+  proxyBids               ProxyBid[]
   bids                    Bid[]
   images                  LotImage[] // Multiple images per lot
   notes                   LotNote[] // Notes associated with this lot
@@ -422,6 +427,8 @@ model Bid {
   lotId     String   @map("lot_id")
   userId    String   @map("user_id")
   userName  String?  @map("user_name")
+  isAutomatic Boolean @default(false) @map("is_automatic")
+  sequence Int @default(autoincrement())
   amount    Float
   timestamp DateTime @default(now())
   source    BidSource @default(ONLINE)
@@ -1125,4 +1132,26 @@ model MarketingSuppression {
 
   @@unique([auctionHouseId, email])
   @@map("marketing_suppressions")
+}
+
+
+// Private maximum commitments. Public Bid records contain only effective bids.
+model ProxyBid {
+  id String @id @default(cuid())
+  lotId String @map("lot_id")
+  userId String @map("user_id")
+  userName String @map("user_name")
+  maxAmount Decimal @map("max_amount") @db.Decimal(18, 2)
+  source BidSource @default(ONLINE)
+  recordedById String? @map("recorded_by_id")
+  priorityAt DateTime @default(now()) @map("priority_at")
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+  lot Lot @relation(fields: [lotId], references: [id], onDelete: Cascade)
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  recordedBy User? @relation("RecordedProxyBid", fields: [recordedById], references: [id], onDelete: SetNull)
+  @@unique([lotId, userId])
+  @@index([userId])
+  @@index([recordedById])
+  @@map("proxy_bids")
 }

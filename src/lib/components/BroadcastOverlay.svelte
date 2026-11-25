@@ -9,6 +9,7 @@
     <div class="min-w-0"><div class="flex items-center gap-2"><span class="bg-[#f7f4ee] px-2 py-1 font-[family-name:var(--pumbi-serif)] text-lg font-bold leading-none text-[#18372f]">{info.platform}</span><span class="truncate text-[10px] font-semibold uppercase tracking-wider text-[#e5c992]" title={info.house}>{info.house}</span></div><p class="mt-2 truncate text-xs font-medium text-white/90" title={info.title}>{info.title}</p></div>
     <span class="shrink-0 border border-white/25 bg-black/50 px-2 py-1 text-[10px] font-bold uppercase tracking-wider">{#if preview}Preview{:else if cameraLive}<span class="mr-1 inline-block h-1.5 w-1.5 rounded-full bg-red-500"></span>Live{:else}Auction live{/if}</span>
   </div>
+  {#if info.fairWarning}<p class="mx-3 mt-auto self-start bg-amber-300 px-3 py-2 text-xs font-black uppercase tracking-wider text-black">Fair warning · last chance</p>{/if}
   <div class="bg-gradient-to-t from-black/95 via-black/80 to-transparent pt-8">
     <div class="mx-3 mb-3 grid grid-cols-[minmax(0,1fr)_auto] items-end gap-3 border-l-[3px] border-[#c69a56] pl-3 sm:mx-4 sm:mb-4">
       <div class="min-w-0"><p class="text-[9px] font-bold uppercase tracking-[0.15em] text-[#e5c992]">{info.currentLot ? `${info.biddingOpen ? 'On the block' : 'Coming up'} · Lot #${info.currentLot.lotNumber}` : 'The live auction room'}</p><p class="mt-1 line-clamp-2 text-sm font-semibold leading-tight sm:text-lg" title={info.currentLot?.title}>{info.currentLot?.title || 'Waiting for the next lot'}</p></div>

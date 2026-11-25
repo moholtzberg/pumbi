@@ -20,7 +20,6 @@ export function requireOpenLot(lot, now = new Date()) {
 
 export function requirePhoneBuyer(buyer, lot, auctioneerId) {
   if ([auctioneerId, lot.auction.sellerId, lot.ownerUserId].filter(Boolean).includes(buyer.id)) throw error(403, 'The auctioneer, seller, and lot owner cannot be the phone bidder');
-  if (lot.highestBidderId === buyer.id) throw error(400, 'This bidder is already the highest bidder');
 }
 
 export function phoneCaller(input) {

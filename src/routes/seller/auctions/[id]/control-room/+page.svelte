@@ -46,7 +46,7 @@
       data = await response.json();
       errorMessage = '';
 
-      // If auto-advance is on and the on-block lot timer has expired, hammer it so the next lot can open.
+      // Auto-advance gives a final warning window before hammering an expired lot.
       const blockId = data.onBlockLotId || data.openLotId;
       const expiredOpen =
         data.autoAdvanceNextLot &&
@@ -59,7 +59,7 @@
       if (expiredOpen && !autoClosingExpired && !busyAction && !phoneBidBusy) {
         autoClosingExpired = true;
         try {
-          await runAction('close', expiredOpen.id);
+          await runAction(expiredOpen.fairWarningAt ? 'close' : 'fair_warning', expiredOpen.id, { fairWarningKey: expiredOpen.fairWarningKey });
         } finally {
           autoClosingExpired = false;
         }
@@ -112,6 +112,8 @@
             ? 'Auction started — first lot is open'
             : action === 'open'
               ? 'Lot opened for bidding'
+              : action === 'fair_warning'
+                ? 'Fair warning — last chance to bid'
               : action === 'extend'
                 ? `Added ${result.seconds || extra.seconds || defaultExtendSeconds}s to the lot`
                 : action === 'end'
@@ -337,18 +339,19 @@
             {#if isAuctioneer && !auctionEnded}
               {#key openLot.id}
                 <PhoneBidForm {auctionId} lot={openLot} disabled={Boolean(busyAction)} onbusychange={busy => { phoneBidBusy = busy; }} onrecorded={async result => {
-                  actionSuccess = `Phone bid ${money(result.bid.amount)} recorded for ${result.bid.userName}${result.newBuyer ? ' · new caller registered' : ''}`;
+                  actionSuccess = `Phone maximum saved · current bid ${money(result.currentBid)} · ${result.isLeading ? 'caller is leading' : 'caller was automatically outbid'}${result.newBuyer ? ' · new caller registered' : ''}`;
                   await refresh();
                 }} />
               {/key}
             {/if}
+            {#if openLot.fairWarningAt}<p role="status" class="mt-4 border border-amber-300 bg-amber-50 p-3 text-sm font-bold text-amber-900">Fair warning given. A new bid clears the warning.</p>{/if}
             <button
               type="button"
               class="mt-4 w-full bg-[var(--pumbi-terracotta)] px-4 py-3 font-bold text-white disabled:opacity-60"
               disabled={!isAuctioneer || (Boolean(busyAction) || phoneBidBusy)}
-              onclick={() => runAction('close', openLot.id)}
+              onclick={() => runAction(openLot.fairWarningAt ? 'close' : 'fair_warning', openLot.id, { fairWarningKey: openLot.fairWarningKey })}
             >
-              {busyAction.startsWith(`close:${openLot.id}`) ? 'Closing…' : openLot.highestBidderId ? 'Hammer down · Mark sold' : 'Close · Mark unsold'}
+              {busyAction.startsWith(`close:${openLot.id}`) ? 'Closing…' : busyAction.startsWith(`fair_warning:${openLot.id}`) ? 'Giving fair warning…' : !openLot.fairWarningAt ? 'Fair warning' : openLot.highestBidderId ? 'Hammer down · Mark sold' : 'Hammer down · Mark unsold'}
             </button>
           {:else}
             <p class="mt-2 font-[family-name:var(--pumbi-serif)] text-xl font-semibold">No lot open</p>
@@ -511,7 +514,7 @@
                 <div class="px-5 py-3">
                   <div class="flex items-start justify-between gap-3">
                     <div class="min-w-0">
-                      <p class="truncate font-bold text-slate-900">{bid.bidderName}{#if bid.source === 'PHONE'}<span class="ml-2 rounded bg-amber-100 px-2 py-0.5 text-[10px] font-semibold uppercase text-amber-900">Phone</span>{/if}</p>
+                      <p class="truncate font-bold text-slate-900">{bid.bidderName}{#if bid.isAutomatic}<span class="ml-1 rounded bg-sky-100 px-1.5 py-0.5 text-[10px] font-bold uppercase text-sky-800">Auto</span>{/if}{#if bid.source === 'PHONE'}<span class="ml-2 rounded bg-amber-100 px-2 py-0.5 text-[10px] font-semibold uppercase text-amber-900">Phone</span>{/if}</p>
                       <p class="truncate text-xs text-slate-500">Lot #{bid.lotNumber} · {bid.lotTitle}</p>
                     </div>
                     <div class="text-right">

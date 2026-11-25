@@ -1,4 +1,5 @@
 <script>
+  import MaximumBidForm from '$lib/components/MaximumBidForm.svelte';
   import { onMount } from 'svelte';
   import { page } from '$app/stores';
   import { goto } from '$app/navigation';
@@ -9,9 +10,7 @@
   let lot = $state(null);
   let bids = $state([]);
   let loading = $state(true);
-  let bidAmount = $state('');
   let bidError = $state('');
-  let bidSuccess = $state(false);
   let session = $state(null);
   let currentUser = $state(null);
   let auctionSettings = $state(null);
@@ -123,7 +122,6 @@
       const response = await fetch(`/api/lots/${$page.params.id}`);
       lot = await response.json();
       if (lot) {
-        bidAmount = String(lot.currentBid + lot.bidIncrement);
         // Load auction settings
         await loadAuctionSettings();
         // Check registration status if user is logged in
@@ -204,64 +202,6 @@
       bids = await response.json();
     } catch (error) {
       console.error('Error loading bids:', error);
-    }
-  }
-  
-  async function placeBid() {
-    if (!session?.user || !currentUser) {
-      bidError = 'You must be logged in to place a bid';
-      goto(`/auth/login?redirect=${encodeURIComponent($page.url.pathname)}`);
-      return;
-    }
-    
-    bidError = '';
-    bidSuccess = false;
-    
-    const amount = parseFloat(bidAmount);
-    
-    if (!amount || amount <= 0) {
-      bidError = 'Please enter a valid bid amount';
-      return;
-    }
-    
-    if (lot && amount < lot.currentBid + lot.bidIncrement) {
-      bidError = `Bid must be at least $${lot.currentBid + lot.bidIncrement}`;
-      return;
-    }
-    
-    try {
-      const response = await fetch('/api/bids', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json'
-        },
-        credentials: 'include',
-        body: JSON.stringify({
-          lotId: lot.id,
-          amount: amount
-        })
-      });
-      
-      if (!response.ok) {
-        const error = await response.json();
-        if (response.status === 401) {
-          // Unauthorized - redirect to login
-          goto(`/auth/login?redirect=${encodeURIComponent($page.url.pathname)}`);
-          return;
-        }
-        throw new Error(error.message || 'Failed to place bid');
-      }
-      
-      bidSuccess = true;
-      bidAmount = String(amount + lot.bidIncrement);
-      await loadLot();
-      await loadBids();
-      
-      setTimeout(() => {
-        bidSuccess = false;
-      }, 3000);
-    } catch (error) {
-      bidError = error.message;
     }
   }
   
@@ -378,7 +318,7 @@
                 {#each bids as bid}
                   <div class="flex items-center justify-between p-4 bg-[#f7f4ee] rounded-lg">
                     <div>
-                      <p class="font-semibold text-gray-900">{bid.userName}{#if bid.source === 'PHONE'}<span class="ml-2 rounded bg-amber-100 px-2 py-0.5 text-[10px] font-semibold uppercase text-amber-900">Phone</span>{/if}</p>
+                      <p class="font-semibold text-gray-900">{bid.userName}{#if bid.isAutomatic}<span class="ml-1 rounded bg-sky-100 px-1.5 py-0.5 text-[10px] font-bold uppercase text-sky-800">Auto</span>{/if}{#if bid.source === 'PHONE'}<span class="ml-2 rounded bg-amber-100 px-2 py-0.5 text-[10px] font-semibold uppercase text-amber-900">Phone</span>{/if}</p>
                       <p class="text-sm text-gray-500">{formatDate(bid.timestamp)}</p>
                     </div>
                     <p class="text-xl font-bold text-[#18372f]">{formatCurrency(bid.amount)}</p>
@@ -407,6 +347,7 @@
               {/if}
             </div>
 
+            {#if bidError}<p role="alert" class="mb-4 border border-red-200 bg-red-50 p-3 text-sm text-red-800">{bidError}</p>{/if}
             {#if !session?.user || !currentUser}
               <div class="mb-6 bg-yellow-50 border border-yellow-200 rounded-lg p-4">
                 <p class="text-sm text-yellow-800 mb-4">You must be logged in to place a bid.</p>
@@ -441,59 +382,11 @@
                   </button>
                 {/if}
               </div>
-            {:else if currentUser && lot.highestBidderId === currentUser.id}
-              <div class="mb-6 bg-green-50 border border-green-200 rounded-lg p-4">
-                <p class="text-sm text-green-800 font-semibold">You are already the highest bidder on this lot.</p>
-              </div>
             {:else}
-              <div class="mb-6">
-                <label for="bidAmount" class="block text-sm font-medium text-gray-700 mb-2">
-                  Your Bid Amount
-                </label>
-                <div class="relative">
-                  <span class="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500">$</span>
-                  <input
-                    id="bidAmount"
-                    type="number"
-                    bind:value={bidAmount}
-                    min={lot.currentBid + lot.bidIncrement}
-                    step={lot.bidIncrement}
-                    class="w-full pl-8 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                    placeholder={String(lot.currentBid + lot.bidIncrement)}
-                  />
-                </div>
-                <p class="mt-2 text-sm text-gray-500">
-                  Minimum bid: {formatCurrency(lot.currentBid + lot.bidIncrement)}
-                </p>
-              </div>
-
-              {#if bidError}
-                <div class="mb-4 bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded">
-                  <p>{bidError}</p>
-                </div>
-              {/if}
-
-              {#if bidSuccess}
-                <div class="mb-4 bg-green-100 border border-green-400 text-green-700 px-4 py-3 rounded">
-                  <p class="font-semibold">Bid placed successfully!</p>
-                </div>
-              {/if}
-
-              <button
-                onclick={placeBid}
-                class="w-full bg-[#18372f] text-white py-4 rounded-lg hover:bg-[#152c26] transition-colors font-bold text-lg mb-4"
-              >
-                Place Bid
-              </button>
-
-              <button
-                onclick={() => {
-                  bidAmount = String(lot.currentBid + lot.bidIncrement);
-                }}
-                class="w-full bg-gray-200 text-gray-700 py-2 rounded-lg hover:bg-gray-300 transition-colors"
-              >
-                Quick Bid: {formatCurrency(lot.currentBid + lot.bidIncrement)}
-              </button>
+              {#if lot.fairWarningAt && lot.status.toUpperCase() === 'ACTIVE'}<p role="status" class="mb-4 border border-amber-300 bg-amber-50 p-3 text-sm font-bold text-amber-900">Fair warning — last chance to bid.</p>{/if}
+              {#key lot.id}
+                <MaximumBidForm {lot} userId={currentUser.id} canBid={lot.status.toUpperCase() === 'ACTIVE' && lot.auction?.status?.toUpperCase() === 'LIVE' && Boolean(lot.auction?.auctioneerStartedAt) && Boolean(lot.endTime && new Date(lot.endTime).getTime() > Date.now())} onbid={async () => { await loadLot(); await loadBids(); }} />
+              {/key}
             {/if}
 
             <div class="mt-6 pt-6 border-t">
