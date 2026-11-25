@@ -91,7 +91,7 @@ test('HTTP and HTTP-200 provider errors, zero acceptance and malformed responses
 
 test('network timeout/errors fail once with no automatic duplicate sends', async () => {
   state.networkError = true;
-  await assert.rejects(mail.sendTransactionalEmail(message), err => err.status === 502);
+  await assert.rejects(mail.sendTransactionalEmail(message), err => err.status === 502 && err.deliveryUncertain === true);
   assert.equal(state.sent.length, 1);
 });
 

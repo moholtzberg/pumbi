@@ -61,6 +61,10 @@ model AuctionHouse {
   invitations          AuctionHouseInvitation[]
   payoutReleases       PayoutRelease[]
   invoices             Invoice[]
+  marketingContacts    MarketingContact[]
+  marketingCampaigns   MarketingCampaign[]
+  marketingMessages    MarketingMessage[]
+  marketingSuppressions MarketingSuppression[]
 
   @@index([slug])
   @@index([isActive])
@@ -244,6 +248,7 @@ model Auction {
   registrations  AuctionRegistration[] // Users registered for this auction
   lotSubmissions LotSubmission[]
   invoices       Invoice[]
+  marketingCampaign MarketingCampaign?
 
   // Interest / engagement counters (denormalized from ContentView)
   viewCount          Int   @default(0) @map("view_count")
@@ -1006,4 +1011,118 @@ model ContentView {
   @@index([visitorKey, startedAt])
   @@index([userId])
   @@map("content_views")
+}
+
+// Seller CRM contacts are separate from login accounts and bidder registrations.
+model MarketingContact {
+  id             String                @id @default(cuid())
+  auctionHouseId String                @map("auction_house_id")
+  email          String
+  name           String?
+  phone          String?
+  notes          String?
+  tags           String?
+  subscribed     Boolean               @default(true)
+  source         String                @default("MANUAL")
+  createdAt      DateTime              @default(now()) @map("created_at")
+  updatedAt      DateTime              @updatedAt @map("updated_at")
+  auctionHouse   AuctionHouse          @relation(fields: [auctionHouseId], references: [id], onDelete: Cascade)
+  enrollments    MarketingEnrollment[]
+  messages       MarketingMessage[]
+
+  @@unique([auctionHouseId, email])
+  @@index([auctionHouseId, subscribed])
+  @@map("marketing_contacts")
+}
+
+model MarketingCampaign {
+  id               String                @id @default(cuid())
+  auctionHouseId   String                @map("auction_house_id")
+  auctionId        String                @unique @map("auction_id")
+  enabled          Boolean               @default(true)
+  auctionReminders Boolean               @default(true) @map("auction_reminders")
+  lotReminders     Boolean               @default(true) @map("lot_reminders")
+  reminderMinutes  Int                   @default(30) @map("reminder_minutes")
+  subject          String?
+  message          String?
+  siteUrl          String                @map("site_url")
+  createdAt        DateTime              @default(now()) @map("created_at")
+  updatedAt        DateTime              @updatedAt @map("updated_at")
+  auctionHouse     AuctionHouse          @relation(fields: [auctionHouseId], references: [id], onDelete: Cascade)
+  auction          Auction               @relation(fields: [auctionId], references: [id], onDelete: Cascade)
+  enrollments      MarketingEnrollment[]
+  messages         MarketingMessage[]
+
+  @@index([auctionHouseId])
+  @@map("marketing_campaigns")
+}
+
+model MarketingEnrollment {
+  id         String            @id @default(cuid())
+  campaignId String            @map("campaign_id")
+  contactId  String            @map("contact_id")
+  createdAt  DateTime          @default(now()) @map("created_at")
+  campaign   MarketingCampaign @relation(fields: [campaignId], references: [id], onDelete: Cascade)
+  contact    MarketingContact  @relation(fields: [contactId], references: [id], onDelete: Cascade)
+
+  @@unique([campaignId, contactId])
+  @@index([contactId])
+  @@map("marketing_enrollments")
+}
+
+enum MarketingMessageKind {
+  INVITATION
+  UPDATE
+  AUCTION_START
+  LOT_NEXT
+}
+
+enum MarketingMessageStatus {
+  QUEUED
+  PROCESSING
+  SENT
+  FAILED
+  UNKNOWN
+  CANCELLED
+}
+
+model MarketingMessage {
+  id              String                 @id @default(cuid())
+  auctionHouseId  String                 @map("auction_house_id")
+  campaignId      String                 @map("campaign_id")
+  contactId       String?                @map("contact_id")
+  recipientUserId String?                @map("recipient_user_id")
+  lotId           String?                @map("lot_id")
+  email           String
+  eventKey        String                 @map("event_key")
+  kind            MarketingMessageKind
+  status          MarketingMessageStatus @default(QUEUED)
+  subject         String?
+  message         String?
+  providerId      String?                @map("provider_id")
+  error           String?
+  claimedAt       DateTime?              @map("claimed_at")
+  sentAt          DateTime?              @map("sent_at")
+  createdAt       DateTime               @default(now()) @map("created_at")
+  auctionHouse    AuctionHouse           @relation(fields: [auctionHouseId], references: [id], onDelete: Cascade)
+  campaign        MarketingCampaign      @relation(fields: [campaignId], references: [id], onDelete: Cascade)
+  contact         MarketingContact?      @relation(fields: [contactId], references: [id], onDelete: Cascade)
+
+  @@unique([auctionHouseId, email, eventKey])
+  @@index([status, createdAt])
+  @@index([campaignId])
+  @@index([contactId])
+  @@map("marketing_messages")
+}
+
+// Kept independently of contacts so deleting/reimporting never clears an opt-out.
+model MarketingSuppression {
+  id             String       @id @default(cuid())
+  auctionHouseId String       @map("auction_house_id")
+  email          String
+  createdAt      DateTime     @default(now()) @map("created_at")
+  auctionHouse   AuctionHouse @relation(fields: [auctionHouseId], references: [id], onDelete: Cascade)
+
+  @@unique([auctionHouseId, email])
+  @@map("marketing_suppressions")
 }

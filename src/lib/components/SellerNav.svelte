@@ -6,6 +6,7 @@
   const links = [
     { href: '/seller', label: 'Auctions', match: (path) => path === '/seller' || path.startsWith('/seller/auctions') },
     { href: '/seller/sold', label: 'Sold', match: (path) => path.startsWith('/seller/sold') },
+    { href: '/seller/marketing', label: 'Marketing', match: (path) => path.startsWith('/seller/marketing') },
     { href: '/seller/settings', label: 'House settings', match: (path) => path === '/seller/settings' },
     { href: '/seller/team', label: 'Team', match: (path) => path.startsWith('/seller/team') },
     { href: '/seller/banking', label: 'Banking', match: (path) => path.startsWith('/seller/banking') }

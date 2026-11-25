@@ -226,3 +226,72 @@ curl -X POST https://your-pumbi-host.example/api/cron/auctions \
 The endpoint creates due PUBLIC auction occurrences, snapshots the active policy, advances monthly schedules, and transitions auction statuses. Calls are idempotent, and normal browser sessions cannot invoke it.
 
 Set each series' “next generation run” before its auction start. The start offset controls how long sellers and administrators have to submit and review lots; the dashboard defaults to 14 days.
+
+## Seller CRM and auction marketing
+
+Open **Seller → Marketing** (`/seller/marketing`). Owners, admins, and auction
+managers with auction and bidder management permissions can manage their house's
+contacts. CRM records are separate from platform users; imports never create login
+accounts or approve bidders.
+
+- Add/edit/delete contacts with name, email, phone, tags, and notes. Search and
+  pagination keep large lists manageable. Contacts can be paused without deleting
+  them. Email addresses are normalized and unique within a house.
+- Upload or paste CSV (up to 500 contacts / 2 MB per import), using the downloadable
+  `/marketing-contacts-template.csv`. Columns are `name,email,phone,tags,notes`;
+  `first_name,last_name,email_address,phone_number` aliases are also accepted.
+  Quoted commas, multiline notes, BOM, and CRLF are supported. The whole import
+  is validated before writing; duplicate emails update existing details.
+- Choose an upcoming/live auction and save its email settings. Customize the
+  invitation subject/message, optionally invite contacts immediately when adding
+  or importing, or invite selected/all subscribed contacts later. Invitations are
+  deduplicated per auction and address. Contacts must have agreed to receive your
+  house's auction emails; opted-out addresses cannot be resubscribed by reimport.
+- Auction-start reminders default to 30 minutes before the scheduled start
+  (configurable 5–1,440 minutes). They target invited subscribed contacts plus
+  approved registered bidders with verified email addresses, deduplicated by email.
+  A changed start time creates a new reminder event; stale reminders are skipped.
+- Watched-lot reminders use actual ready-lot order. The first ready lot can notify
+  watchers five minutes before the auction starts; once the auctioneer starts,
+  current and next-up lots notify watchers with verified email addresses. Opening
+  a lot queues reminders immediately; delivery follows the minute scheduler.
+  Watches removed before sending, hidden/closed lots, cancelled auctions, changed
+  queue positions, and house opt-outs are checked again before sending. Each lot
+  sends at most one accepted reminder per address in an auction, including relists.
+- Send custom auction updates to that auction's invited subscribed contacts. The
+  email includes your message and an auction link. Phones are stored for reference;
+  CRM campaigns currently send email, not SMS.
+- Email activity shows queued, processing, accepted, failed, unconfirmed, and
+  cancelled messages. Known rejections can be retried. Unconfirmed sends (timeouts,
+  ambiguous responses, interrupted workers) are never automatically retried;
+  inspect SMTP2GO activity before sending a replacement. Provider acceptance is not
+  an inbox-delivery guarantee. Live reminders are processed before invitations.
+
+Every marketing email has a signed house-specific unsubscribe link and a `List-Unsubscribe`
+header. Viewing the preferences page does not change settings; the
+recipient confirms with a POST. Opt-out suppressions survive contact deletion and
+reimport, apply to watched-lot reminders too, and do not affect account verification
+or password-reset emails.
+
+Apply `prisma/migrations/20261124160000_add_seller_marketing` with
+`npx prisma migrate deploy` on each deployment database, then regenerate Prisma.
+The admin Data manager automatically includes the five new CRM models.
+
+`vercel.json` registers `/api/cron/marketing` every minute on Vercel Pro. Configure
+`CRON_SECRET`, `AUTH_SECRET`, `SMTP2GO_API_KEY`, and optionally
+`SMTP2GO_FROM_EMAIL` in Vercel, then deploy. `APP_URL` should be the canonical public
+site origin; if absent, campaign creation saves the current site's origin. No
+campaign is created or email sent merely by installing the feature: the seller
+must configure an auction and invite contacts or enable its reminders.
+
+The worker accepts authenticated GET or POST requests using
+`Authorization: Bearer $CRON_SECRET`, processes up to 25 messages per run with
+bounded concurrency, and atomically claims messages against concurrent workers.
+Use **Process queued emails now** for a house-scoped manual run. No browser tab
+needs to remain open. Larger mailouts drain over multiple scheduler runs. On hosts
+without Vercel Cron, call the same endpoint every minute from an external scheduler.
+
+Run `npm test` for CRM unit/route checks. For an explicit real-PostgreSQL check,
+run `RUN_MARKETING_DATABASE_TESTS=1 node --test tests/marketing.integration.test.js`
+under Node 24. The test inserts fixtures inside a rolled-back transaction and uses
+mocked delivery; it sends no email and retains no test contacts or campaigns.

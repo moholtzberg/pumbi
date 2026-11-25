@@ -346,6 +346,7 @@
                 </button>
               </div>
               {#if watchError}<p class="mb-4 text-sm font-medium text-red-600">{watchError}</p>{/if}
+              {#if isWatching}<p class="mb-4 text-xs text-gray-500">When this house enables reminders, we’ll email your verified address as this lot approaches the block. Each email includes an unsubscribe link.</p>{/if}
               <p class="text-gray-600 text-lg mb-6">{lot.description}</p>
               {#if conditionForLot(lot)}
                 <div class="mb-6 rounded-sm border border-amber-200 bg-amber-50 p-4">

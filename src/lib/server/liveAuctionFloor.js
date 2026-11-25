@@ -110,7 +110,7 @@ export async function openLotOnBlock({
   // Keep in-memory auction settings in sync for callers that reuse the object.
   auction.settings = JSON.stringify({ ...settings, onBlockLotId: lot.id });
 
-  return prisma.lot.update({
+  const opened = await prisma.lot.update({
     where: { id: lot.id },
     data: {
       status: 'ACTIVE',
@@ -118,6 +118,14 @@ export async function openLotOnBlock({
       endTime: lotEndTime
     }
   });
+  // Queue only; delivery happens outside the auctioneer's bidding request.
+  if (prisma.marketingCampaign) {
+    try {
+      const { queueLiveMarketing } = await import('$lib/server/marketing.js');
+      await queueLiveMarketing(auction.id);
+    } catch { console.error('Could not queue watched-lot reminders'); }
+  }
+  return opened;
 }
 
 export async function clearOnBlockLot(auction) {
