@@ -1,39 +1,17 @@
 <script>
   import { page } from '$app/stores';
   import { signOut } from '@auth/sveltekit/client';
-  import { goto } from '$app/navigation';
   import { browser } from '$app/environment';
-  import { onMount } from 'svelte';
 
   let isMenuOpen = $state(false);
   let isAccountOpen = $state(false);
-  let session = $state(null);
-  let hasAuctionHouse = $state(false);
-  let currentUser = $state(null);
+  let currentUser = $derived($page.data.navigationUser);
+  let hasAuctionHouse = $derived(currentUser?.hasAuctionHouse ?? false);
   let accountRoot;
 
-  let displayName = $derived(session?.user?.name || session?.user?.email || 'Account');
+  let displayName = $derived(currentUser?.name || currentUser?.email || 'Account');
   let accountHome = $derived(hasAuctionHouse ? '/seller' : '/dashboard');
   let isAdmin = $derived(currentUser?.role?.toUpperCase() === 'PLATFORM_ADMIN');
-
-  onMount(async () => {
-    try {
-      const response = await fetch('/auth/session');
-      session = await response.json();
-      if (session?.user?.email) {
-        const userResponse = await fetch(`/api/users?email=${encodeURIComponent(session.user.email)}`, { credentials: 'include' });
-        if (userResponse.ok) {
-          currentUser = await userResponse.json();
-          hasAuctionHouse = !!currentUser.auctionHouseId;
-        }
-      } else {
-        currentUser = null;
-        hasAuctionHouse = false;
-      }
-    } catch (error) {
-      console.error('Error loading session:', error);
-    }
-  });
 
   $effect(() => {
     // Close menus when the route changes
@@ -66,8 +44,7 @@
   async function handleLogout() {
     isAccountOpen = false;
     isMenuOpen = false;
-    await signOut({ redirect: false });
-    goto('/');
+    await signOut({ callbackUrl: '/' });
   }
 
   function closeMobile() {
@@ -87,7 +64,7 @@
     </div>
 
     <div class="desktop-actions">
-      {#if session?.user}
+      {#if currentUser}
         <div class="account-menu" bind:this={accountRoot}>
           <button
             type="button"
@@ -140,7 +117,7 @@
       <a href="/#popular-heading" onclick={closeMobile}>Popular auctions</a>
       <a href="/#active-heading" onclick={closeMobile}>Active lots</a>
 
-      {#if session?.user}
+      {#if currentUser}
         <p class="mobile-account-label">{displayName}</p>
         <a href={accountHome} onclick={closeMobile}>{hasAuctionHouse ? 'Seller home' : 'Dashboard'}</a>
         {#if hasAuctionHouse}

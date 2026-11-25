@@ -22,28 +22,20 @@
         redirect: false
       });
       
-      if (result?.error) {
-        error = result.error === 'CredentialsSignin' 
+      // This Auth.js client returns a Response when redirect is false.
+      const responseData = result instanceof Response ? await result.json() : result;
+      const authError = responseData?.error ||
+        (responseData?.url ? new URL(responseData.url, window.location.origin).searchParams.get('error') : null);
+      if (authError || result?.ok === false) {
+        error = authError === 'CredentialsSignin' || !authError
           ? 'Invalid email or password. Please try again.'
-          : result.error;
+          : authError;
         loading = false;
-      } else if (result?.ok || result?.url) {
-        // Login successful - check session and redirect
-        await new Promise(resolve => setTimeout(resolve, 100)); // Small delay to ensure session is set
-        const sessionRes = await fetch('/auth/session');
-        const session = await sessionRes.json();
-        
-        if (session?.user) {
-          goto('/dashboard');
-        } else {
-          // Session not set yet, try redirect anyway
-          window.location.href = '/dashboard';
-        }
+      } else if (result?.ok || responseData?.url) {
+        await goto('/dashboard', { invalidateAll: true });
       } else {
-        // Fallback - try to redirect after a short delay
-        setTimeout(() => {
-          window.location.href = '/dashboard';
-        }, 500);
+        error = 'Unable to sign in. Please try again.';
+        loading = false;
       }
     } catch (err) {
       console.error('Login error:', err);
