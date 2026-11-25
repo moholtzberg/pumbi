@@ -61,6 +61,7 @@ model AuctionHouse {
   invitations          AuctionHouseInvitation[]
   payoutReleases       PayoutRelease[]
   invoices             Invoice[]
+  bidderBlocks         BidderBlock[]
   marketingContacts    MarketingContact[]
   marketingCampaigns   MarketingCampaign[]
   marketingMessages    MarketingMessage[]
@@ -109,6 +110,9 @@ model User {
   auctions                        Auction[] // Auctions created by this user (if seller)
   conductedAuctions               Auction[]              @relation("Auctioneer")
   bids                            Bid[]
+  houseBidderBlocks BidderBlock[] @relation("BlockedBidder")
+  bidderBlocksCreated BidderBlock[] @relation("BidderBlockCreator")
+  bidderBlocksCleared BidderBlock[] @relation("BidderBlockClearer")
   proxyBids ProxyBid[]
   recordedProxyBids ProxyBid[] @relation("RecordedProxyBid")
   recordedPhoneBids               Bid[]                  @relation("RecordedPhoneBid")
@@ -1154,4 +1158,28 @@ model ProxyBid {
   @@index([userId])
   @@index([recordedById])
   @@map("proxy_bids")
+}
+
+
+model BidderBlock {
+  id String @id @default(cuid())
+  auctionHouseId String @map("auction_house_id")
+  userId String @map("user_id")
+  active Boolean @default(true)
+  reason String
+  blockedById String? @map("blocked_by_id")
+  unblockedById String? @map("unblocked_by_id")
+  blockedAt DateTime @default(now()) @map("blocked_at")
+  unblockedAt DateTime? @map("unblocked_at")
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+  auctionHouse AuctionHouse @relation(fields: [auctionHouseId], references: [id], onDelete: Cascade)
+  user User @relation("BlockedBidder", fields: [userId], references: [id], onDelete: Cascade)
+  blockedBy User? @relation("BidderBlockCreator", fields: [blockedById], references: [id], onDelete: SetNull)
+  unblockedBy User? @relation("BidderBlockClearer", fields: [unblockedById], references: [id], onDelete: SetNull)
+  @@unique([auctionHouseId, userId])
+  @@index([userId])
+  @@index([blockedById])
+  @@index([unblockedById])
+  @@map("bidder_blocks")
 }

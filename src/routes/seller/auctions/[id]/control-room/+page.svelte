@@ -514,7 +514,7 @@
                 <div class="px-5 py-3">
                   <div class="flex items-start justify-between gap-3">
                     <div class="min-w-0">
-                      <p class="truncate font-bold text-slate-900">{bid.bidderName}{#if bid.isAutomatic}<span class="ml-1 rounded bg-sky-100 px-1.5 py-0.5 text-[10px] font-bold uppercase text-sky-800">Auto</span>{/if}{#if bid.source === 'PHONE'}<span class="ml-2 rounded bg-amber-100 px-2 py-0.5 text-[10px] font-semibold uppercase text-amber-900">Phone</span>{/if}</p>
+                      <p class="truncate font-bold text-slate-900">{#if data.canViewBidderProfiles && bid.bidderId}<a class="underline underline-offset-4" target="_blank" rel="noopener" title="Open bidder profile in a new tab" href={`/seller/bidders/${bid.bidderId}?houseId=${data.auction.auctionHouse.id}`}>{bid.bidderName}</a>{:else}{bid.bidderName}{/if}{#if bid.isAutomatic}<span class="ml-1 rounded bg-sky-100 px-1.5 py-0.5 text-[10px] font-bold uppercase text-sky-800">Auto</span>{/if}{#if bid.source === 'PHONE'}<span class="ml-2 rounded bg-amber-100 px-2 py-0.5 text-[10px] font-semibold uppercase text-amber-900">Phone</span>{/if}</p>
                       <p class="truncate text-xs text-slate-500">Lot #{bid.lotNumber} · {bid.lotTitle}</p>
                     </div>
                     <div class="text-right">

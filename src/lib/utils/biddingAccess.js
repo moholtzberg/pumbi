@@ -10,7 +10,7 @@ export function requiresBidderRegistration(auction) {
 
 // Shared by the incoming bid, automatic defenses and the bidder-facing access API.
 // Registration/verification/policy acceptance are gates only for configured sales.
-export function auctionBidAccess(user, auction, registration, { phone = false } = {}) {
+export function auctionBidAccess(user, auction, registration, { phone = false, blocked = false } = {}) {
   const registrationRequired = requiresBidderRegistration(auction);
   const isPublic = String(auction.type).toUpperCase() === 'PUBLIC';
   const policyConfigured = !isPublic || Boolean(auction.platformPolicyId && auction.policyVersionSnapshot != null && auction.buyerTermsSnapshot);
@@ -20,14 +20,15 @@ export function auctionBidAccess(user, auction, registration, { phone = false } 
         registration.acceptedPolicyVersion === auction.policyVersionSnapshot &&
         registration.acceptedBuyerTermsSnapshot === auction.buyerTermsSnapshot)
     : registration?.status === 'APPROVED');
-  const needsVerification = registrationRequired && !phone && !user?.isVerifiedBuyer;
+  const needsVerification = !blocked && registrationRequired && !phone && !user?.isVerifiedBuyer;
   return {
+    blocked,
     registrationRequired,
     approvalRequired: registrationRequired && !isPublic,
     policyConfigured,
     policyAccepted,
     needsVerification,
-    needsTermsAcceptance: registrationRequired && !needsVerification && !policyAccepted && !['PENDING', 'REJECTED'].includes(registration?.status),
-    readyToBid: Boolean(user && !needsVerification && policyAccepted)
+    needsTermsAcceptance: !blocked && registrationRequired && !needsVerification && !policyAccepted && !['PENDING', 'REJECTED'].includes(registration?.status),
+    readyToBid: Boolean(user && !blocked && !needsVerification && policyAccepted)
   };
 }

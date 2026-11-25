@@ -29,6 +29,10 @@ const client = {
       state.users.push(user); return structuredClone(user);
     }
   },
+  bidderBlock: {
+    findUnique: async ({ where }) => structuredClone(state.blocks.find(row => row.auctionHouseId === where.auctionHouseId_userId.auctionHouseId && row.userId === where.auctionHouseId_userId.userId) || null),
+    findMany: async ({ where }) => structuredClone(state.blocks.filter(row => row.auctionHouseId === where.auctionHouseId && row.active && where.userId.in.includes(row.userId)))
+  },
   proxyBid: {
     findUnique: async ({ where }) => structuredClone(state.proxies.find(row => row.lotId === where.lotId_userId.lotId && row.userId === where.lotId_userId.userId) || null),
     findMany: async () => state.proxies.map(row => ({ ...structuredClone(row), user: structuredClone(state.users.find(user => user.id === row.userId)) })),
@@ -54,7 +58,7 @@ client.$transaction = async callback => {
   const previous = state.queue;
   let release; state.queue = new Promise(resolve => { release = resolve; });
   await previous;
-  const snapshot = structuredClone({ auction: state.auction, lot: state.lot, users: state.users, registrations: state.registrations, bids: state.bids, proxies: state.proxies });
+  const snapshot = structuredClone({ auction: state.auction, lot: state.lot, users: state.users, registrations: state.registrations, bids: state.bids, proxies: state.proxies, blocks: state.blocks });
   try { return await callback(client); } catch (err) { Object.assign(state, snapshot); throw err; } finally { release(); }
 };
 state.client = client;
@@ -92,7 +96,7 @@ beforeEach(() => {
   state.lot = { id: 'lot', auctionId: 'auction', ownerUserId: 'owner', status: 'ACTIVE', isReady: true, lotNumber: 1, currentBid: 100, startingBid: 50, bidIncrement: 10, highestBidderId: 'old-buyer', highestBidderName: 'Old bidder', endTime: new Date(Date.now() + 10000) };
   state.users = [{ id: 'buyer', name: 'Alice', email: 'alice@example.com', isVerifiedBuyer: true }, { id: 'buyer-2', name: 'Bob', email: 'bob@example.com', isVerifiedBuyer: true }];
   state.registrations = state.users.map(user => ({ auctionId: 'auction', userId: user.id, status: 'APPROVED' }));
-  state.proxies = []; state.bids = []; state.locks = []; state.createdUserData = null; state.invoiceBuyer = null;
+  state.blocks = []; state.proxies = []; state.bids = []; state.locks = []; state.createdUserData = null; state.invoiceBuyer = null;
 });
 const payload = patch => ({ lotId: 'lot', mode: 'existing', bidderId: 'buyer', amount: 110, callerConfirmed: true, ...patch });
 const event = (body = {}, locals = {}) => ({ params: { id: 'auction' }, locals, url: new URL('https://pumbi.test/api/auctions/auction/phone-bids'), request: new Request('https://pumbi.test/api/auctions/auction/phone-bids', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) }) });
@@ -469,4 +473,38 @@ test('open bidding still requires sign-in and rejects closed lots and self-biddi
   state.lot.ownerUserId = 'owner'; state.lot.endTime = new Date(Date.now() - 1000);
   await assert.rejects(maximum(state.users[0], 110), err => err.status === 409);
   assert.equal(state.bids.length, 0);
+});
+
+
+test('a house block stops incoming bids in open auctions and appears in access checks', async () => {
+  opening(); registrationSetting(false); state.registrations = [];
+  state.blocks = [{ auctionHouseId: 'house', userId: 'buyer', active: true, reason: 'Internal reason must stay private' }];
+  await assert.rejects(maximum(state.users[0], 100), err => err.status === 403 && !err.body.message.includes('Internal reason'));
+  const access = await (await registrationRoute.GET(event({}, { user: state.users[0] }))).json();
+  assert.equal(access.blocked, true); assert.equal(access.readyToBid, false); assert.equal(access.needsTermsAcceptance, false);
+  assert.ok(!JSON.stringify(access).includes('Internal reason'));
+  await assert.rejects(registrationRoute.POST(event({}, { user: state.users[0] })), err => err.status === 403);
+  assert.equal(state.bids.length, 0); assert.equal(state.proxies.length, 0);
+});
+
+test('house blocks stop phone bids and private maximum increases too', async () => {
+  opening(); await maximum(state.users[0], 100);
+  state.blocks = [{ auctionHouseId: 'house', userId: 'buyer', active: true }];
+  await assert.rejects(phone.POST(event(payload({ amount: 150 }))), err => err.status === 403);
+  await assert.rejects(maximum(state.users[0], 200), err => err.status === 403);
+  assert.equal(state.proxies[0].maxAmount, 100); assert.equal(state.lot.currentBid, 25);
+});
+
+test('a blocked incumbent cannot automatically defend their maximum but their accepted bid remains', async () => {
+  opening(); registrationSetting(false); await maximum(state.users[0], 150);
+  state.blocks = [{ auctionHouseId: 'house', userId: 'buyer', active: true }];
+  const result = await maximum(state.users[1], 100);
+  assert.equal(result.currentBid, 30); assert.equal(result.isLeading, true);
+  assert.equal(state.bids[0].amount, 25); assert.equal(state.bids[0].userId, 'buyer');
+});
+
+test('blocks from another house do not apply, and an inactive block restores ordinary access', async () => {
+  opening(); registrationSetting(false);
+  state.blocks = [{ auctionHouseId: 'foreign', userId: 'buyer', active: true }, { auctionHouseId: 'house', userId: 'buyer', active: false }];
+  assert.equal((await maximum(state.users[0], 100)).isLeading, true);
 });

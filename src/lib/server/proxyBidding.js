@@ -1,4 +1,5 @@
 import { error } from '@sveltejs/kit';
+import { lockHouseBidderAccess, requireUnblockedBidder } from '$lib/server/bidderAccess.js';
 import { auctionBidAccess } from '$lib/utils/biddingAccess.js';
 import { minimumLotBid } from './bidRules.js';
 import { extendedEndTime, resolveLotTiming } from './lotTiming.js';
@@ -32,6 +33,8 @@ function eligibleProxy(proxy, registration, lot) {
 // Both callers hold the auction lock followed by the lot lock, and have checked
 // the incoming bidder's authorization, registration, consent and open-lot timer.
 export async function submitMaximumBid(tx, { lot, buyer, maximum, source = 'ONLINE', recordedById = null, now = new Date() }) {
+  await lockHouseBidderAccess(tx, lot.auction.auctionHouseId);
+  await requireUnblockedBidder(tx, lot.auction.auctionHouseId, buyer.id);
   const previous = await tx.proxyBid.findUnique({ where: { lotId_userId: { lotId: lot.id, userId: buyer.id } } });
   const previousLimit = previous ? Number(previous.maxAmount) : 0;
   const leading = lot.highestBidderId === buyer.id;
@@ -46,7 +49,9 @@ export async function submitMaximumBid(tx, { lot, buyer, maximum, source = 'ONLI
   const proxies = await tx.proxyBid.findMany({ where: { lotId: lot.id }, include: { user: { select: { id: true, isVerifiedBuyer: true } } } });
   const registrations = await tx.auctionRegistration.findMany({ where: { auctionId: lot.auctionId, userId: { in: proxies.map(proxy => proxy.userId) } } });
   const byUser = new Map(registrations.map(registration => [registration.userId, registration]));
-  const active = proxies.filter(proxy => proxy.userId === buyer.id || eligibleProxy(proxy, byUser.get(proxy.userId), lot));
+  const blocks = await tx.bidderBlock.findMany({ where: { auctionHouseId: lot.auction.auctionHouseId, active: true, userId: { in: proxies.map(proxy => proxy.userId) } }, select: { userId: true } });
+  const blocked = new Set(blocks.map(row => row.userId));
+  const active = proxies.filter(proxy => !blocked.has(proxy.userId) && (proxy.userId === buyer.id || eligibleProxy(proxy, byUser.get(proxy.userId), lot)));
   const { winner, price } = resolveProxyPrice(lot, active);
   const changed = price !== Number(lot.currentBid) || winner.userId !== lot.highestBidderId;
   let lastBid = null;

@@ -355,7 +355,7 @@ and sends no notifications.
 ## Bidding without advance registration
 
 **Auction settings → Bidding Settings → Require registration to bid** controls
-access for every lot in that auction. When off (the default), any signed-in user
+access for every lot in that auction. When off (the default), any signed-in user who is not blocked by the house
 can bid while the lot is open, without advance registration, manual approval,
 buyer verification, or a separate terms-acceptance step. This applies to both
 PRIVATE and PUBLIC auctions. A missing setting follows the default of off.
@@ -369,3 +369,53 @@ Switching registration on rechecks those requirements for future automatic bids.
 Signed-out users, bidding on your own lot, and bids outside the current live lot's
 open timer remain blocked. Bid amounts, auction terms, and buyer premiums continue
 to apply. No schema migration is needed for this access-rule change.
+
+
+## House bidder profiles and blocks
+
+**Seller → Bidders** lists people who registered, placed bids, won lots, or have
+invoices with the selected house. Open-auction bidders appear without needing a
+registration record. Search by name/email/phone, filter blocked bidders, and page
+through the directory. The auction's **Bidders & approvals** screen has the same
+participant directory, and bidder names in registrations and control-room bid
+history link to profiles for owners/admins.
+
+House owners and admins can open `/seller/bidders/:id?houseId=...` to see contact
+information, verification status, auction participation, won lots, and invoice
+history. Histories and financial totals are scoped to that house. The profile
+never exposes another house's activity, private maximum bids, passwords, Stripe
+IDs, or identity/card details. Auction managers can view the directory under their
+existing bidder-management permission; full profiles and blocking require an
+active OWNER/ADMIN membership (or platform-admin access).
+
+Balances are grouped by currency and calculated with decimal arithmetic. PAID
+invoices contribute to received amounts. UNPAID, AWAITING_EXTERNAL and
+PENDING_CHECKOUT invoices contribute to outstanding amounts. REFUNDED and
+CANCELLED are shown separately. Won lots without invoices show “Invoice pending”
+and do not invent an outstanding balance. Registrations, bids, wins, and invoices
+are visible in paginated histories, including open auctions with no registration.
+
+From the profile, enter an internal reason and click **Block from all house
+auctions**. The block overrides registration/approval settings across all current
+and future auctions at that house. It stops incoming online bids, staff-recorded
+phone bids, maximum increases, and automatic maximum defenses. Registering or
+completing verification does not bypass it. Only the blocked/not-blocked state is
+sent to the bidder; the reason and operator audit data stay in owner/admin views.
+
+Blocking preserves existing public bids, wins and invoices. A currently leading
+public bid remains binding; the blocked ceiling cannot defend against new bids.
+**Unblock bidder** restores access under each auction's rules, and previously
+submitted maximums can respond again on live lots. Unblock audit fields and the
+last reason are retained. A block at one house does not block other houses.
+
+The bid engine holds a shared, transaction-scoped PostgreSQL advisory guard while
+checking blocks and accepting bids; block/unblock takes the exclusive guard.
+Concurrent bids can share the guard, and a block cannot race behind a committed
+bid check. Guards release with the transaction and work with pooled connections.
+
+Apply `20261124200000_add_house_bidder_blocks` with `npx prisma migrate deploy`
+before deploying the new code. The admin Data manager includes `BidderBlock`.
+Tests cover permissions, exact currency balances, tenant isolation, owner block
+flows, and bid/phone/automatic enforcement. Run the opt-in, rolled-back PostgreSQL
+checks using `RUN_BIDDER_DATABASE_TESTS=1 node --test tests/sellerBidders.integration.test.js`
+under Node 24. They send no messages, move no money, and retain no test data.

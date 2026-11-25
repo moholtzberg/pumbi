@@ -49,7 +49,7 @@
             href: `/seller/auctions/${auction.id}/bidders`,
             eyebrow: 'Access',
             title: 'Bidders',
-            body: 'Review and approve private-auction registrations.',
+            body: 'Review bidders, open profiles, and manage registrations.',
             tone: 'light'
           }
         ]

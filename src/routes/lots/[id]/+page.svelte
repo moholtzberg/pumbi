@@ -362,6 +362,8 @@
                   Login to Bid
                 </a>
               </div>
+            {:else if bidAccess?.blocked}
+              <div role="status" class="mb-6 border border-red-200 bg-red-50 p-4 text-sm text-red-900"><p class="font-bold">Bidding access blocked by this house</p><p class="mt-2">Contact the auction house for assistance. This block applies even when registration is not required.</p></div>
             {:else if registrationRequired && !isRegistered}
               <div class="mb-6 bg-[#efe8dc] border border-[#ddd6ca] rounded-lg p-4">
                 {#if bidAccess?.needsVerification}

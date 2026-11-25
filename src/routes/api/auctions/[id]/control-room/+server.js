@@ -65,6 +65,7 @@ export async function GET({ params, locals }) {
 
   return json({
     currentUserId: user.id,
+    canViewBidderProfiles: user.role === 'PLATFORM_ADMIN' || Boolean(user.auctionHouseMemberships?.some(row => row.auctionHouseId === auction.auctionHouseId && row.status === 'ACTIVE' && ['OWNER','ADMIN'].includes(row.role))),
     auction: {
       id: auction.id,
       title: auction.title,
@@ -107,6 +108,7 @@ export async function GET({ params, locals }) {
       id: bid.id,
       amount: bid.amount,
       bidderName: bid.userName,
+      bidderId: bid.userId,
       source: bid.source,
       isAutomatic: bid.isAutomatic,
       timestamp: bid.timestamp,

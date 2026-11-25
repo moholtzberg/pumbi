@@ -1,6 +1,7 @@
 import { json, error } from '@sveltejs/kit';
 import prisma from '$lib/prisma.js';
 import { requireAuthenticatedUser } from '$lib/server/authorization.js';
+import { bidderIsBlocked, requireUnblockedBidder } from '$lib/server/bidderAccess.js';
 import { auctionBidAccess, requiresBidderRegistration } from '$lib/utils/biddingAccess.js';
 import { auctionRegistrationSchema } from '$lib/zod.js';
 
@@ -26,6 +27,7 @@ export async function POST({ params, locals, request }) {
       throw error(404, 'Auction not found');
     }
     
+    await requireUnblockedBidder(prisma, auction.auctionHouseId, user.id);
     if (!requiresBidderRegistration(auction)) {
       return json({ message: 'Registration is not required; sign in to bid', registered: false, approved: false, status: 'NOT_REQUIRED', ...auctionBidAccess(user, auction, null) }, { headers: { 'cache-control': 'private, no-store' } });
     }
@@ -177,6 +179,7 @@ export async function GET({ params, locals }) {
         id: true,
         type: true,
         settings: true,
+        auctionHouseId: true,
         status: true,
         platformPolicyId: true,
         policyVersionSnapshot: true,
@@ -206,7 +209,8 @@ export async function GET({ params, locals }) {
       ? auction.buyerPremiumRateSnapshot
       : auction.privateHouseBuyerPremiumRateSnapshot;
 
-    const access = auctionBidAccess(user, auction, registration);
+    const blocked = await bidderIsBlocked(prisma, auction.auctionHouseId, user.id);
+    const access = auctionBidAccess(user, auction, registration, { blocked });
     const status = registration?.status || null;
 
     return json({

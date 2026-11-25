@@ -86,6 +86,7 @@
               </a>
               {#if hasAuctionHouse}
                 <a href="/seller/sold" role="menuitem" onclick={() => (isAccountOpen = false)}>Sold & shipping</a>
+                <a href="/seller/bidders" role="menuitem" onclick={() => (isAccountOpen = false)}>Bidders</a>
                 <a href="/seller/marketing" role="menuitem" onclick={() => (isAccountOpen = false)}>Marketing & contacts</a>
                 <a href="/seller/settings" role="menuitem" onclick={() => (isAccountOpen = false)}>House settings</a>
                 <a href="/seller/team" role="menuitem" onclick={() => (isAccountOpen = false)}>Team</a>
@@ -123,6 +124,7 @@
         <a href={accountHome} onclick={closeMobile}>{hasAuctionHouse ? 'Seller home' : 'Dashboard'}</a>
         {#if hasAuctionHouse}
           <a href="/seller/sold" onclick={closeMobile}>Sold & shipping</a>
+          <a href="/seller/bidders" onclick={closeMobile}>Bidders</a>
           <a href="/seller/marketing" onclick={closeMobile}>Marketing & contacts</a>
           <a href="/seller/settings" onclick={closeMobile}>House settings</a>
           <a href="/seller/team" onclick={closeMobile}>Team</a>

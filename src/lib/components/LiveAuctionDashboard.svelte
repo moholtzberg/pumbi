@@ -34,6 +34,7 @@
   let bidSuccessTimer;
   let bidAccess = $state(null);
   let checkingAccess = $state(false);
+  let lastAccessCheck = 0;
   let acceptTerms = $state(false);
   let registering = $state(false);
   let registerError = $state('');
@@ -107,6 +108,7 @@
         throw new Error(err.message || 'Failed to check bidding access');
       }
       bidAccess = await response.json();
+      lastAccessCheck = Date.now();
       if (bidAccess.readyToBid) acceptTerms = true;
     } catch (err) {
       registerError = err.message || 'Failed to check bidding access';
@@ -151,7 +153,7 @@
       const response = await fetch(`/api/auctions/${auction.id}/live`);
       if (response.ok) {
         liveData = await response.json();
-        if (session?.user && bidAccess && liveData.currentLot && bidAccess.registrationRequired !== requiresBidderRegistration(liveData.currentLot.auction || auction)) await loadBidAccess();
+        if (session?.user && bidAccess && liveData.currentLot && (Date.now() - lastAccessCheck >= 10000 || bidAccess.registrationRequired !== requiresBidderRegistration(liveData.currentLot.auction || auction))) await loadBidAccess();
       }
     } finally {
       loading = false;
@@ -170,6 +172,7 @@
       return;
     }
 
+    if (bidAccess?.blocked) { bidError = 'This auction house has blocked your bidding access. Contact the house for assistance.'; return; }
     if (bidAccess?.needsVerification) {
       bidError = 'Complete buyer verification before bidding.';
       return;
@@ -226,6 +229,7 @@
   function bidButtonLabel() {
     if (bidding) return 'Placing bid…';
     if (!session?.user) return `Log in to bid ${money(nextBidAmount)}`;
+    if (bidAccess?.blocked) return 'Bidding blocked by house';
     if (bidAccess?.needsVerification) return 'Verify to bid';
     if (!readyToBid) return isPublicAuction ? 'Accept terms to bid' : 'Registration required';
     if (!liveData.biddingOpen) {
@@ -303,6 +307,8 @@
                   <div class="mt-5 rounded-sm border border-slate-200 bg-[#f7f4ee] px-4 py-3 text-sm text-slate-600">
                     Checking whether you’re ready to bid…
                   </div>
+                {:else if bidAccess?.blocked}
+                  <div role="status" class="mt-5 border border-red-200 bg-red-50 p-4 text-sm text-red-900"><p class="font-bold">Bidding access blocked by this house</p><p class="mt-1">Contact the auction house for assistance. Completing verification or registration will not remove this block.</p></div>
                 {:else if bidAccess?.needsVerification}
                   <div class="mt-5 rounded-sm border border-amber-200 bg-amber-50 p-4">
                     <p class="text-xs font-semibold uppercase tracking-wide text-amber-700">Not ready to bid</p>
