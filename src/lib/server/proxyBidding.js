@@ -1,4 +1,5 @@
 import { error } from '@sveltejs/kit';
+import { auctionBidAccess } from '$lib/utils/biddingAccess.js';
 import { minimumLotBid } from './bidRules.js';
 import { extendedEndTime, resolveLotTiming } from './lotTiming.js';
 
@@ -25,13 +26,7 @@ export function resolveProxyPrice(lot, candidates) {
 
 function eligibleProxy(proxy, registration, lot) {
   if (!proxy.user || [lot.auction.sellerId, lot.ownerUserId, lot.auction.auctioneerId].includes(proxy.userId)) return false;
-  if (registration?.status !== 'APPROVED') return false;
-  if (proxy.source !== 'PHONE' && !proxy.user.isVerifiedBuyer) return false;
-  const auction = lot.auction;
-  return auction.type !== 'PUBLIC' || Boolean(registration.termsAcceptedAt &&
-    registration.acceptedPolicyId === auction.platformPolicyId &&
-    registration.acceptedPolicyVersion === auction.policyVersionSnapshot &&
-    registration.acceptedBuyerTermsSnapshot === auction.buyerTermsSnapshot);
+  return auctionBidAccess(proxy.user, lot.auction, registration, { phone: proxy.source === 'PHONE' }).readyToBid;
 }
 
 // Both callers hold the auction lock followed by the lot lock, and have checked

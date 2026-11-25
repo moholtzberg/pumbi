@@ -1,4 +1,5 @@
 <script>
+  import { requiresBidderRegistration } from '$lib/utils/biddingAccess.js';
   import { onMount } from 'svelte';
   import { page } from '$app/stores';
   import { goto } from '$app/navigation';
@@ -224,7 +225,7 @@
                 <a href="/dashboard/sell" class="mt-3 inline-block font-semibold text-[#18372f]">Submit an item →</a>
               {:else}
                 <p class="font-semibold text-gray-900">Auction-house managed auction</p>
-                <p class="mt-1">Anyone may browse. Bidding requires approval from {auction.auctionHouse?.name || 'the auction house'}.</p>
+                <p class="mt-1">{#if requiresBidderRegistration(auction)}Anyone may browse. Bidding requires approval from {auction.auctionHouse?.name || 'the auction house'}.{:else}Sign in to bid. No advance registration or approval is required.{/if}</p>
                 {#if auction.privateHouseBuyerPremiumRateSnapshot != null}
                   <p class="mt-2"><strong>Buyer premium:</strong> {Number(auction.privateHouseBuyerPremiumRateSnapshot) * 100}%</p>
                 {/if}

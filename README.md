@@ -146,7 +146,7 @@ New callers are registered/approved for this auction. An existing account matchi
 the email is reused without overwriting its contact details; rejected registrations
 must be reviewed separately. New accounts have no password and do not receive
 email, phone, identity, card, or online-bidding verification automatically. Online
-bidding continues to enforce the normal verification requirements.
+bidding enforces verification when the auction requires bidder registration.
 
 Phone bids obey minimum increments, the on-block lot and timer, and inherited
 bid-extension rules. The auctioneer, seller, and lot owner cannot be selected as the caller. The current
@@ -329,7 +329,7 @@ ceilings. `GET /api/bids?view=maximum&lotId=...` requires authentication and ret
 only the current user's ceiling with private/no-store caching. The platform admin
 Data manager treats `maxAmount` as write-only. Automatic defense rechecks bidder
 approval and public-policy acceptance; online maximums also require current buyer
-verification. Revocation stops further automatic defense without erasing an already
+verification when the auction requires registration. Revocation stops further automatic defense without erasing an already
 accepted public bid.
 
 The auctioneer’s close button first reads **Fair warning**. Clicking it publishes
@@ -350,3 +350,22 @@ in `tests/phoneBids.test.js`. An opt-in PostgreSQL test runs with
 Node 24. It creates only rolled-back fixtures, checks effective prices and warning
 locks through the real routes, and mocks invoice creation. It places no real bids
 and sends no notifications.
+
+
+## Bidding without advance registration
+
+**Auction settings → Bidding Settings → Require registration to bid** controls
+access for every lot in that auction. When off (the default), any signed-in user
+can bid while the lot is open, without advance registration, manual approval,
+buyer verification, or a separate terms-acceptance step. This applies to both
+PRIVATE and PUBLIC auctions. A missing setting follows the default of off.
+Registration records are not fabricated as a side effect of bidding.
+
+When on, PRIVATE auctions require verified buyers and approved registrations;
+PUBLIC auctions require verified buyers and acceptance of the current auction
+policy. Automatic maximum-bid defenses use the same rule as incoming bids, so an
+open-auction bidder is not silently excluded for lacking verification/registration.
+Switching registration on rechecks those requirements for future automatic bids.
+Signed-out users, bidding on your own lot, and bids outside the current live lot's
+open timer remain blocked. Bid amounts, auction terms, and buyer premiums continue
+to apply. No schema migration is needed for this access-rule change.

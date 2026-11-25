@@ -1,3 +1,4 @@
+import { requiresBidderRegistration } from '$lib/utils/biddingAccess.js';
 import { escapeEmailHtml as escape } from './smtp2go.js';
 import { unsubscribeToken } from './marketingPreferences.js';
 
@@ -9,12 +10,13 @@ export function marketingEmail(row, { live = false } = {}) {
   const preferences = new URL('/email-preferences', campaign.siteUrl);
   preferences.searchParams.set('token', unsubscribeToken(row.auctionHouseId, row.email));
   const starts = new Date(auction.startDate).toLocaleString('en-US', { timeZone: 'America/New_York', dateStyle: 'full', timeStyle: 'short' }) + ' (Eastern time)';
+  const registrationRequired = requiresBidderRegistration(auction);
   let subject, body, action;
   switch (row.kind) {
     case 'INVITATION':
       subject = row.subject || `You're invited: ${auction.title}`;
-      body = row.message || `${house} invites you to bid in ${auction.title}.\n\nScheduled start: ${starts}. Browse the catalog, create an account or sign in, and register to bid. Bidder approval and the auction terms still apply.`;
-      action = 'Browse auction & register'; break;
+      body = row.message || `${house} invites you to bid in ${auction.title}.\n\nScheduled start: ${starts}. ${registrationRequired ? 'Browse the catalog, create an account or sign in, and register to bid. Bidder approval and the auction terms still apply.' : 'Browse the catalog and sign in to bid. No advance registration or approval is required. Auction terms and buyer premiums apply.'}`;
+      action = registrationRequired ? 'Browse auction & register' : 'Browse auction & bid'; break;
     case 'UPDATE':
       subject = row.subject; body = row.message; action = 'View auction'; break;
     case 'AUCTION_START':

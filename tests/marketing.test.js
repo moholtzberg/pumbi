@@ -311,3 +311,14 @@ test('an invitation backlog does not delay a watched-lot reminder', async () => 
   assert.equal(state.items.marketingMessage[0].status, 'QUEUED');
   assert.equal(state.items.marketingMessage[1].status, 'CANCELLED');
 });
+
+
+test('default invitations describe sign-in bidding for open auctions and registration for gated auctions', async () => {
+  await invite();
+  const row = state.items.marketingMessage[0];
+  const open = templates.marketingEmail(joined('marketingMessage', row));
+  assert.match(open.text, /sign in to bid/); assert.match(open.text, /No advance registration or approval is required/);
+  state.items.auction[0].settings = JSON.stringify({ requireRegistrationToBid: true });
+  const gated = templates.marketingEmail(joined('marketingMessage', row));
+  assert.match(gated.text, /register to bid/); assert.doesNotMatch(gated.text, /No advance registration or approval/);
+});

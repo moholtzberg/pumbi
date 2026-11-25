@@ -1,6 +1,7 @@
 import { json, error } from '@sveltejs/kit';
 import prisma from '$lib/prisma.js';
 import { requireAuthenticatedUser } from '$lib/server/authorization.js';
+import { auctionBidAccess, requiresBidderRegistration } from '$lib/utils/biddingAccess.js';
 import { auctionRegistrationSchema } from '$lib/zod.js';
 
 export async function POST({ params, locals, request }) {
@@ -9,9 +10,6 @@ export async function POST({ params, locals, request }) {
       locals,
       'You must be logged in to register for an auction'
     );
-    if (!user.isVerifiedBuyer) {
-      throw error(403, 'Complete buyer verification before registering for an auction');
-    }
     const auction = await prisma.auction.findUnique({
       where: { id: params.id },
       include: {
@@ -28,6 +26,11 @@ export async function POST({ params, locals, request }) {
       throw error(404, 'Auction not found');
     }
     
+    if (!requiresBidderRegistration(auction)) {
+      return json({ message: 'Registration is not required; sign in to bid', registered: false, approved: false, status: 'NOT_REQUIRED', ...auctionBidAccess(user, auction, null) }, { headers: { 'cache-control': 'private, no-store' } });
+    }
+    if (!user.isVerifiedBuyer) throw error(403, 'Complete buyer verification before registering for an auction');
+
     const now = new Date();
     const liveFloorOpen = Boolean(
       auction.auctioneerStartedAt &&
@@ -173,6 +176,7 @@ export async function GET({ params, locals }) {
       select: {
         id: true,
         type: true,
+        settings: true,
         status: true,
         platformPolicyId: true,
         policyVersionSnapshot: true,
@@ -202,24 +206,8 @@ export async function GET({ params, locals }) {
       ? auction.buyerPremiumRateSnapshot
       : auction.privateHouseBuyerPremiumRateSnapshot;
 
-    const policyAccepted = isPublic
-      ? Boolean(
-          registration?.status === 'APPROVED' &&
-          registration.termsAcceptedAt &&
-          registration.acceptedPolicyId === auction.platformPolicyId &&
-          registration.acceptedPolicyVersion === auction.policyVersionSnapshot &&
-          registration.acceptedBuyerTermsSnapshot === auction.buyerTermsSnapshot
-        )
-      : registration?.status === 'APPROVED';
-
+    const access = auctionBidAccess(user, auction, registration);
     const status = registration?.status || null;
-    const needsVerification = !user.isVerifiedBuyer;
-    const needsTermsAcceptance = Boolean(
-      user.isVerifiedBuyer &&
-      !policyAccepted &&
-      status !== 'PENDING' &&
-      status !== 'REJECTED'
-    );
 
     return json({
       registered: !!registration,
@@ -230,11 +218,8 @@ export async function GET({ params, locals }) {
       buyerPremiumRate,
       policyVersion: auction.policyVersionSnapshot,
       isVerifiedBuyer: user.isVerifiedBuyer,
-      policyAccepted,
-      readyToBid: Boolean(user.isVerifiedBuyer && policyAccepted),
-      needsVerification,
-      needsTermsAcceptance
-    });
+      ...access
+    }, { headers: { 'cache-control': 'private, no-store' } });
   } catch (err) {
     console.error('Error checking registration:', err);
     if (err.status) {

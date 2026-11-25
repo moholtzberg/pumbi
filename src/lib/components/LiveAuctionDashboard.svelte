@@ -2,6 +2,7 @@
   import { onMount, onDestroy } from 'svelte';
   import { page } from '$app/stores';
   import { goto } from '$app/navigation';
+  import { requiresBidderRegistration } from '$lib/utils/biddingAccess.js';
   import MaximumBidForm from '$lib/components/MaximumBidForm.svelte';
   import CountdownTimer from '$lib/components/CountdownTimer.svelte';
   import PumbiLoader from '$lib/components/PumbiLoader.svelte';
@@ -148,7 +149,10 @@
   async function refresh() {
     try {
       const response = await fetch(`/api/auctions/${auction.id}/live`);
-      if (response.ok) liveData = await response.json();
+      if (response.ok) {
+        liveData = await response.json();
+        if (session?.user && bidAccess && liveData.currentLot && bidAccess.registrationRequired !== requiresBidderRegistration(liveData.currentLot.auction || auction)) await loadBidAccess();
+      }
     } finally {
       loading = false;
     }
@@ -306,13 +310,13 @@
                     <p class="mt-1 text-sm text-amber-800">Same checklist as account onboarding: email, phone, ID, and card must be complete before you can bid here.</p>
                     <a href="/dashboard/verification" class="mt-3 inline-flex rounded-lg bg-amber-700 px-4 py-2 text-sm font-bold text-white hover:bg-amber-800">Continue verification</a>
                   </div>
-                {:else if bidAccess?.status === 'PENDING'}
+                {:else if bidAccess?.registrationRequired && bidAccess?.status === 'PENDING'}
                   <div class="mt-5 rounded-sm border border-[#ddd6ca] bg-[#efe8dc] p-4">
                     <p class="text-xs font-semibold uppercase tracking-wide text-[#18372f]">Not ready to bid</p>
                     <p class="mt-1 font-bold text-blue-950">Waiting for auction-house approval</p>
                     <p class="mt-1 text-sm text-[#18372f]">Your registration was submitted. You’ll be able to bid once the house approves you.</p>
                   </div>
-                {:else if bidAccess?.status === 'REJECTED'}
+                {:else if bidAccess?.registrationRequired && bidAccess?.status === 'REJECTED'}
                   <div class="mt-5 rounded-sm border border-red-200 bg-red-50 p-4">
                     <p class="text-xs font-semibold uppercase tracking-wide text-red-700">Not approved</p>
                     <p class="mt-1 font-bold text-red-950">Your bidder registration was not approved</p>
@@ -362,7 +366,7 @@
                   </div>
                 {:else if readyToBid}
                   <div class="mt-4 rounded-lg border border-[#c5d0c8] bg-[#e8eee9] px-3 py-2 text-sm font-semibold text-[#18372f]">
-                    You’re cleared to bid on this auction.
+                    {bidAccess?.registrationRequired ? 'You’re cleared to bid on this auction.' : 'You’re signed in and ready to bid. No registration or approval is required.'}
                   </div>
                 {/if}
               {/if}

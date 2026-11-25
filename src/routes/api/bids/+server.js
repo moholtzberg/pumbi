@@ -2,6 +2,7 @@ import { json, error } from '@sveltejs/kit';
 import { db } from '$lib/db.js';
 import prisma from '$lib/prisma.js';
 import { requireAuthenticatedUser } from '$lib/server/authorization.js';
+import { auctionBidAccess } from '$lib/utils/biddingAccess.js';
 import { submitMaximumBid } from '$lib/server/proxyBidding.js';
 import { bidAmount, requireOpenLot } from '$lib/server/bidRules.js';
 
@@ -40,9 +41,6 @@ export async function POST({ request, locals }) {
   
   if (typeof lotId !== 'string' || !lotId || !Number.isFinite(amount) || amount <= 0) {
     throw error(400, 'A valid lot ID and positive bid amount are required');
-  }
-  if (!user.isVerifiedBuyer) {
-    throw error(403, 'Complete buyer verification before placing a bid');
   }
 
   const bid = await prisma.$transaction(async (tx) => {
@@ -97,31 +95,10 @@ export async function POST({ request, locals }) {
       }
     });
 
-    if (auction.type === 'PRIVATE') {
-      if (registration?.status !== 'APPROVED') {
-        throw error(403, 'Your registration must be approved before bidding');
-      }
-    } else {
-      if (
-        !auction.platformPolicyId ||
-        auction.policyVersionSnapshot == null ||
-        !auction.buyerTermsSnapshot
-      ) {
-        throw error(409, 'This public auction does not have a valid bidding policy');
-      }
-
-      const acceptedAuctionPolicy = Boolean(
-        registration?.status === 'APPROVED' &&
-        registration.termsAcceptedAt &&
-        registration.acceptedPolicyId === auction.platformPolicyId &&
-        registration.acceptedPolicyVersion === auction.policyVersionSnapshot &&
-        registration.acceptedBuyerTermsSnapshot === auction.buyerTermsSnapshot
-      );
-
-      if (!acceptedAuctionPolicy) {
-        throw error(403, 'You must accept this auction policy before bidding');
-      }
-    }
+    const access = auctionBidAccess(user, auction, registration);
+    if (access.needsVerification) throw error(403, 'Complete buyer verification before placing a bid');
+    if (access.registrationRequired && !access.policyConfigured) throw error(409, 'This public auction does not have a valid bidding policy');
+    if (!access.readyToBid) throw error(403, access.approvalRequired ? 'Your registration must be approved before bidding' : 'You must accept this auction policy before bidding');
 
     return submitMaximumBid(tx, { lot, buyer: user, maximum: amount, now });
   });

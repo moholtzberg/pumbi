@@ -1,4 +1,5 @@
 <script>
+  import { requiresBidderRegistration } from '$lib/utils/biddingAccess.js';
   import MaximumBidForm from '$lib/components/MaximumBidForm.svelte';
   import { onMount } from 'svelte';
   import { page } from '$app/stores';
@@ -15,6 +16,8 @@
   let currentUser = $state(null);
   let auctionSettings = $state(null);
   let isRegistered = $state(false);
+  let bidAccess = $state(null);
+  let registrationRequired = $derived(requiresBidderRegistration(lot?.auction));
   let registrationStatus = $state('NONE');
   let acceptTerms = $state(false);
   let checkingRegistration = $state(false);
@@ -161,7 +164,8 @@
       if (response.ok) {
         const data = await response.json();
         registrationStatus = data.status || (data.registered ? 'APPROVED' : 'NONE');
-        isRegistered = registrationStatus === 'APPROVED';
+        bidAccess = data;
+        isRegistered = Boolean(data.readyToBid);
       }
     } catch (error) {
       console.error('Error checking registration:', error);
@@ -183,7 +187,7 @@
       if (response.ok) {
         const result = await response.json();
         registrationStatus = result.status || (result.registered ? 'APPROVED' : 'PENDING');
-        isRegistered = registrationStatus === 'APPROVED';
+        await checkRegistration();
       } else {
         const error = await response.json();
         bidError = error.message || 'Failed to register for auction';
@@ -358,9 +362,12 @@
                   Login to Bid
                 </a>
               </div>
-            {:else if (lot.auction?.type || auctionSettings?.requireRegistrationToBid) && !isRegistered}
+            {:else if registrationRequired && !isRegistered}
               <div class="mb-6 bg-[#efe8dc] border border-[#ddd6ca] rounded-lg p-4">
-                {#if registrationStatus === 'PENDING'}
+                {#if bidAccess?.needsVerification}
+                  <p class="font-semibold text-amber-900">Finish buyer verification before registering for this auction.</p>
+                  <a href="/dashboard/verification" class="mt-3 inline-block font-bold text-[#18372f] underline">Continue verification</a>
+                {:else if registrationStatus === 'PENDING'}
                   <p class="font-semibold text-[#152c26]">Approval pending</p>
                   <p class="mt-1 text-sm text-[#18372f]">The auction house will review your bidder registration.</p>
                 {:else if registrationStatus === 'REJECTED'}

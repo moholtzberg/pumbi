@@ -70,6 +70,7 @@ const server = await createServer({ configFile: false, server: { middlewareMode:
     if (id === '$lib/db.js') return '\0phone-db';
     if (id === '$lib/server/authorization.js') return '\0phone-auth';
     if (id === '$lib/server/invoices.js') return '\0phone-invoices';
+    if (id === '$lib/zod.js') return fileURLToPath(new URL('../src/lib/zod.ts', import.meta.url));
     if (id.startsWith('$lib/')) return fileURLToPath(new URL('../src/lib/' + id.slice(5), import.meta.url));
   }, load(id) {
     if (id === '\0phone-prisma') return 'export default globalThis.__phoneBidTest.client;';
@@ -81,12 +82,13 @@ const server = await createServer({ configFile: false, server: { middlewareMode:
 const phone = await server.ssrLoadModule('/src/routes/api/auctions/[id]/phone-bids/+server.js');
 const online = await server.ssrLoadModule('/src/routes/api/bids/+server.js');
 const live = await server.ssrLoadModule('/src/routes/api/auctions/[id]/live/+server.js');
+const registrationRoute = await server.ssrLoadModule('/src/routes/api/auctions/[id]/register/+server.js');
 const rules = await server.ssrLoadModule('/src/lib/server/bidRules.js');
 const proxyEngine = await server.ssrLoadModule('/src/lib/server/proxyBidding.js');
 after(async () => { await server.close(); delete globalThis.__phoneBidTest; });
 beforeEach(() => {
   state.actor = { id: 'auctioneer', house: 'house' }; state.canManage = true; state.queue = Promise.resolve();
-  state.auction = { id: 'auction', auctionHouseId: 'house', auctioneerId: 'auctioneer', sellerId: 'seller', status: 'LIVE', type: 'PRIVATE', auctioneerStartedAt: new Date(), settings: JSON.stringify({ onBlockLotId: 'lot' }), startDate: new Date(Date.now() - 100000), endDate: new Date(Date.now() + 3600000), auctionHouse: { settings: JSON.stringify({ automaticAuctionTimerResetSeconds: 60 }) } };
+  state.auction = { id: 'auction', auctionHouseId: 'house', auctioneerId: 'auctioneer', sellerId: 'seller', status: 'LIVE', type: 'PRIVATE', auctioneerStartedAt: new Date(), settings: JSON.stringify({ onBlockLotId: 'lot', requireRegistrationToBid: true }), startDate: new Date(Date.now() - 100000), endDate: new Date(Date.now() + 3600000), auctionHouse: { settings: JSON.stringify({ automaticAuctionTimerResetSeconds: 60 }) } };
   state.lot = { id: 'lot', auctionId: 'auction', ownerUserId: 'owner', status: 'ACTIVE', isReady: true, lotNumber: 1, currentBid: 100, startingBid: 50, bidIncrement: 10, highestBidderId: 'old-buyer', highestBidderName: 'Old bidder', endTime: new Date(Date.now() + 10000) };
   state.users = [{ id: 'buyer', name: 'Alice', email: 'alice@example.com', isVerifiedBuyer: true }, { id: 'buyer-2', name: 'Bob', email: 'bob@example.com', isVerifiedBuyer: true }];
   state.registrations = state.users.map(user => ({ auctionId: 'auction', userId: user.id, status: 'APPROVED' }));
@@ -383,4 +385,88 @@ test('effective bid timestamps use the post-lock acceptance clock', async () => 
   const acceptedAt = new Date(Date.now() - 1000);
   await client.$transaction(tx => proxyEngine.submitMaximumBid(tx, { lot: { ...state.lot, auction: state.auction }, buyer: state.users[0], maximum: 100, now: acceptedAt }));
   assert.equal(state.bids[0].timestamp.getTime(), acceptedAt.getTime());
+});
+
+const registrationSetting = required => { state.auction.settings = JSON.stringify({ onBlockLotId: 'lot', ...(required === undefined ? {} : { requireRegistrationToBid: required }) }); };
+
+test('signed-in unverified users can bid without registration when the auction setting is off', async () => {
+  opening(); registrationSetting(false); state.registrations = []; state.users[0].isVerifiedBuyer = false;
+  const result = await maximum(state.users[0], 100);
+  assert.equal(result.currentBid, 25); assert.equal(result.isLeading, true);
+  assert.equal(state.registrations.length, 0);
+});
+
+test('an absent registration setting follows the configured default of no registration', async () => {
+  opening(); registrationSetting(undefined); state.registrations = []; state.users[0].isVerifiedBuyer = false;
+  assert.equal((await maximum(state.users[0], 100)).isLeading, true);
+});
+
+test('automatic maximum bids remain active for unverified users on open auctions', async () => {
+  opening(); registrationSetting(false); state.registrations = [];
+  state.users.forEach(user => { user.isVerifiedBuyer = false; });
+  await maximum(state.users[0], 100);
+  const result = await maximum(state.users[1], 80);
+  assert.equal(result.currentBid, 85); assert.equal(result.isLeading, false);
+  assert.equal(state.lot.highestBidderId, state.users[0].id);
+  assert.equal(state.bids.at(-1).isAutomatic, true);
+});
+
+test('public open auctions also allow logged-in bidding without a registration or terms step', async () => {
+  opening(); registrationSetting(false); state.auction.type = 'PUBLIC'; state.registrations = []; state.users[0].isVerifiedBuyer = false;
+  assert.equal((await maximum(state.users[0], 100)).currentBid, 25);
+  const access = await (await registrationRoute.GET(event({}, { user: state.users[0] }))).json();
+  assert.equal(access.readyToBid, true); assert.equal(access.registrationRequired, false);
+  assert.equal(access.needsVerification, false); assert.equal(access.needsTermsAcceptance, false);
+});
+
+test('open-auction access ignores old pending/rejected approval states and creates no registration', async () => {
+  registrationSetting(false); state.users[0].isVerifiedBuyer = false;
+  for (const status of ['PENDING', 'REJECTED']) {
+    state.registrations[0].status = status;
+    const response = await registrationRoute.GET(event({}, { user: state.users[0] }));
+    const access = await response.json();
+    assert.equal(access.readyToBid, true); assert.equal(access.approvalRequired, false);
+    assert.equal(access.needsVerification, false); assert.equal(access.needsTermsAcceptance, false);
+    assert.match(response.headers.get('cache-control'), /private, no-store/);
+  }
+  state.registrations = [];
+  const result = await (await registrationRoute.POST(event({}, { user: state.users[0] }))).json();
+  assert.equal(result.readyToBid, true); assert.equal(result.status, 'NOT_REQUIRED');
+  assert.equal(state.registrations.length, 0);
+});
+
+test('registration-required auctions still enforce verification and approval', async () => {
+  state.users[0].isVerifiedBuyer = false;
+  await assert.rejects(maximum(state.users[0], 110), err => err.status === 403);
+  state.users[0].isVerifiedBuyer = true; state.registrations[0].status = 'PENDING';
+  await assert.rejects(maximum(state.users[0], 110), err => err.status === 403);
+  const access = await (await registrationRoute.GET(event({}, { user: state.users[0] }))).json();
+  assert.equal(access.registrationRequired, true); assert.equal(access.readyToBid, false);
+  assert.equal(state.bids.length, 0);
+});
+
+test('registration-required public auctions still enforce the current policy snapshot', async () => {
+  Object.assign(state.auction, { type: 'PUBLIC', platformPolicyId: 'policy', policyVersionSnapshot: 1, buyerTermsSnapshot: 'Terms' });
+  await assert.rejects(maximum(state.users[0], 110), err => err.status === 403);
+  Object.assign(state.registrations[0], { termsAcceptedAt: new Date(), acceptedPolicyId: 'policy', acceptedPolicyVersion: 1, acceptedBuyerTermsSnapshot: 'Terms' });
+  assert.equal((await maximum(state.users[0], 110)).isLeading, true);
+});
+
+test('turning registration back on stops ineligible automatic defenses', async () => {
+  opening(); registrationSetting(false); state.registrations = []; state.users[0].isVerifiedBuyer = false;
+  await maximum(state.users[0], 100);
+  registrationSetting(true);
+  state.registrations.push({ auctionId: 'auction', userId: state.users[1].id, status: 'APPROVED' });
+  const result = await maximum(state.users[1], 80);
+  assert.equal(result.currentBid, 30); assert.equal(result.isLeading, true);
+});
+
+test('open bidding still requires sign-in and rejects closed lots and self-bidding', async () => {
+  registrationSetting(false); state.actor = null;
+  await assert.rejects(online.POST(event({ lotId: 'lot', amount: 110 })), err => err.status === 401);
+  state.lot.ownerUserId = state.users[0].id;
+  await assert.rejects(maximum(state.users[0], 110), err => err.status === 403);
+  state.lot.ownerUserId = 'owner'; state.lot.endTime = new Date(Date.now() - 1000);
+  await assert.rejects(maximum(state.users[0], 110), err => err.status === 409);
+  assert.equal(state.bids.length, 0);
 });

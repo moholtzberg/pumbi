@@ -489,7 +489,7 @@
                     <input type="checkbox" bind:checked={settings.requireRegistrationToBid} class="mr-2 h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded" />
                     <div>
                       <span class="text-sm font-medium text-gray-700">Require registration to bid</span>
-                      <p class="text-xs text-gray-500">Users must register before placing bids</p>
+                      <p class="text-xs text-gray-500">When enabled, bidders must complete verification and registration; private auctions also require house approval. When off, signed-in users can bid directly.</p>
                     </div>
                   </label>
                   <label class="flex items-center">

@@ -15,6 +15,7 @@ test('PostgreSQL proxy prices, private maxima, warning locks and hammer winner s
       if (id === '$lib/prisma.js') return '\0proxy-database';
       if (id === '$lib/db.js') return '\0proxy-db-empty';
       if (id === '$lib/server/invoices.js') return '\0proxy-invoices';
+      if (id === '$lib/zod.js') return fileURLToPath(new URL('../src/lib/zod.ts', import.meta.url));
       if (id.startsWith('$lib/')) return fileURLToPath(new URL('../src/lib/' + id.slice(5), import.meta.url));
     }, load(id) {
       if (id === '\0proxy-database') return 'export default new Proxy({}, { get: (_, key) => globalThis.__proxyDatabaseTest.client[key] });';
@@ -35,7 +36,7 @@ test('PostgreSQL proxy prices, private maxima, warning locks and hammer winner s
       const bob = await tx.user.create({ data: { email: `bob-${nonce}@example.invalid`, name: 'Bob', isVerifiedBuyer: true } });
       const auction = await tx.auction.create({ data: { title: 'Proxy rollback test', auctionHouseId: house.id, sellerId: auctioneer.id, auctioneerId: auctioneer.id, auctioneerStartedAt: new Date(), status: 'LIVE', startDate: new Date(), endDate: new Date(Date.now() + 3600000) } });
       const lot = await tx.lot.create({ data: { auctionId: auction.id, title: 'Test lot', lotNumber: 1, isReady: true, startingBid: 25, bidIncrement: 5, endTime: new Date(Date.now() + 3600000) } });
-      await tx.auction.update({ where: { id: auction.id }, data: { settings: JSON.stringify({ onBlockLotId: lot.id }) } });
+      await tx.auction.update({ where: { id: auction.id }, data: { settings: JSON.stringify({ onBlockLotId: lot.id, requireRegistrationToBid: true }) } });
       await tx.auctionRegistration.createMany({ data: [alice, bob].map(user => ({ auctionId: auction.id, userId: user.id, status: 'APPROVED' })) });
       const bids = await server.ssrLoadModule('/src/routes/api/bids/+server.js');
       const floor = await server.ssrLoadModule('/src/routes/api/auctions/[id]/live/+server.js');
@@ -56,6 +57,17 @@ test('PostgreSQL proxy prices, private maxima, warning locks and hammer winner s
       await floor.POST(event(auctioneer, { action: 'close', lotId: lot.id, fairWarningKey: freshWarning.lot.fairWarningKey }));
       const invoiced = globalThis.__proxyDatabaseTest.invoiceLot;
       assert.equal(invoiced.status, 'SOLD'); assert.equal(invoiced.highestBidderId, alice.id); assert.equal(invoiced.currentBid, 105);
+      // An open auction needs only the session, including for automatic defenses.
+      const openAuction = await tx.auction.create({ data: { title: 'Open rollback test', auctionHouseId: house.id, sellerId: auctioneer.id, auctioneerId: auctioneer.id, auctioneerStartedAt: new Date(), status: 'LIVE', startDate: new Date(), endDate: new Date(Date.now() + 3600000), settings: JSON.stringify({ requireRegistrationToBid: false }) } });
+      const openLot = await tx.lot.create({ data: { auctionId: openAuction.id, title: 'Open test lot', lotNumber: 1, isReady: true, startingBid: 25, bidIncrement: 5, endTime: new Date(Date.now() + 3600000) } });
+      await tx.user.updateMany({ where: { id: { in: [alice.id, bob.id] } }, data: { isVerifiedBuyer: false } });
+      assert.equal((await (await bids.POST(event(alice, { lotId: openLot.id, amount: 150 }))).json()).currentBid, 25);
+      const defended = await (await bids.POST(event(bob, { lotId: openLot.id, amount: 100 }))).json();
+      assert.equal(defended.currentBid, 105); assert.equal(defended.isLeading, false);
+      const registrations = await server.ssrLoadModule('/src/routes/api/auctions/[id]/register/+server.js');
+      const openAccess = await (await registrations.GET({ ...event(alice, {}), params: { id: openAuction.id } })).json();
+      assert.equal(openAccess.readyToBid, true); assert.equal(openAccess.needsVerification, false); assert.equal(openAccess.registrationRequired, false);
+      assert.equal(await tx.auctionRegistration.count({ where: { auctionId: openAuction.id } }), 0);
       throw rollback;
     }, { timeout: 30000 }), err => err === rollback);
     assert.equal(await client.proxyBid.count(), before);
