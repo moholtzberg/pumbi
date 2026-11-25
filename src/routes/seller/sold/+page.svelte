@@ -1,5 +1,6 @@
 <script>
   import RecordPayment from '$lib/components/RecordPayment.svelte';
+  import SendInvoice from '$lib/components/SendInvoice.svelte';
   let { data } = $props();
   let busyId = $state('');
   let notice = $state('');
@@ -97,6 +98,7 @@
               {/if}
             </div>
             <div class="flex flex-col gap-2">
+              <SendInvoice {invoice} disabled={Boolean(busyId)} />
               <RecordPayment {invoice} disabled={Boolean(busyId)} />
               {#if invoice.shipment?.labelUrl}
                 <a href={invoice.shipment.labelUrl} target="_blank" rel="noreferrer" class="pumbi-btn-secondary text-center">Print label</a>

@@ -1,5 +1,6 @@
 <script>
   import RecordPayment from '$lib/components/RecordPayment.svelte';
+  import SendInvoice from '$lib/components/SendInvoice.svelte';
   let { data } = $props();
 
   let invoice = $state(data.invoice);
@@ -96,7 +97,7 @@
       <p class="mt-3 text-sm">{invoice.paymentChannel === 'PUMBI_STRIPE' ? 'Credit card · Stripe' : invoice.externalPaymentMethod}{invoice.paidAt ? ` · Paid ${new Date(invoice.paidAt).toLocaleDateString()}` : ''}</p>
     {/if}
     {#if invoice.notes}<p class="mt-2 whitespace-pre-line text-sm text-[var(--pumbi-ink-soft)]">{invoice.notes}</p>{/if}
-    <div class="mt-4"><RecordPayment {invoice} disabled={Boolean(busy)} /></div>
+    <div class="mt-4 flex flex-wrap items-start gap-3"><SendInvoice {invoice} disabled={Boolean(busy)} /><RecordPayment {invoice} disabled={Boolean(busy)} /></div>
   </section>
 
   <section class="pumbi-panel mt-6 p-5">

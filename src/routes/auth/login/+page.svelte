@@ -1,5 +1,7 @@
 <script>
   import { goto } from '$app/navigation';
+  import { page } from '$app/stores';
+  import { loginDestination } from '$lib/utils/loginDestination.js';
   import { signIn } from '@auth/sveltekit/client';
   
   let formData = $state({
@@ -32,7 +34,7 @@
           : authError;
         loading = false;
       } else if (result?.ok || responseData?.url) {
-        await goto('/dashboard', { invalidateAll: true });
+        await goto(loginDestination($page.url.searchParams.get('redirect'), $page.url.origin), { invalidateAll: true });
       } else {
         error = 'Unable to sign in. Please try again.';
         loading = false;

@@ -22,8 +22,8 @@ are not retained by a transaction pooler.
 
 ## Transactional email (SMTP2GO)
 
-Email verification codes, password-reset links, and auction-house team invitations
-use the shared SMTP2GO HTTPS API service. Set `SMTP2GO_API_KEY`,
+Email verification codes, password-reset links, buyer invoices, and auction-house
+team invitations use the shared SMTP2GO HTTPS API service. Set `SMTP2GO_API_KEY`,
 `SMTP2GO_FROM_EMAIL=Pumbi <hello@ginzeyamerica.com>`, and `APP_URL` (the public
 site origin) in the server environment and in Vercel, then redeploy. The sender
 defaults to the address above, which must be authorized under SMTP2GO's Verified
@@ -419,3 +419,21 @@ Tests cover permissions, exact currency balances, tenant isolation, owner block
 flows, and bid/phone/automatic enforcement. Run the opt-in, rolled-back PostgreSQL
 checks using `RUN_BIDDER_DATABASE_TESTS=1 node --test tests/sellerBidders.integration.test.js`
 under Node 24. They send no messages, move no money, and retain no test data.
+
+
+## Sending sold-lot invoices
+
+**Send invoice** and **Record payment** are separate actions on both the Sold list
+and an individual invoice's shipping/tools page. Send invoice emails the recorded
+buyer through SMTP2GO with the invoice number, auction/lot, itemized amounts,
+current payment status, and a link to `/dashboard/invoices/:id`. The buyer must
+sign in to their own account to view/pay it. The recipient comes from the invoice;
+request payloads cannot substitute another address.
+
+When buyer-paid shipping is not selected yet, the email marks shipping as pending
+and the current total as excluding that shipping choice. Paid, refunded, or
+cancelled invoices send a copy with their current status and no payment request.
+Sending never records a payment, starts card checkout, or purchases shipping.
+Mail failures appear beside the button; successful sends show the buyer's address.
+Record payment retains its existing cash/check/Stripe workflow. No migration is
+required. Invoice-email tests use a mock provider and send no real messages.

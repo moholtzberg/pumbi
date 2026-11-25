@@ -50,6 +50,13 @@ export async function POST({ params, locals, request }) {
   const body = await request.json().catch(() => ({}));
   const action = String(body.action || '').toLowerCase();
 
+  if (action === 'send_invoice') {
+    if (!invoice.buyer?.email) throw error(409, 'The buyer needs an email address before this invoice can be sent');
+    const { deliverBuyerInvoice } = await import('$lib/server/email.js');
+    await deliverBuyerInvoice({ invoice, origin: new URL(request.url).origin });
+    return json({ sent: true, sentTo: invoice.buyer.email }, { headers: { 'cache-control': 'private, no-store' } });
+  }
+
   if (action === 'record_payment') {
     const method = String(body.method || '').toLowerCase();
     if (!['cash', 'check', 'card'].includes(method)) throw error(400, 'Choose cash, check, or credit card');
