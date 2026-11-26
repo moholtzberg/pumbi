@@ -1,4 +1,6 @@
 <script>
+  import { shippingDefaults, shippingKey } from '$lib/utils/addresses.js';
+  import InvoiceHouseContact from '$lib/components/InvoiceHouseContact.svelte';
   let { data } = $props();
 
   let busy = $state('');
@@ -10,6 +12,15 @@
   let rates = $state(data.rates || []);
   let selectedRateId = $state(data.selectedRateId || '');
   let address = $state({ ...data.shippingAddress });
+  let selectedAddress = $state(data.selectedAddressId || 'custom');
+  let ratedAddress = $state(shippingKey(data.shippingAddress));
+  let addressChanged = $derived(shippingKey(address) !== ratedAddress);
+  let shippingNotReady = $derived(invoice.buyerPaysShipping && (!selectedRateId || addressChanged));
+  function chooseAddress() {
+    const saved = data.savedAddresses.find(row => row.id === selectedAddress);
+    if (saved) address = shippingDefaults(data.user, [{ ...saved, isDefault: true }]).address;
+    rates = []; selectedRateId = '';
+  }
 
   function money(amount) {
     return new Intl.NumberFormat('en-US', {
@@ -41,7 +52,9 @@
 
   async function getRates() {
     try {
-      const result = await api('quote_shipping', { address });
+      const requestedAddress = { ...address };
+      const result = await api('quote_shipping', { address: requestedAddress });
+      ratedAddress = shippingKey(requestedAddress);
       rates = result.rates || [];
       selectedRateId = '';
       successMessage = rates.length ? 'Shipping options loaded.' : 'No rates returned.';
@@ -99,6 +112,7 @@
         {invoice.auctionHouse?.name || 'Seller'} · {invoice.auction?.title}
       </p>
     </header>
+    <InvoiceHouseContact house={invoice.auctionHouse} />
 
     {#if errorMessage}
       <div class="mt-4 border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-800">{errorMessage}</div>
@@ -126,6 +140,12 @@
       <section class="mt-6 border border-[#ddd6ca] bg-white p-5">
         <h2 class="font-[family-name:var(--pumbi-serif)] text-xl font-semibold">Shipping address</h2>
         <p class="mt-1 text-sm text-[#435048]">Buyer pays shipping — choose a rate before checkout. The label is created for the seller automatically after payment.</p>
+        {#if data.savedAddresses?.length}
+          <label class="mt-4 block text-sm font-semibold">Saved shipping address<select bind:value={selectedAddress} onchange={chooseAddress} disabled={Boolean(busy)} class="mt-2 w-full border border-[#ddd6ca] bg-white p-3"><option value="custom">Use a different address</option>{#each data.savedAddresses as saved}<option value={saved.id}>{saved.label}{saved.isDefault ? ' (default)' : ''} · {saved.street1}, {saved.city}</option>{/each}</select></label>
+        {/if}
+        <a href="/dashboard/profile#saved-addresses" class="mt-3 inline-block text-xs font-semibold text-[#18372f] underline">Manage saved addresses</a>
+        {#if !address.city || !address.zip}<p class="mt-2 text-xs text-slate-600">Confirm the city, region, and postal code from your profile address before requesting rates.</p>{/if}
+        {#if addressChanged}<p class="mt-2 text-xs text-amber-800">Get new shipping rates for this address before paying.</p>{/if}
         <div class="mt-4 grid gap-3 sm:grid-cols-2">
           <label class="text-sm sm:col-span-2">Name<input class="mt-1 w-full border border-[#ddd6ca] bg-[#f7f4ee] px-3 py-2" bind:value={address.name} /></label>
           <label class="text-sm sm:col-span-2">Street<input class="mt-1 w-full border border-[#ddd6ca] bg-[#f7f4ee] px-3 py-2" bind:value={address.street1} /></label>
@@ -150,7 +170,7 @@
               <button
                 type="button"
                 class="flex w-full items-center justify-between gap-3 px-4 py-3 text-left hover:bg-[#f7f4ee] {selectedRateId === rate.objectId ? 'bg-[#e8eee9]' : ''}"
-                disabled={Boolean(busy)}
+                disabled={Boolean(busy) || addressChanged}
                 onclick={() => chooseRate(rate.objectId)}
               >
                 <div>
@@ -173,7 +193,7 @@
           <button
             type="button"
             class="bg-[#a95739] px-4 py-2.5 text-sm font-bold text-white disabled:opacity-50"
-            disabled={Boolean(busy)}
+            disabled={Boolean(busy) || shippingNotReady}
             onclick={payPumbi}
           >
             {busy === 'pay_pumbi' ? 'Starting checkout…' : 'Pay with Pumbi'}
@@ -182,7 +202,7 @@
             <button
               type="button"
               class="border border-[#18372f] px-4 py-2.5 text-sm font-bold text-[#18372f] disabled:opacity-50"
-              disabled={Boolean(busy)}
+              disabled={Boolean(busy) || shippingNotReady}
               onclick={() => payExternal(method.method)}
             >
               Pay by {method.label}

@@ -1,3 +1,4 @@
+import { invoiceHouseContact } from '$lib/utils/addresses.js';
 import { env } from '$env/dynamic/private';
 import { escapeEmailHtml as escape, sendTransactionalEmail } from '$lib/server/smtp2go.js';
 
@@ -24,13 +25,15 @@ export async function deliverBuyerInvoice({ invoice, origin }) {
   const format = value => new Intl.NumberFormat('en-US', {
     style: 'currency', currency: (invoice.currency || 'usd').toUpperCase()
   }).format(Number(value || 0));
-  const house = invoice.auctionHouse.name;
+  const contact = invoiceHouseContact(invoice.auctionHouse);
+  const house = contact.name;
   const status = invoice.status.replaceAll('_', ' ').toLowerCase();
   const payable = ['UNPAID', 'AWAITING_EXTERNAL', 'PENDING_CHECKOUT'].includes(invoice.status);
   const shippingPending = payable && invoice.buyerPaysShipping && !invoice.shipment?.shippoRateId;
   const lines = [
     `Hello ${invoice.buyer.name || 'there'},`,
     `${house} has sent you invoice ${invoice.number}.`,
+    ...[contact.address, contact.email, contact.phone].filter(Boolean),
     `Auction: ${invoice.auction.title}`,
     `Lot #${invoice.lot.lotNumber}: ${invoice.lot.title}`,
     `Hammer price: ${format(invoice.hammerPrice)}`,

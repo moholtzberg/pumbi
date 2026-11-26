@@ -94,3 +94,13 @@ test('unselected buyer-paid shipping is disclosed as pending instead of free shi
   assert.match(state.sent[0].body.text_body, /Shipping: calculated when you choose/);
   assert.match(state.sent[0].body.text_body, /Current total before shipping/);
 });
+
+test('invoice email includes the auction house address and contact information with escaped HTML', async () => {
+  Object.assign(state.invoice.auctionHouse, { contactEmail: 'house@example.com', contactPhone: '+12125551234', locations: [{ type: 'HEADQUARTERS', isPrimary: true, addressLine1: '100 Main <Street>', city: 'Brooklyn', country: 'US' }] });
+  await route.POST(event());
+  const mail = state.sent[0].body;
+  assert.match(mail.text_body, /100 Main <Street>/);
+  assert.match(mail.text_body, /house@example.com/);
+  assert.match(mail.text_body, /\+12125551234/);
+  assert.match(mail.html_body, /100 Main &lt;Street&gt;/);
+});

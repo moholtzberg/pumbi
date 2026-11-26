@@ -40,7 +40,7 @@ export async function requireCurrentUser(locals) {
   const user = await prisma.user.findUnique({
     where: { email },
     select: {
-      id: true, email: true, name: true,
+      id: true, email: true, name: true, firstName: true, lastName: true, phone: true, address: true,
       emailVerifiedAt: true,
       phoneVerifiedAt: true,
       identityVerificationStatus: true,

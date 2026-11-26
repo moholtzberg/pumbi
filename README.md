@@ -437,3 +437,29 @@ Sending never records a payment, starts card checkout, or purchases shipping.
 Mail failures appear beside the button; successful sends show the buyer's address.
 Record payment retains its existing cash/check/Stripe workflow. No migration is
 required. Invoice-email tests use a mock provider and send no real messages.
+
+## Saved addresses and invoice contact details
+
+Buyers can add, edit, delete, and choose a default delivery address under
+**Buyer dashboard → Profile → Saved shipping addresses**. Invoice shipping uses
+that default and offers a selector for other saved addresses or a custom address.
+Existing invoice destinations take precedence over later profile changes. Changing
+the destination requires a fresh shipping quote before payment. Legacy free-text
+profile addresses still prefill checkout; ambiguous city/postcode fields need review.
+
+Auction house contact information appears on buyer and seller invoice pages and
+invoice emails. The recorded headquarters address is preferred, with the house
+settings address as a fallback. Seller and house onboarding prefill missing contact
+fields from the user's account. New seller Stripe accounts also receive contact
+and address defaults; existing Stripe account details are preserved.
+
+Apply `prisma/migrations/20261125010000_add_user_addresses` using
+`npx prisma migrate deploy`, then regenerate Prisma before deploying to another
+database. It is already applied to this workspace's configured database. The
+migration adds an address table and a unique partial index for one default per user.
+Address writes lock the account row and enforce ownership on the server.
+
+Run `npm test` for unit and route checks. To include the rolled-back PostgreSQL
+address/checkout/onboarding integration test, set `RUN_ADDRESS_DATABASE_TESTS=1`
+and load `DATABASE_URL` (or `TEST_DATABASE_URL`) into the test environment. No real
+emails, shipping labels, or Stripe transactions are triggered by these tests.

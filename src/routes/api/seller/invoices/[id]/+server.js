@@ -16,7 +16,7 @@ async function loadSellerInvoice(invoiceId, user) {
     include: {
       lot: { select: { id: true, lotNumber: true, title: true, status: true } },
       auction: { select: { id: true, title: true } },
-      auctionHouse: true,
+      auctionHouse: { include: { locations: true } },
       shipment: true,
       buyer: { select: { id: true, name: true, email: true, phone: true } }
     }

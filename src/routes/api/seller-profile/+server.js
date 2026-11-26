@@ -1,4 +1,6 @@
 import { error, json } from '@sveltejs/kit';
+import { addressBook } from '$lib/server/userAddresses.js';
+import { profileContactDefaults } from '$lib/utils/addresses.js';
 import prisma from '$lib/prisma.js';
 import { requireCurrentUser } from '$lib/server/seller-submissions.js';
 
@@ -47,7 +49,8 @@ export async function GET({ locals }) {
     select: profileSelect
   });
 
-  return json({ profile });
+  const book = await addressBook(user);
+  return json({ profile, defaults: profileContactDefaults(user, book.addresses).seller }, { headers: { 'cache-control': 'private, no-store' } });
 }
 
 async function upsertProfile({ request, locals }) {

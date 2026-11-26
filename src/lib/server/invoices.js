@@ -1,3 +1,4 @@
+import { invoiceHouseContact } from '$lib/utils/addresses.js';
 import prisma from '$lib/prisma.js';
 
 function parseSettings(settings) {
@@ -195,7 +196,7 @@ export function publicInvoice(invoice) {
       ? { id: invoice.auction.id, title: invoice.auction.title }
       : undefined,
     auctionHouse: invoice.auctionHouse
-      ? { id: invoice.auctionHouse.id, name: invoice.auctionHouse.name }
+      ? invoiceHouseContact(invoice.auctionHouse)
       : undefined,
     shipment: invoice.shipment
       ? {

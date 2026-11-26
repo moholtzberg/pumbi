@@ -8,6 +8,7 @@
   let profileOpen = $state(false);
   let message = $state('');
   let problem = $state('');
+  let profileSaved = $state(false);
   let profile = $state({ displayName: '', legalName: '', contactEmail: '', contactPhone: '', address: '' });
   let submissions = $state([]);
   let opportunities = $state({ series: [], auctions: [] });
@@ -15,7 +16,7 @@
   let editingId = $state(null);
   let acceptedTerms = $state(false);
   let lot = $state(emptyLot());
-  let profileReady = $derived(Boolean(profile.displayName && profile.legalName && profile.contactEmail && profile.contactPhone && profile.address));
+  let profileReady = $derived(Boolean(profileSaved && profile.displayName && profile.legalName && profile.contactEmail && profile.contactPhone && profile.address));
 
   function emptyLot() {
     return {
@@ -47,10 +48,9 @@
     try {
       const [profileData, submissionData] = await Promise.all([api('/api/seller-profile'), api('/api/lot-submissions')]);
       const current = profileData.profile;
-      profile = {
-        displayName: current?.displayName || '', legalName: current?.legalName || '',
-        contactEmail: current?.contactEmail || '', contactPhone: current?.contactPhone || '', address: current?.address || ''
-      };
+      profile = { ...(profileData.defaults || {}), ...Object.fromEntries(Object.entries(current || {}).filter(([key,value]) => ['displayName','legalName','contactEmail','contactPhone','address'].includes(key) && value)) };
+      profileSaved = Boolean(current && ['displayName','legalName','contactEmail','contactPhone','address'].every(key => current[key]));
+      if (!profileSaved) profileOpen = true;
       submissions = submissionData.submissions;
       opportunities = submissionData.opportunities;
       policy = submissionData.policy;
@@ -66,6 +66,7 @@
     clearNotices();
     try {
       await api('/api/seller-profile', { method: 'PUT', body: JSON.stringify(profile) });
+      profileSaved = true;
       message = 'Seller details saved.';
       profileOpen = false;
     } catch (err) {

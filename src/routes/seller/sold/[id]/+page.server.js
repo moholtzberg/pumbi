@@ -16,7 +16,7 @@ export async function load({ locals, params, url }) {
     include: {
       lot: { select: { id: true, lotNumber: true, title: true } },
       auction: { select: { id: true, title: true } },
-      auctionHouse: true,
+      auctionHouse: { include: { locations: true } },
       shipment: true,
       buyer: { select: { id: true, name: true, email: true, phone: true, address: true } }
     }

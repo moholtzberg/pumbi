@@ -1,4 +1,6 @@
 import { error, json } from '@sveltejs/kit';
+import { profileContactDefaults } from '$lib/utils/addresses.js';
+import { addressBook } from '$lib/server/userAddresses.js';
 import prisma from '$lib/prisma.js';
 import {
   getEditableHouse,
@@ -31,7 +33,7 @@ const STRING_FIELDS = {
 };
 
 export async function GET({ params, locals }) {
-  await requireHouseMember(locals, params.id);
+  const { user } = await requireHouseMember(locals, params.id);
   const now = new Date();
   const [auctionHouse, policy] = await Promise.all([
     prisma.auctionHouse.findUnique({
@@ -50,7 +52,8 @@ export async function GET({ params, locals }) {
     })
   ]);
   if (!auctionHouse) throw error(404, 'Auction house not found');
-  return json({ auctionHouse, policy });
+  const book = await addressBook(user);
+  return json({ auctionHouse, policy, profileDefaults: profileContactDefaults(user, book.addresses) }, { headers: { 'cache-control': 'private, no-store' } });
 }
 
 export async function PATCH({ params, request, locals }) {

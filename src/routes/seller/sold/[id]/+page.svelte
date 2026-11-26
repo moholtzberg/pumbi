@@ -1,4 +1,5 @@
 <script>
+  import InvoiceHouseContact from '$lib/components/InvoiceHouseContact.svelte';
   import RecordPayment from '$lib/components/RecordPayment.svelte';
   import SendInvoice from '$lib/components/SendInvoice.svelte';
   let { data } = $props();
@@ -82,6 +83,7 @@
     <p class="mt-1 text-[var(--pumbi-ink-soft)]">Lot #{invoice.lot?.lotNumber} · {invoice.lot?.title}</p>
     <p class="text-sm text-[var(--pumbi-muted)]">{invoice.buyer?.name || invoice.buyer?.email} · {money(invoice.totalAmount)} · {invoice.status}</p>
   </header>
+  <InvoiceHouseContact house={invoice.auctionHouse} />
 
   {#if data.paymentNotice}<div role="status" class="mt-4 border border-[var(--pumbi-line)] px-4 py-3 text-sm">{data.paymentNotice}</div>{/if}
   {#if errorMessage}<div class="mt-4 border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">{errorMessage}</div>{/if}

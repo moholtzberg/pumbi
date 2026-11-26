@@ -2,6 +2,8 @@ import { error } from '@sveltejs/kit';
 import { env } from '$env/dynamic/private';
 import { createHash, createHmac, randomInt, timingSafeEqual } from 'node:crypto';
 import prisma from '$lib/prisma.js';
+import { addressBook } from '$lib/server/userAddresses.js';
+import { stripeSellerContactDefaults } from '$lib/utils/addresses.js';
 import { connectStatusForAccount, getStripe } from '$lib/server/stripe.js';
 import { smtp2goRequest, sendTransactionalEmail } from '$lib/server/smtp2go.js';
 
@@ -378,9 +380,10 @@ export async function startSellerConnect(user, origin, requestedBusinessType = '
     profile = await prisma.sellerProfile.update({ where: { id: profile.id }, data: { businessType } });
   }
   if (!profile.stripeConnectAccountId) {
+    const { addresses } = await addressBook(user);
     const account = await stripe.accounts.create({
       type: 'express',
-      email: user.email,
+      ...stripeSellerContactDefaults(user, profile, addresses),
       business_type: businessType === 'BUSINESS' ? 'company' : 'individual',
       capabilities: { transfers: { requested: true } },
       business_profile: { product_description: 'Consigned auction lots and seller settlements' },

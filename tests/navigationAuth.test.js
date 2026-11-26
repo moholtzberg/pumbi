@@ -23,7 +23,8 @@ const server = await createServer({ configFile: false, ssr: { noExternal: ['@aut
     if (id === '\0nav-environment') return 'export const browser = false;';
     if (id === '\0nav-auth') return 'export const signOut = async () => {};';
   }, transform(source, id) {
-    if (id.endsWith('/Navigation.svelte')) return compile(source, { filename: id, generate: 'server' }).js.code;
+    // Render both open menus to verify links that are otherwise hidden at SSR.
+    if (id.endsWith('/Navigation.svelte')) return compile(source.replace('let isMenuOpen = $state(false)', 'let isMenuOpen = $state(true)').replace('let isAccountOpen = $state(false)', 'let isAccountOpen = $state(true)'), { filename: id, generate: 'server' }).js.code;
   }
 }] });
 const layout = await server.ssrLoadModule('/src/routes/+layout.server.js');
@@ -67,6 +68,9 @@ test('menu gets current seller, team-manager and administrator data from databas
     const data = await load(session);
     assert.equal(data.navigationUser.hasAuctionHouse, expected);
     assert.equal(data.navigationUser.role, role);
+    const html = markup(data);
+    assert.equal((html.match(/Buyer dashboard/g) || []).length, 2);
+    assert.equal((html.match(/Seller dashboard/g) || []).length, expected ? 2 : 0);
     assert.equal(state.queries.at(-1).select.auctionHouseMemberships.where.status, 'ACTIVE');
   }
 });

@@ -1,5 +1,6 @@
 import { error, redirect } from '@sveltejs/kit';
 import prisma from '$lib/prisma.js';
+import { shippingDefaults } from '$lib/utils/addresses.js';
 import { publicInvoice, sellerPaymentMethods } from '$lib/server/invoices.js';
 import { convertToPresignedUrl } from '$lib/utils/s3Presigned.js';
 
@@ -33,7 +34,7 @@ export async function load({ locals, params, url }) {
         }
       },
       auction: { select: { id: true, title: true } },
-      auctionHouse: true,
+      auctionHouse: { include: { locations: true } },
       shipment: true
     }
   });
@@ -44,6 +45,8 @@ export async function load({ locals, params, url }) {
     ? await convertToPresignedUrl(invoice.lot.images[0].url)
     : null;
 
+  const savedAddresses = await prisma.userAddress.findMany({ where: { userId: user.id }, orderBy: [{ isDefault: 'desc' }, { createdAt: 'asc' }, { id: 'asc' }] });
+  const defaults = shippingDefaults(user, savedAddresses, invoice.shipment);
   return {
     user,
     paidFlag: url.searchParams.get('paid') === '1',
@@ -66,28 +69,8 @@ export async function load({ locals, params, url }) {
     ],
     rates: Array.isArray(invoice.shipment?.ratesJson) ? invoice.shipment.ratesJson : [],
     selectedRateId: invoice.shipment?.shippoRateId || null,
-    shippingAddress: invoice.shipment
-      ? {
-          name: invoice.shipment.toName || user.name || '',
-          street1: invoice.shipment.toStreet1 || '',
-          street2: invoice.shipment.toStreet2 || '',
-          city: invoice.shipment.toCity || '',
-          state: invoice.shipment.toState || '',
-          zip: invoice.shipment.toZip || '',
-          country: invoice.shipment.toCountry || 'US',
-          phone: invoice.shipment.toPhone || user.phone || '',
-          email: invoice.shipment.toEmail || user.email || ''
-        }
-      : {
-          name: user.name || '',
-          street1: '',
-          street2: '',
-          city: '',
-          state: '',
-          zip: '',
-          country: 'US',
-          phone: user.phone || '',
-          email: user.email || ''
-        }
+    savedAddresses,
+    selectedAddressId: defaults.selectedAddressId,
+    shippingAddress: defaults.address
   };
 }

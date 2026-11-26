@@ -11,7 +11,7 @@ async function loadBuyerInvoice(invoiceId, userId) {
     include: {
       lot: { select: { id: true, lotNumber: true, title: true, status: true } },
       auction: { select: { id: true, title: true } },
-      auctionHouse: true,
+      auctionHouse: { include: { locations: true } },
       shipment: true
     }
   });
@@ -107,7 +107,7 @@ export async function POST({ params, locals, request }) {
       include: {
         lot: { select: { id: true, lotNumber: true, title: true, status: true } },
         auction: { select: { id: true, title: true } },
-        auctionHouse: true,
+        auctionHouse: { include: { locations: true } },
         shipment: true
       }
     });

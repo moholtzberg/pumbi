@@ -1,4 +1,5 @@
 <script>
+  import AddressBook from '$lib/components/AddressBook.svelte';
   import { onMount } from 'svelte';
   import { goto } from '$app/navigation';
   import PumbiLoader from '$lib/components/PumbiLoader.svelte';
@@ -7,6 +8,7 @@
   let currentUser = $state(null);
   let loading = $state(true);
   let saving = $state(false);
+  let addressCount = $state(0);
   let error = $state('');
   let success = $state('');
   
@@ -184,6 +186,7 @@
               </label>
               <textarea
                 id="address"
+                readonly={addressCount > 0}
                 rows="3"
                 bind:value={formData.address}
                 required
@@ -218,6 +221,7 @@
               </a>
             </div>
           </form>
+          <AddressBook user={currentUser} onchanged={result => { addressCount = result.addresses.length; if (result.changed || addressCount) { formData.address = result.profileAddress; currentUser.address = result.profileAddress; } }} />
         </div>
       {/if}
     </div>

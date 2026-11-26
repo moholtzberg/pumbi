@@ -1,0 +1,91 @@
+import test from 'node:test';
+import assert from 'node:assert/strict';
+import { createRequire } from 'node:module';
+import { fileURLToPath } from 'node:url';
+
+test('saved addresses stay private, enforce one default, and prefill checkout and seller onboarding', { skip: process.env.RUN_ADDRESS_DATABASE_TESTS !== '1' }, async () => {
+  await import('dotenv/config');
+  const { createServer } = await import('vite');
+  const { PrismaPg } = await import('@prisma/adapter-pg');
+  const { PrismaClient } = createRequire(import.meta.url)('@prisma/client');
+  const client = new PrismaClient({ adapter: new PrismaPg({ connectionString: process.env.TEST_DATABASE_URL || process.env.DATABASE_URL }) });
+  globalThis.__addressDatabaseTest = { client };
+  const server = await createServer({ configFile: false, server: { middlewareMode: true, hmr: false }, appType: 'custom', optimizeDeps: { noDiscovery: true }, plugins: [{
+    name: 'address-database-fixture', enforce: 'pre', resolveId(id) {
+      if (id === '$lib/prisma.js') return '\0address-database';
+      if (['$lib/utils/s3Presigned.js', '$lib/services/cloudStorage.js'].includes(id)) return '\0address-cloud';
+      if (id.startsWith('$lib/')) return fileURLToPath(new URL('../src/lib/' + id.slice(5), import.meta.url));
+    }, load(id) {
+      if (id === '\0address-database') return 'export default new Proxy({}, { get: (_, key) => globalThis.__addressDatabaseTest.client[key] });';
+      if (id === '\0address-cloud') return 'export const convertToPresignedUrl=async url=>url; export const getPresignedUrl=async url=>url;';
+    }
+  }] });
+  try {
+    const before = await client.userAddress.count();
+    const rollback = new Error('ROLLBACK_ADDRESS_TEST');
+    await assert.rejects(client.$transaction(async tx => {
+      globalThis.__addressDatabaseTest.client = new Proxy(tx, { get: (target, key) => key === '$transaction' ? callback => callback(tx) : target[key] });
+      const suffix = crypto.randomUUID();
+      const house = await tx.auctionHouse.create({ data: { name: 'Address test house', slug: `address-test-${suffix}`, contactEmail: 'house@example.invalid', contactPhone: '+12125551234', settings: JSON.stringify({ addressInEnglish: '100 House St', privateKey: 'DO_NOT_EXPOSE' }) } });
+      const buyer = await tx.user.create({ data: { email: `buyer-${suffix}@example.invalid`, name: 'Buyer', firstName: 'Buyer', phone: '+12125551234', emailVerifiedAt: new Date(), address: '1 Legacy St, Brooklyn, NY 11201', password: 'DO_NOT_EXPOSE' } });
+      const other = await tx.user.create({ data: { email: `other-${suffix}@example.invalid` } });
+      const owner = await tx.user.create({ data: { email: `owner-${suffix}@example.invalid`, role: 'SELLER', auctionHouseId: house.id, phone: buyer.phone, address: buyer.address } });
+      await tx.auctionHouseMembership.create({ data: { auctionHouseId: house.id, userId: owner.id, role: 'OWNER' } });
+      const route = await server.ssrLoadModule('/src/routes/api/account/addresses/+server.js');
+      const invoicePage = await server.ssrLoadModule('/src/routes/dashboard/invoices/[id]/+page.server.js');
+      const profileRoute = await server.ssrLoadModule('/src/routes/api/seller-profile/+server.js');
+      const onboardingRoute = await server.ssrLoadModule('/src/routes/api/auction-houses/[id]/onboarding/+server.js');
+      const event = (user, body, method = 'POST', params = {}) => ({ params, locals: { auth: async () => user ? { user: { email: user.email } } : null }, url: new URL('https://pumbi.test/dashboard/invoices/test'), request: new Request('https://pumbi.test/api/account/addresses', { method, headers: { 'Content-Type': 'application/json' }, ...(method !== 'GET' ? { body: JSON.stringify(body) } : {}) }) });
+      await assert.rejects(route.GET(event(null, null, 'GET')), err => err.status === 401);
+      const initial = await (await route.GET(event(buyer, null, 'GET'))).json();
+      assert.equal(initial.defaultShippingAddress.street1, '1 Legacy St');
+      const input = { label: 'Home', street1: '10 Home St', city: 'Brooklyn', state: 'NY', zip: '11201', country: 'us', isDefault: false, userId: other.id };
+      const created = await (await route.POST(event(buyer, input))).json();
+      const home = created.addresses[0];
+      assert.equal(home.userId, buyer.id); assert.equal(home.isDefault, true); assert.equal(home.country, 'US');
+      assert.ok(!JSON.stringify(created).includes('DO_NOT_EXPOSE'));
+      await route.POST(event(buyer, { ...input, label: 'Office', street1: '20 Office St' }));
+      const office = await tx.userAddress.findFirst({ where: { userId: buyer.id, label: 'Office' } });
+      assert.equal(office.isDefault, false);
+      await tx.$executeRawUnsafe('SAVEPOINT address_unique_check');
+      await assert.rejects(tx.userAddress.update({ where: { id: office.id }, data: { isDefault: true } }), err => err.code === 'P2002');
+      await tx.$executeRawUnsafe('ROLLBACK TO SAVEPOINT address_unique_check');
+      await assert.rejects(route.POST(event(other, { ...input, id: home.id })), err => err.status === 404);
+      await assert.rejects(route.DELETE(event(other, { id: home.id }, 'DELETE')), err => err.status === 404);
+      await assert.rejects(route.POST(event(buyer, { ...input, id: {} })), err => err.status === 400);
+      assert.equal((await (await route.GET(event(other, null, 'GET'))).json()).addresses.length, 0);
+      await route.POST(event(buyer, { ...office, isDefault: true }));
+      assert.equal(await tx.userAddress.count({ where: { userId: buyer.id, isDefault: true } }), 1);
+      assert.equal((await tx.user.findUnique({ where: { id: buyer.id } })).address.split('\n')[0], office.street1);
+      assert.equal((await tx.user.findUnique({ where: { id: buyer.id } })).emailVerifiedAt.toISOString(), buyer.emailVerifiedAt.toISOString());
+      const auction = await tx.auction.create({ data: { auctionHouseId: house.id, sellerId: owner.id, auctioneerId: owner.id, title: 'Address test', startDate: new Date(), endDate: new Date(Date.now() + 3600000) } });
+      const lot = await tx.lot.create({ data: { auctionId: auction.id, title: 'Test lot', lotNumber: 1, status: 'SOLD', startingBid: 25, bidIncrement: 5 } });
+      const invoice = await tx.invoice.create({ data: { number: `ADDRESS-${suffix}`, lotId: lot.id, auctionId: auction.id, auctionHouseId: house.id, buyerId: buyer.id, hammerPrice: 25, totalAmount: 25, buyerPaysShipping: true } });
+      const checkout = await invoicePage.load(event(buyer, null, 'GET', { id: invoice.id }));
+      assert.equal(checkout.selectedAddressId, office.id); assert.equal(checkout.savedAddresses.length, 2);
+      assert.equal(checkout.shippingAddress.street1, office.street1);
+      assert.equal(checkout.invoice.auctionHouse.address, '100 House St'); assert.equal(checkout.invoice.auctionHouse.email, house.contactEmail);
+      assert.ok(!JSON.stringify(checkout).includes('DO_NOT_EXPOSE'));
+      await tx.shipment.create({ data: { invoiceId: invoice.id, toStreet1: '99 Original Destination', toCity: 'Albany', toZip: '12201', toCountry: 'US' } });
+      const existingCheckout = await invoicePage.load(event(buyer, null, 'GET', { id: invoice.id }));
+      assert.equal(existingCheckout.shippingAddress.street1, '99 Original Destination');
+      assert.equal(existingCheckout.selectedAddressId, 'custom');
+      await assert.rejects(invoicePage.load(event(other, null, 'GET', { id: invoice.id })), err => err.status === 403);
+      const profile = await (await profileRoute.GET(event(buyer, null, 'GET'))).json();
+      assert.equal(profile.defaults.contactEmail, buyer.email); assert.equal(profile.defaults.contactPhone, buyer.phone);
+      assert.match(profile.defaults.address, /20 Office St/); assert.equal(profile.profile, null);
+      assert.equal(await tx.sellerProfile.count({ where: { userId: buyer.id } }), 0);
+      const onboarding = await (await onboardingRoute.GET(event(owner, null, 'GET', { id: house.id }))).json();
+      assert.equal(onboarding.profileDefaults.company.contactEmail, owner.email);
+      assert.equal(onboarding.profileDefaults.location.addressLine1, '1 Legacy St');
+      assert.equal((await tx.auctionHouse.findUnique({ where: { id: house.id } })).contactEmail, house.contactEmail);
+      await route.DELETE(event(buyer, { id: office.id }, 'DELETE'));
+      assert.equal((await tx.userAddress.findUnique({ where: { id: home.id } })).isDefault, true);
+      await route.DELETE(event(buyer, { id: home.id }, 'DELETE'));
+      assert.equal(await tx.userAddress.count({ where: { userId: buyer.id } }), 0);
+      assert.equal((await tx.user.findUnique({ where: { id: buyer.id } })).address, null);
+      throw rollback;
+    }, { timeout: 60000 }), err => err === rollback);
+    assert.equal(await client.userAddress.count(), before);
+  } finally { await server.close(); await client.$disconnect(); delete globalThis.__addressDatabaseTest; }
+});

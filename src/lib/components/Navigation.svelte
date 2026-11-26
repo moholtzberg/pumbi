@@ -10,7 +10,6 @@
   let accountRoot;
 
   let displayName = $derived(currentUser?.name || currentUser?.email || 'Account');
-  let accountHome = $derived(hasAuctionHouse ? '/seller' : '/dashboard');
   let isAdmin = $derived(currentUser?.role?.toUpperCase() === 'PLATFORM_ADMIN');
 
   $effect(() => {
@@ -81,10 +80,11 @@
 
           {#if isAccountOpen}
             <div class="account-dropdown" role="menu">
-              <a href={accountHome} role="menuitem" onclick={() => (isAccountOpen = false)}>
-                {hasAuctionHouse ? 'Seller home' : 'Dashboard'}
+              <a href="/dashboard" role="menuitem" onclick={() => (isAccountOpen = false)}>
+                Buyer dashboard
               </a>
               {#if hasAuctionHouse}
+                <a href="/seller" role="menuitem" onclick={() => (isAccountOpen = false)}>Seller dashboard</a>
                 <a href="/seller/sold" role="menuitem" onclick={() => (isAccountOpen = false)}>Sold & shipping</a>
                 <a href="/seller/bidders" role="menuitem" onclick={() => (isAccountOpen = false)}>Bidders</a>
                 <a href="/seller/marketing" role="menuitem" onclick={() => (isAccountOpen = false)}>Marketing & contacts</a>
@@ -121,8 +121,9 @@
 
       {#if currentUser}
         <p class="mobile-account-label">{displayName}</p>
-        <a href={accountHome} onclick={closeMobile}>{hasAuctionHouse ? 'Seller home' : 'Dashboard'}</a>
+        <a href="/dashboard" onclick={closeMobile}>Buyer dashboard</a>
         {#if hasAuctionHouse}
+          <a href="/seller" onclick={closeMobile}>Seller dashboard</a>
           <a href="/seller/sold" onclick={closeMobile}>Sold & shipping</a>
           <a href="/seller/bidders" onclick={closeMobile}>Bidders</a>
           <a href="/seller/marketing" onclick={closeMobile}>Marketing & contacts</a>

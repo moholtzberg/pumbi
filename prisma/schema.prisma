@@ -130,6 +130,7 @@ model User {
   auctionHouseInvitationsAccepted AuctionHouseInvitation[]  @relation("AuctionHouseInvitationAcceptor")
   payoutReleasesRequested         PayoutRelease[]           @relation("PayoutReleaseRequester")
   payoutReleasesApproved          PayoutRelease[]           @relation("PayoutReleaseApprover")
+  savedAddresses                  UserAddress[]
   watchedLots                     LotWatch[]
   contactVerificationCodes        ContactVerificationCode[]
   loginSecurityEvents             LoginSecurityEvent[]
@@ -1182,4 +1183,25 @@ model BidderBlock {
   @@index([blockedById])
   @@index([unblockedById])
   @@map("bidder_blocks")
+}
+
+model UserAddress {
+  id        String   @id @default(cuid())
+  userId    String   @map("user_id")
+  label     String
+  name      String?
+  street1   String
+  street2   String?
+  city      String
+  state     String?
+  zip       String?
+  country   String   @default("US")
+  phone     String?
+  isDefault Boolean  @default(false) @map("is_default")
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@map("user_addresses")
 }

@@ -27,6 +27,7 @@
   let documentFile = $state(null);
   let assetFile = $state(null);
 
+  let profileDefaults = $state(null);
   let company = $state({
     legalName: '', businessType: '', registrationNumber: '', website: '',
     contactFirstName: '', contactLastName: '', contactEmail: '', contactPhone: '', country: ''
@@ -41,7 +42,8 @@
   function newLocation() {
     return {
       name: '', type: 'HEADQUARTERS', isPrimary: false, addressLine1: '', addressLine2: '',
-      city: '', stateProvince: '', postalCode: '', country: '', contactName: '', contactEmail: '', contactPhone: ''
+      city: '', stateProvince: '', postalCode: '', country: '', contactName: '', contactEmail: '', contactPhone: '',
+      ...(profileDefaults?.location || {})
     };
   }
 
@@ -63,11 +65,13 @@
 
   function populateCompany(source) {
     const house = source.auctionHouse || source.onboarding || source;
+    if (source.profileDefaults) profileDefaults = source.profileDefaults;
     if (source.policy !== undefined) policy = source.policy;
     onboarding = { ...onboarding, ...house };
     for (const key of Object.keys(company)) {
       if (house[key] !== undefined && house[key] !== null) company[key] = house[key];
     }
+    for (const [key,value] of Object.entries(profileDefaults?.company || {})) if (!company[key]) company[key] = value;
     termsAccepted = Boolean(house.termsAcceptedAt || source.termsAccepted);
     if (Number.isInteger(house.onboardingStep)) currentStep = Math.min(house.onboardingStep, steps.length - 1);
   }
