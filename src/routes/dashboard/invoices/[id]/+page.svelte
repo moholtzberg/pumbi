@@ -1,4 +1,8 @@
 <script>
+  import { translate } from '$lib/i18n.js';
+  import { page } from '$app/stores';
+  const t = (text, values) => translate($page.data.locale || 'en', text, values);
+
   import { shippingDefaults, shippingKey } from '$lib/utils/addresses.js';
   import InvoiceHouseContact from '$lib/components/InvoiceHouseContact.svelte';
   let { data } = $props();
@@ -23,7 +27,7 @@
   }
 
   function money(amount) {
-    return new Intl.NumberFormat('en-US', {
+    return new Intl.NumberFormat($page.data.locale === 'he' ? 'he-IL' : 'en-US', {
       style: 'currency',
       currency: (invoice.currency || 'usd').toUpperCase()
     }).format(Number(amount || 0));
@@ -102,11 +106,11 @@
 
 <main class="min-h-screen bg-[#f7f4ee]">
   <div class="mx-auto max-w-3xl px-4 py-8">
-    <a href="/dashboard#won-lots" class="text-sm font-semibold text-[#18372f]">← Back to dashboard</a>
+    <a href="/dashboard#won-lots" class="text-sm font-semibold text-[#18372f]">{t("← Back to dashboard")}</a>
     <header class="mt-4">
-      <p class="text-xs font-bold uppercase tracking-[0.16em] text-[#a95739]">Invoice {invoice.number}</p>
+      <p class="text-xs font-bold uppercase tracking-[0.16em] text-[#a95739]">{t("Invoice")} {invoice.number}</p>
       <h1 class="mt-1 font-[family-name:var(--pumbi-serif)] text-3xl font-semibold text-[#1a2821]">
-        Lot #{invoice.lot?.lotNumber} · {invoice.lot?.title}
+        {t("Lot #")}{invoice.lot?.lotNumber} · {invoice.lot?.title}
       </h1>
       <p class="mt-1 text-sm text-[#435048]">
         {invoice.auctionHouse?.name || 'Seller'} · {invoice.auction?.title}
@@ -128,32 +132,32 @@
         {/if}
       </div>
       <div class="space-y-1 text-sm">
-        <div class="flex justify-between gap-4"><span class="text-[#435048]">Hammer</span><strong>{money(invoice.hammerPrice)}</strong></div>
-        <div class="flex justify-between gap-4"><span class="text-[#435048]">Buyer’s premium ({invoice.buyerPremiumRate}%)</span><strong>{money(invoice.buyerPremiumAmount)}</strong></div>
-        <div class="flex justify-between gap-4"><span class="text-[#435048]">Shipping</span><strong>{money(invoice.shippingAmount)}</strong></div>
-        <div class="flex justify-between gap-4 border-t border-[#e2dcd1] pt-2 text-base"><span class="font-semibold">Total</span><strong>{money(invoice.totalAmount)}</strong></div>
-        <p class="pt-2 text-xs font-bold uppercase tracking-wide text-[#18372f]">Status · {invoice.status.replaceAll('_', ' ')}</p>
+        <div class="flex justify-between gap-4"><span class="text-[#435048]">{t("Hammer")}</span><strong>{money(invoice.hammerPrice)}</strong></div>
+        <div class="flex justify-between gap-4"><span class="text-[#435048]">{t("Buyer’s premium (")}{invoice.buyerPremiumRate}%)</span><strong>{money(invoice.buyerPremiumAmount)}</strong></div>
+        <div class="flex justify-between gap-4"><span class="text-[#435048]">{t("Shipping")}</span><strong>{money(invoice.shippingAmount)}</strong></div>
+        <div class="flex justify-between gap-4 border-t border-[#e2dcd1] pt-2 text-base"><span class="font-semibold">{t("Total")}</span><strong>{money(invoice.totalAmount)}</strong></div>
+        <p class="pt-2 text-xs font-bold uppercase tracking-wide text-[#18372f]">{t("Status ·")} {invoice.status.replaceAll('_', ' ')}</p>
       </div>
     </section>
 
     {#if unpaid && invoice.buyerPaysShipping}
       <section class="mt-6 border border-[#ddd6ca] bg-white p-5">
-        <h2 class="font-[family-name:var(--pumbi-serif)] text-xl font-semibold">Shipping address</h2>
-        <p class="mt-1 text-sm text-[#435048]">Buyer pays shipping — choose a rate before checkout. The label is created for the seller automatically after payment.</p>
+        <h2 class="font-[family-name:var(--pumbi-serif)] text-xl font-semibold">{t("Shipping address")}</h2>
+        <p class="mt-1 text-sm text-[#435048]">{t("Buyer pays shipping — choose a rate before checkout. The label is created for the seller automatically after payment.")}</p>
         {#if data.savedAddresses?.length}
-          <label class="mt-4 block text-sm font-semibold">Saved shipping address<select bind:value={selectedAddress} onchange={chooseAddress} disabled={Boolean(busy)} class="mt-2 w-full border border-[#ddd6ca] bg-white p-3"><option value="custom">Use a different address</option>{#each data.savedAddresses as saved}<option value={saved.id}>{saved.label}{saved.isDefault ? ' (default)' : ''} · {saved.street1}, {saved.city}</option>{/each}</select></label>
+          <label class="mt-4 block text-sm font-semibold">{t("Saved shipping address")}<select bind:value={selectedAddress} onchange={chooseAddress} disabled={Boolean(busy)} class="mt-2 w-full border border-[#ddd6ca] bg-white p-3"><option value="custom">{t("Use a different address")}</option>{#each data.savedAddresses as saved}<option value={saved.id}>{saved.label}{saved.isDefault ? ' (default)' : ''} · {saved.street1}, {saved.city}</option>{/each}</select></label>
         {/if}
-        <a href="/dashboard/profile#saved-addresses" class="mt-3 inline-block text-xs font-semibold text-[#18372f] underline">Manage saved addresses</a>
-        {#if !address.city || !address.zip}<p class="mt-2 text-xs text-slate-600">Confirm the city, region, and postal code from your profile address before requesting rates.</p>{/if}
-        {#if addressChanged}<p class="mt-2 text-xs text-amber-800">Get new shipping rates for this address before paying.</p>{/if}
+        <a href="/dashboard/profile#saved-addresses" class="mt-3 inline-block text-xs font-semibold text-[#18372f] underline">{t("Manage saved addresses")}</a>
+        {#if !address.city || !address.zip}<p class="mt-2 text-xs text-slate-600">{t("Confirm the city, region, and postal code from your profile address before requesting rates.")}</p>{/if}
+        {#if addressChanged}<p class="mt-2 text-xs text-amber-800">{t("Get new shipping rates for this address before paying.")}</p>{/if}
         <div class="mt-4 grid gap-3 sm:grid-cols-2">
-          <label class="text-sm sm:col-span-2">Name<input class="mt-1 w-full border border-[#ddd6ca] bg-[#f7f4ee] px-3 py-2" bind:value={address.name} /></label>
-          <label class="text-sm sm:col-span-2">Street<input class="mt-1 w-full border border-[#ddd6ca] bg-[#f7f4ee] px-3 py-2" bind:value={address.street1} /></label>
-          <label class="text-sm sm:col-span-2">Street 2<input class="mt-1 w-full border border-[#ddd6ca] bg-[#f7f4ee] px-3 py-2" bind:value={address.street2} /></label>
-          <label class="text-sm">City<input class="mt-1 w-full border border-[#ddd6ca] bg-[#f7f4ee] px-3 py-2" bind:value={address.city} /></label>
-          <label class="text-sm">State<input class="mt-1 w-full border border-[#ddd6ca] bg-[#f7f4ee] px-3 py-2" bind:value={address.state} /></label>
-          <label class="text-sm">ZIP<input class="mt-1 w-full border border-[#ddd6ca] bg-[#f7f4ee] px-3 py-2" bind:value={address.zip} /></label>
-          <label class="text-sm">Country<input class="mt-1 w-full border border-[#ddd6ca] bg-[#f7f4ee] px-3 py-2" bind:value={address.country} /></label>
+          <label class="text-sm sm:col-span-2">{t("Name")}<input class="mt-1 w-full border border-[#ddd6ca] bg-[#f7f4ee] px-3 py-2" bind:value={address.name} /></label>
+          <label class="text-sm sm:col-span-2">{t("Street")}<input class="mt-1 w-full border border-[#ddd6ca] bg-[#f7f4ee] px-3 py-2" bind:value={address.street1} /></label>
+          <label class="text-sm sm:col-span-2">{t("Street 2")}<input class="mt-1 w-full border border-[#ddd6ca] bg-[#f7f4ee] px-3 py-2" bind:value={address.street2} /></label>
+          <label class="text-sm">{t("City")}<input class="mt-1 w-full border border-[#ddd6ca] bg-[#f7f4ee] px-3 py-2" bind:value={address.city} /></label>
+          <label class="text-sm">{t("State")}<input class="mt-1 w-full border border-[#ddd6ca] bg-[#f7f4ee] px-3 py-2" bind:value={address.state} /></label>
+          <label class="text-sm">{t("ZIP")}<input class="mt-1 w-full border border-[#ddd6ca] bg-[#f7f4ee] px-3 py-2" bind:value={address.zip} /></label>
+          <label class="text-sm">{t("Country")}<input class="mt-1 w-full border border-[#ddd6ca] bg-[#f7f4ee] px-3 py-2" bind:value={address.country} /></label>
         </div>
         <button
           type="button"
@@ -161,7 +165,7 @@
           disabled={Boolean(busy)}
           onclick={getRates}
         >
-          {busy === 'quote_shipping' ? 'Getting rates…' : 'Get shipping rates'}
+          {t(busy === 'quote_shipping' ? 'Getting rates…' : 'Get shipping rates')}
         </button>
 
         {#if rates.length}
@@ -187,8 +191,8 @@
 
     {#if unpaid}
       <section class="mt-6 border border-[#ddd6ca] bg-white p-5">
-        <h2 class="font-[family-name:var(--pumbi-serif)] text-xl font-semibold">Pay</h2>
-        <p class="mt-1 text-sm text-[#435048]">Pay with Pumbi (Stripe Checkout) is always available. Other options come from the seller’s settings.</p>
+        <h2 class="font-[family-name:var(--pumbi-serif)] text-xl font-semibold">{t("Pay")}</h2>
+        <p class="mt-1 text-sm text-[#435048]">{t("Pay with Pumbi (Stripe Checkout) is always available. Other options come from the seller’s settings.")}</p>
         <div class="mt-4 flex flex-wrap gap-2">
           <button
             type="button"
@@ -205,22 +209,22 @@
               disabled={Boolean(busy) || shippingNotReady}
               onclick={() => payExternal(method.method)}
             >
-              Pay by {method.label}
+              {t("Pay by")} {method.label}
             </button>
           {/each}
         </div>
       </section>
     {:else if invoice.status === 'PAID'}
       <section class="mt-6 border border-[#ddd6ca] bg-white p-5">
-        <h2 class="font-[family-name:var(--pumbi-serif)] text-xl font-semibold">Paid</h2>
+        <h2 class="font-[family-name:var(--pumbi-serif)] text-xl font-semibold">{t("Paid")}</h2>
         <p class="mt-1 text-sm text-[#435048]">
-          Paid {invoice.paidAt ? new Date(invoice.paidAt).toLocaleString() : ''}
-          {#if invoice.paymentChannel === 'PUMBI_STRIPE'} via Pumbi{/if}
+          {t("Paid")} {invoice.paidAt ? new Date(invoice.paidAt).toLocaleString() : ''}
+          {#if invoice.paymentChannel === 'PUMBI_STRIPE'} {t("via Pumbi")}{/if}
           {#if invoice.externalPaymentMethod} · {invoice.externalPaymentMethod}{/if}
         </p>
         {#if invoice.shipment?.trackingNumber}
           <p class="mt-3 text-sm">
-            Tracking: <a class="font-semibold text-[#18372f] underline" href={invoice.shipment.trackingUrl || '#'} target="_blank" rel="noreferrer">{invoice.shipment.trackingNumber}</a>
+            {t("Tracking:")} <a class="font-semibold text-[#18372f] underline" href={invoice.shipment.trackingUrl || '#'} target="_blank" rel="noreferrer">{invoice.shipment.trackingNumber}</a>
             · {invoice.shipment.status.replaceAll('_', ' ')}
           </p>
         {/if}

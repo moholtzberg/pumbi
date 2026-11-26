@@ -58,7 +58,7 @@ export async function GET({ params, locals }) {
 
 export async function PATCH({ params, request, locals }) {
   await requireHouseEditor(locals, params.id);
-  await getEditableHouse(params.id);
+  const existing = await getEditableHouse(params.id);
   const body = await parseJsonBody(request);
   if (!body || typeof body !== 'object' || Array.isArray(body)) {
     throw error(400, 'Request body must be a JSON object');
@@ -101,6 +101,7 @@ export async function PATCH({ params, request, locals }) {
     }
   }
 
+  if (data.country && existing.stripeConnectAccountId && existing.country && data.country !== existing.country) throw error(409, 'Country cannot be changed after payout onboarding starts.');
   const auctionHouse = await prisma.auctionHouse.update({
     where: { id: params.id },
     data,

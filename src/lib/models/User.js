@@ -11,6 +11,8 @@ const userSchema = z.object({
   lastName: z.string().nullable().optional(),
   phone: z.string().nullable().optional(),
   address: z.string().nullable().optional(),
+  country: z.string().length(2).nullable().optional(),
+  preferredLocale: z.enum(['en', 'he']).default('en'),
   isVerifiedBuyer: z.boolean().default(false),
   isVerifiedBidder: z.boolean().default(false),
   resetPasswordToken: z.string().nullable().optional(),

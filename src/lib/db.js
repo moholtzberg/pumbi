@@ -1,4 +1,5 @@
 import prisma from './prisma.js';
+import { auctionCurrency } from './utils/region.js';
 import { AuctionHouse, User, Auction, Lot, Bid } from './models/index.js';
 
 // Helper functions to map Prisma models to API format
@@ -22,6 +23,7 @@ function mapAuction(prismaAuction) {
   return {
     id: prismaAuction.id,
     title: prismaAuction.title,
+    currency: prismaAuction.currency,
     description: prismaAuction.description,
     startDate: prismaAuction.startDate,
     endDate: prismaAuction.endDate,
@@ -180,6 +182,8 @@ function mapUser(prismaUser, includePassword = true) {
     lastName: prismaUser.lastName,
     phone: prismaUser.phone,
     address: prismaUser.address,
+    country: prismaUser.country,
+    preferredLocale: prismaUser.preferredLocale,
     isVerifiedBuyer: prismaUser.isVerifiedBuyer,
     isVerifiedBidder: prismaUser.isVerifiedBidder,
     role: prismaUser.role.toLowerCase(),
@@ -249,8 +253,9 @@ export const db = {
       return mapAuction(auction);
     },
     create: async (auction) => {
+      const house = await prisma.auctionHouse.findUnique({ where: { id: auction.auctionHouseId } });
       const created = await prisma.auction.create({
-        data: auction,
+        data: { ...auction, currency: auctionCurrency(auction, house) },
         include: {
           seller: true,
           auctionHouse: true

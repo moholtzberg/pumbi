@@ -26,7 +26,7 @@
   const x = time => left + ((new Date(time).getTime() - start) / Math.max(1, end - start)) * (right - left);
   const primaryY = value => bottom - (value / primaryMax) * (bottom - top);
   const bidderY = value => bottom - (value / bidderMax) * (bottom - top);
-  const money = value => new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', maximumFractionDigits: 2 }).format(value);
+  const money = value => new Intl.NumberFormat('en-US', { style: 'currency', currency: (activity?.currency || 'usd').toUpperCase(), maximumFractionDigits: 2 }).format(value);
   const time = value => new Date(value).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' });
   const axisTime = value => new Date(value).toLocaleString([], { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' });
 
@@ -81,7 +81,7 @@
     </div>
   </div>
   {#if points.length}
-    <div class="mt-3 flex gap-5 text-xs"><span class="font-semibold text-[#1f5141]">━ {activity?.lot ? 'Bid price (USD)' : 'Cumulative bids'} · left axis</span><span class="font-semibold text-[#a95739]">━ Unique bidders · right axis</span></div>
+    <div class="mt-3 flex gap-5 text-xs"><span class="font-semibold text-[#1f5141]">━ {activity?.lot ? `Bid price (${(activity?.currency || 'usd').toUpperCase()})` : 'Cumulative bids'} · left axis</span><span class="font-semibold text-[#a95739]">━ Unique bidders · right axis</span></div>
     <div class="overflow-x-auto">
     <svg viewBox={`0 0 ${width} ${height}`} class="mt-2 min-w-[640px] w-full" role="img" aria-label={`${activity?.lot ? 'Bid price' : 'Cumulative bids'} and cumulative unique bidders over time; use the history slider below for exact values`}>
       {#each [0, 0.5, 1] as fraction}

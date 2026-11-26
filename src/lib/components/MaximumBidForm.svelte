@@ -1,6 +1,6 @@
 <script>
   import { onMount } from 'svelte';
-  let { lot, userId, canBid = true, onbid = async () => {} } = $props();
+  let { lot, userId, currency = lot?.auction?.currency || 'usd', canBid = true, onbid = async () => {} } = $props();
   let maximum = $state(null);
   let amount = $state('');
   let busy = $state(false);
@@ -10,7 +10,7 @@
   let leading = $derived(lot.highestBidderId === userId);
   let nextBid = $derived(Math.round(Math.max(Number(lot.startingBid), Number(lot.currentBid) + Number(lot.bidIncrement)) * 100) / 100);
   let minimum = $derived(leading ? Math.round((Math.max(Number(lot.currentBid), maximum || 0) + 0.01) * 100) / 100 : nextBid);
-  const money = value => new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(value || 0);
+  const money = value => new Intl.NumberFormat('en-US', { style: 'currency', currency: currency.toUpperCase() }).format(value || 0);
   let version = 0;
   async function loadMaximum() {
     if (busy) return;

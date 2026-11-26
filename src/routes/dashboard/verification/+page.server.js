@@ -25,8 +25,8 @@ export async function load({ locals, url }) {
     await refreshIdentityForUser(user);
     notice = 'Your identity check was received. Stripe may need a moment to finish reviewing it.';
   }
+  if (user.sellerProfile?.stripeConnectAccountId) await refreshSellerForUser(user.id);
   if (url.searchParams.get('seller') === 'return') {
-    await refreshSellerForUser(user.id);
     notice = 'Your seller banking and tax details were received from Stripe.';
   }
 

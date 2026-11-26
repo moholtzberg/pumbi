@@ -1,9 +1,10 @@
 import { json, error } from '@sveltejs/kit';
 import { db } from '$lib/db.js';
 import { User } from '$lib/models/index.js';
+import { countryCode, normalizeRegionalPhone, normalizeLocale } from '$lib/utils/region.js';
 import { hashPassword } from '$lib/utils/password.js';
 
-export async function POST({ request }) {
+export async function POST({ request, locals }) {
   try {
     const data = await request.json();
     const { email, password, firstName, lastName, phone, address, requestVerification } = data;
@@ -16,6 +17,10 @@ export async function POST({ request }) {
       throw error(400, 'Password is required for new registrations');
     }
     
+    const country = countryCode(data.country || 'US');
+    if (!country) throw error(400, 'Choose a two-letter country code');
+    let normalizedPhone;
+    try { normalizedPhone = normalizeRegionalPhone(phone, country); } catch (err) { throw error(400, err.message); }
     // Check if user already exists
     const existingUser = await db.users.getByEmail(email);
     if (existingUser) {
@@ -32,7 +37,9 @@ export async function POST({ request }) {
       firstName: firstName || null,
       lastName: lastName || null,
       name: firstName && lastName ? `${firstName} ${lastName}`.trim() : firstName || lastName || email,
-      phone: phone || null,
+      phone: normalizedPhone,
+      country,
+      preferredLocale: normalizeLocale(data.preferredLocale || locals?.locale),
       address: address || null,
       isVerifiedBuyer: false, // Will be set to true after verification
       isVerifiedBidder: false, // Will be set to true after verification

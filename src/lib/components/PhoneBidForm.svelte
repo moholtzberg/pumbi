@@ -1,6 +1,6 @@
 <script>
   import { onMount } from 'svelte';
-  let { auctionId, lot, disabled = false, onrecorded, onbusychange = () => {} } = $props();
+  let { auctionId, lot, currency = 'usd', disabled = false, onrecorded, onbusychange = () => {} } = $props();
   let dialog = $state(null);
   let open = $state(false);
   let mode = $state('existing');
@@ -18,7 +18,7 @@
   let clock = $state(Date.now());
   let minimum = $derived(Math.round(Math.max(Number(lot.startingBid), Number(lot.currentBid) + Number(lot.bidIncrement)) * 100) / 100);
   let lotOpen = $derived(lot.status === 'ACTIVE' && lot.endTime && new Date(lot.endTime).getTime() > clock);
-  const money = value => new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(value || 0);
+  const money = value => new Intl.NumberFormat('en-US', { style: 'currency', currency: currency.toUpperCase() }).format(value || 0);
   const endpoint = $derived(`/api/auctions/${auctionId}/phone-bids`);
 
   async function search() {

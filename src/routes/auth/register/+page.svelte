@@ -1,4 +1,7 @@
 <script>
+  import { translate } from '$lib/i18n.js';
+  const t = (text, values) => translate($page.data.locale || 'en', text, values);
+
   import { goto } from '$app/navigation';
   import { page } from '$app/stores';
   
@@ -8,6 +11,7 @@
     firstName: '',
     lastName: '',
     phone: '',
+    country: 'US',
     address: '',
     requestVerification: false
   });
@@ -34,6 +38,8 @@
           firstName: formData.firstName,
           lastName: formData.lastName,
           phone: formData.phone || null,
+          country: formData.country,
+          preferredLocale: $page.data.locale || 'en',
           address: formData.address || null,
           requestVerification: formData.requestVerification
         })
@@ -64,12 +70,12 @@
   <div class="max-w-md w-full space-y-8">
     <div>
       <h2 class="mt-6 text-center font-[family-name:var(--pumbi-serif)] text-4xl font-semibold text-[#1a2821]">
-        Create your account
+        {t("Create your account")}
       </h2>
       <p class="mt-2 text-center text-sm text-gray-600">
-        Or
+        {t("Or")}
         <a href="/auth/login" class="font-medium text-[#18372f] hover:text-[#a95739]">
-          sign in to your existing account
+          {t("sign in to your existing account")}
         </a>
       </p>
     </div>
@@ -80,7 +86,7 @@
           <svg class="w-5 h-5 text-green-600 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
           </svg>
-          <p class="text-green-800 text-sm">Registration successful! Redirecting to login...</p>
+          <p class="text-green-800 text-sm">{t("Registration successful! Redirecting to login...")}</p>
         </div>
       </div>
     {:else}
@@ -100,7 +106,7 @@
           <!-- Email -->
           <div>
             <label for="email" class="block text-sm font-medium text-gray-700 mb-1">
-              Email address <span class="text-red-500">*</span>
+              {t("Email address")} <span class="text-red-500">*</span>
             </label>
             <input
               id="email"
@@ -117,7 +123,7 @@
           <!-- Password -->
           <div>
             <label for="password" class="block text-sm font-medium text-gray-700 mb-1">
-              Password <span class="text-red-500">*</span>
+              {t("Password")} <span class="text-red-500">*</span>
             </label>
             <input
               id="password"
@@ -134,7 +140,7 @@
           <!-- First Name -->
           <div>
             <label for="firstName" class="block text-sm font-medium text-gray-700 mb-1">
-              First Name <span class="text-red-500">*</span>
+              {t("First Name")} <span class="text-red-500">*</span>
             </label>
             <input
               id="firstName"
@@ -151,7 +157,7 @@
           <!-- Last Name -->
           <div>
             <label for="lastName" class="block text-sm font-medium text-gray-700 mb-1">
-              Last Name <span class="text-red-500">*</span>
+              {t("Last Name")} <span class="text-red-500">*</span>
             </label>
             <input
               id="lastName"
@@ -167,8 +173,9 @@
           
           <!-- Phone -->
           <div>
+            <label class="mb-4 block text-sm font-medium">{t("Country")}<select bind:value={formData.country} class="mt-2 block w-full rounded border border-gray-300 p-3"><option value="US">{t("United States")}</option><option value="IL">{t("Israel")}</option><option value="GB">{t("United Kingdom")}</option><option value="CA">{t("Canada")}</option><option value="AU">{t("Australia")}</option><option value="DE">{t("Germany")}</option><option value="FR">{t("France")}</option></select></label>
             <label for="phone" class="block text-sm font-medium text-gray-700 mb-1">
-              Phone Number
+              {t("Phone Number")}
             </label>
             <input
               id="phone"
@@ -184,7 +191,7 @@
           <!-- Address -->
           <div>
             <label for="address" class="block text-sm font-medium text-gray-700 mb-1">
-              Address
+              {t("Address")}
             </label>
             <textarea
               id="address"
@@ -209,10 +216,10 @@
             </div>
             <div class="ml-3 text-sm">
               <label for="requestVerification" class="font-medium text-gray-700">
-                Request Verified Buyer Status
+                {t("Request Verified Buyer Status")}
               </label>
               <p class="text-gray-500">
-                Check this box to request verification. Verified buyers can become verified bidders after their information is verified by our team.
+                {t("Check this box to request verification. Verified buyers can become verified bidders after their information is verified by our team.")}
               </p>
             </div>
           </div>
@@ -229,9 +236,9 @@
                 <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
                 <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
               </svg>
-              Creating account...
+              {t("Creating account...")}
             {:else}
-              Create account
+              {t("Create account")}
             {/if}
           </button>
         </div>

@@ -1,5 +1,7 @@
 import { error, json } from '@sveltejs/kit';
 import prisma from '$lib/prisma.js';
+import { connectCountryParams, payoutAvailability } from '$lib/server/connectCountries.js';
+import { invoiceHouseContact, legacyAddress } from '$lib/utils/addresses.js';
 import {
   requireAuthenticatedUser,
   requireAuctionHouseRole
@@ -15,13 +17,17 @@ const BANKING_ROLES = ['OWNER', 'ADMIN', 'FINANCE'];
 async function requireHouse(locals, id) {
   const user = await requireAuthenticatedUser(locals);
   await requireAuctionHouseRole(user, id, BANKING_ROLES);
-  const house = await prisma.auctionHouse.findUnique({ where: { id } });
+  const house = await prisma.auctionHouse.findUnique({ where: { id }, include: { locations: true } });
   if (!house) throw error(404, 'Auction house not found');
   return house;
 }
 
-function accountCreateParams(house) {
-  const country = house.country?.trim().toUpperCase();
+function accountCreateParams(house, locale = 'en') {
+  const country = (house.country || house.locations?.find(row => row.isPrimary)?.country || house.locations?.[0]?.country || 'US').trim().toUpperCase();
+  const countryParams = connectCountryParams(country, locale);
+  const contact = invoiceHouseContact(house);
+  const location = legacyAddress(contact.address, country);
+  const address = Object.fromEntries(Object.entries({ line1: location.street1, line2: location.street2, city: location.city, state: location.state, postal_code: location.zip, country }).filter(([, value]) => value));
   if (country && !/^[A-Z]{2}$/.test(country)) {
     throw error(400, 'Auction house country must be a two-letter ISO country code');
   }
@@ -34,11 +40,11 @@ function accountCreateParams(house) {
 
   return {
     type: 'express',
-    ...(country ? { country } : {}),
+    ...countryParams,
     ...(house.contactEmail ? { email: house.contactEmail } : {}),
     business_type: 'company',
     business_profile: profile,
-    company: { name: house.legalName || house.name },
+    company: { name: house.legalName || house.name, ...(contact.phone && { phone: contact.phone }), ...(location.street1 && { address }) },
     capabilities: { transfers: { requested: true } },
     metadata: {
       auctionHouseId: house.id,
@@ -58,7 +64,7 @@ async function retrieveAndSync(house) {
 export async function GET({ params, locals }) {
   try {
     const house = await retrieveAndSync(await requireHouse(locals, params.id));
-    return json(publicConnectStatus(house));
+    return json({ ...publicConnectStatus(house), availability: payoutAvailability(house.country, house.stripeConnectAccountId) });
   } catch (err) {
     if (err?.status) throw err;
     console.error('Failed to retrieve Stripe Connect status', err);
@@ -73,7 +79,7 @@ export async function POST({ params, locals, request }) {
 
     if (!house.stripeConnectAccountId) {
       const account = await stripe.accounts.create(
-        accountCreateParams(house),
+        accountCreateParams(house, locals.locale),
         { idempotencyKey: `auction-house-connect-${house.id}` }
       );
       await prisma.auctionHouse.update({

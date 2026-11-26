@@ -1,4 +1,6 @@
 import prisma from '$lib/prisma.js';
+import { legacyAddress } from '$lib/utils/addresses.js';
+import { countryCode } from '$lib/utils/region.js';
 import { recalculateInvoiceTotals } from '$lib/server/invoices.js';
 import {
   createShippoShipment,
@@ -28,25 +30,21 @@ function warehouseFromHouse(house) {
   if (warehouse) {
     return {
       name: warehouse.name || house.name || 'Auction house',
-      street1: warehouse.addressLine1 || '1 Main St',
+      street1: warehouse.addressLine1 || '',
       street2: warehouse.addressLine2 || '',
-      city: warehouse.city || 'New York',
-      state: warehouse.stateProvince || 'NY',
-      zip: warehouse.postalCode || '10001',
+      city: warehouse.city || '',
+      state: warehouse.stateProvince || '',
+      zip: warehouse.postalCode || '',
       country: warehouse.country || 'US',
       phone: warehouse.contactPhone || house.contactPhone || '',
       email: warehouse.contactEmail || house.contactEmail || settings.email || ''
     };
   }
 
+  const recorded = legacyAddress(settings.addressInEnglish, house?.country);
   return {
+    ...recorded,
     name: house?.name || 'Auction house',
-    street1: settings.addressInEnglish || '1 Main St',
-    street2: '',
-    city: 'New York',
-    state: 'NY',
-    zip: '10001',
-    country: house?.country || 'US',
     phone: house?.contactPhone || '',
     email: house?.contactEmail || settings.email || ''
   };
@@ -103,12 +101,14 @@ export async function quoteShippingRates({
     city: addressTo.city,
     state: addressTo.state,
     zip: addressTo.zip,
-    country: addressTo.country || 'US',
+    country: countryCode(addressTo.country || 'US'),
     phone: addressTo.phone || invoice.buyer.phone || '',
     email: addressTo.email || invoice.buyer.email || ''
   };
 
-  for (const key of ['street1', 'city', 'state', 'zip']) {
+  if (!to.country) { const err = new Error('Choose a valid shipping country code'); err.status = 400; throw err; }
+  if (!from.street1 || !from.city || !from.country) { const err = new Error('The auction house must record its shipping origin address before quoting shipping'); err.status = 409; throw err; }
+  for (const key of ['street1', 'city', 'zip', ...(['US', 'CA'].includes(to.country) ? ['state'] : [])]) {
     if (!to[key]) {
       const error = new Error(`Shipping address ${key} is required`);
       error.status = 400;
@@ -212,6 +212,9 @@ export async function selectShippingRate({ invoiceId, rateId }) {
     throw error;
   }
 
+  if (invoice.buyerPaysShipping && (rate.currency || 'usd').toLowerCase() !== invoice.currency.toLowerCase()) {
+    const err = new Error('Shipping rate currency must match the invoice currency. Ask the auction house for shipping in the invoice currency.'); err.status = 409; throw err;
+  }
   const totals = recalculateInvoiceTotals({
     hammerPrice: invoice.hammerPrice,
     buyerPremiumRate: invoice.buyerPremiumRate,

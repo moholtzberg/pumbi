@@ -1,4 +1,8 @@
 <script>
+  import { translate } from '$lib/i18n.js';
+  const t = (text, values) => translate($page.data.locale || 'en', text, values);
+
+  import LanguageSelector from '$lib/components/LanguageSelector.svelte';
   import { page } from '$app/stores';
   import { signOut } from '@auth/sveltekit/client';
   import { browser } from '$app/environment';
@@ -53,16 +57,17 @@
 
 <nav class="site-nav print:hidden" class:menu-open={isMenuOpen}>
   <div class="nav-inner">
-    <a href="/" class="brand" aria-label="Pumbi home"><span>P</span><strong>Pumbi</strong></a>
+    <a href="/" class="brand" aria-label="Pumbi home"><span>{t("P")}</span><strong>Pumbi</strong></a>
 
     <div class="desktop-links">
-      <a class:active={$page.url.pathname === '/'} href="/#all-auctions-heading">Auctions</a>
-      <a href="/#watched-heading">Most watched</a>
-      <a href="/#popular-heading">Popular auctions</a>
-      <a href="/#active-heading">Active lots</a>
+      <a class:active={$page.url.pathname === '/'} href="/#all-auctions-heading">{t("Auctions")}</a>
+      <a href="/#watched-heading">{t("Most watched")}</a>
+      <a href="/#popular-heading">{t("Popular auctions")}</a>
+      <a href="/#active-heading">{t("Active lots")}</a>
     </div>
 
     <div class="desktop-actions">
+      <LanguageSelector />
       {#if currentUser}
         <div class="account-menu" bind:this={accountRoot}>
           <button
@@ -81,29 +86,29 @@
           {#if isAccountOpen}
             <div class="account-dropdown" role="menu">
               <a href="/dashboard" role="menuitem" onclick={() => (isAccountOpen = false)}>
-                Buyer dashboard
+                {t("Buyer dashboard")}
               </a>
               {#if hasAuctionHouse}
-                <a href="/seller" role="menuitem" onclick={() => (isAccountOpen = false)}>Seller dashboard</a>
-                <a href="/seller/sold" role="menuitem" onclick={() => (isAccountOpen = false)}>Sold & shipping</a>
-                <a href="/seller/bidders" role="menuitem" onclick={() => (isAccountOpen = false)}>Bidders</a>
-                <a href="/seller/marketing" role="menuitem" onclick={() => (isAccountOpen = false)}>Marketing & contacts</a>
-                <a href="/seller/settings" role="menuitem" onclick={() => (isAccountOpen = false)}>House settings</a>
-                <a href="/seller/team" role="menuitem" onclick={() => (isAccountOpen = false)}>Team</a>
-                <a href="/seller/banking" role="menuitem" onclick={() => (isAccountOpen = false)}>Banking</a>
+                <a href="/seller" role="menuitem" onclick={() => (isAccountOpen = false)}>{t("Seller dashboard")}</a>
+                <a href="/seller/sold" role="menuitem" onclick={() => (isAccountOpen = false)}>{t("Sold & shipping")}</a>
+                <a href="/seller/bidders" role="menuitem" onclick={() => (isAccountOpen = false)}>{t("Bidders")}</a>
+                <a href="/seller/marketing" role="menuitem" onclick={() => (isAccountOpen = false)}>{t("Marketing & contacts")}</a>
+                <a href="/seller/settings" role="menuitem" onclick={() => (isAccountOpen = false)}>{t("House settings")}</a>
+                <a href="/seller/team" role="menuitem" onclick={() => (isAccountOpen = false)}>{t("Team")}</a>
+                <a href="/seller/banking" role="menuitem" onclick={() => (isAccountOpen = false)}>{t("Banking")}</a>
               {/if}
               {#if !hasAuctionHouse}
-                <a href="/dashboard/sell" role="menuitem" onclick={() => (isAccountOpen = false)}>Sell with Pumbi</a>
+                <a href="/dashboard/sell" role="menuitem" onclick={() => (isAccountOpen = false)}>{t("Sell with Pumbi")}</a>
               {/if}
               {#if isAdmin}
-                <a href="/admin" role="menuitem" onclick={() => (isAccountOpen = false)}>Admin</a>
+                <a href="/admin" role="menuitem" onclick={() => (isAccountOpen = false)}>{t("Admin")}</a>
               {/if}
-              <button type="button" class="sign-out" role="menuitem" onclick={handleLogout}>Sign out</button>
+              <button type="button" class="sign-out" role="menuitem" onclick={handleLogout}>{t("Sign out")}</button>
             </div>
           {/if}
         </div>
       {:else}
-        <a href="/auth/login" class="sign-in">Sign in</a>
+        <a href="/auth/login" class="sign-in">{t("Sign in")}</a>
       {/if}
     </div>
 
@@ -114,32 +119,33 @@
 
   {#if isMenuOpen}
     <div class="mobile-menu">
-      <a href="/#all-auctions-heading" onclick={closeMobile}>Auctions</a>
-      <a href="/#watched-heading" onclick={closeMobile}>Most watched</a>
-      <a href="/#popular-heading" onclick={closeMobile}>Popular auctions</a>
-      <a href="/#active-heading" onclick={closeMobile}>Active lots</a>
+      <LanguageSelector />
+      <a href="/#all-auctions-heading" onclick={closeMobile}>{t("Auctions")}</a>
+      <a href="/#watched-heading" onclick={closeMobile}>{t("Most watched")}</a>
+      <a href="/#popular-heading" onclick={closeMobile}>{t("Popular auctions")}</a>
+      <a href="/#active-heading" onclick={closeMobile}>{t("Active lots")}</a>
 
       {#if currentUser}
         <p class="mobile-account-label">{displayName}</p>
-        <a href="/dashboard" onclick={closeMobile}>Buyer dashboard</a>
+        <a href="/dashboard" onclick={closeMobile}>{t("Buyer dashboard")}</a>
         {#if hasAuctionHouse}
-          <a href="/seller" onclick={closeMobile}>Seller dashboard</a>
-          <a href="/seller/sold" onclick={closeMobile}>Sold & shipping</a>
-          <a href="/seller/bidders" onclick={closeMobile}>Bidders</a>
-          <a href="/seller/marketing" onclick={closeMobile}>Marketing & contacts</a>
-          <a href="/seller/settings" onclick={closeMobile}>House settings</a>
-          <a href="/seller/team" onclick={closeMobile}>Team</a>
-          <a href="/seller/banking" onclick={closeMobile}>Banking</a>
+          <a href="/seller" onclick={closeMobile}>{t("Seller dashboard")}</a>
+          <a href="/seller/sold" onclick={closeMobile}>{t("Sold & shipping")}</a>
+          <a href="/seller/bidders" onclick={closeMobile}>{t("Bidders")}</a>
+          <a href="/seller/marketing" onclick={closeMobile}>{t("Marketing & contacts")}</a>
+          <a href="/seller/settings" onclick={closeMobile}>{t("House settings")}</a>
+          <a href="/seller/team" onclick={closeMobile}>{t("Team")}</a>
+          <a href="/seller/banking" onclick={closeMobile}>{t("Banking")}</a>
         {/if}
         {#if !hasAuctionHouse}
-          <a href="/dashboard/sell" onclick={closeMobile}>Sell with Pumbi</a>
+          <a href="/dashboard/sell" onclick={closeMobile}>{t("Sell with Pumbi")}</a>
         {/if}
         {#if isAdmin}
-          <a href="/admin" onclick={closeMobile}>Admin</a>
+          <a href="/admin" onclick={closeMobile}>{t("Admin")}</a>
         {/if}
-        <button type="button" onclick={handleLogout}>Sign out</button>
+        <button type="button" onclick={handleLogout}>{t("Sign out")}</button>
       {:else}
-        <a href="/auth/login" class="mobile-sign-in" onclick={closeMobile}>Sign in</a>
+        <a href="/auth/login" class="mobile-sign-in" onclick={closeMobile}>{t("Sign in")}</a>
       {/if}
     </div>
   {/if}
@@ -225,6 +231,7 @@
     display: flex;
     justify-content: flex-end;
     align-items: center;
+    gap: 16px;
   }
 
   .sign-in {

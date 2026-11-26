@@ -11,8 +11,8 @@
     invoices = data.invoices || [];
   });
 
-  function money(amount) {
-    return new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(Number(amount || 0));
+  function money(amount, currency = 'usd') {
+    return new Intl.NumberFormat('en-US', { style: 'currency', currency: currency.toUpperCase() }).format(Number(amount || 0));
   }
 
   async function run(invoiceId, action, payload = {}) {
@@ -80,7 +80,7 @@
               <p class="text-[10px] font-bold uppercase tracking-wide text-[var(--pumbi-muted)]">{invoice.number} · {invoice.auction.title}</p>
               <p class="mt-1 truncate font-semibold text-[var(--pumbi-ink)]">Lot #{invoice.lot.lotNumber} · {invoice.lot.title}</p>
               <p class="mt-1 text-sm text-[var(--pumbi-ink-soft)]">
-                Buyer: {invoice.buyer?.name || invoice.buyer?.email || '—'} · Total {money(invoice.totalAmount)}
+                Buyer: {invoice.buyer?.name || invoice.buyer?.email || '—'} · Total {money(invoice.totalAmount, invoice.currency)}
               </p>
             </div>
             <div class="text-sm text-[var(--pumbi-ink-soft)]">

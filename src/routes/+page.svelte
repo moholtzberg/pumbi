@@ -36,9 +36,9 @@
     });
   }
 
-  function formatMoney(value) {
+  function formatMoney(value, currency = 'usd') {
     return new Intl.NumberFormat('en-US', {
-      style: 'currency', currency: 'USD', maximumFractionDigits: 0
+      style: 'currency', currency: currency.toUpperCase(), maximumFractionDigits: 0
     }).format(value || 0);
   }
 
@@ -105,7 +105,7 @@
                 <p class="text-xs font-semibold uppercase tracking-wide text-slate-500">{lot.auction.auctionHouse.name} · {lot.auction.title}</p>
                 <h3 class="mt-2 line-clamp-2 text-xl font-semibold group-hover:text-[#a95739]">{lot.title}</h3>
                 <div class="mt-5 flex items-end justify-between gap-4 border-t border-slate-100 pt-4">
-                  <div><p class="text-xs text-slate-500">Current bid</p><p class="font-semibold">{formatMoney(lot.currentBid || lot.startingBid)}</p></div>
+                  <div><p class="text-xs text-slate-500">Current bid</p><p class="font-semibold">{formatMoney(lot.currentBid || lot.startingBid, lot.auction?.currency)}</p></div>
                   <div class="text-right"><p class="font-semibold text-rose-600">♥ {lot.watchersCount}</p><p class="text-xs text-slate-500">{lot.bidCount} {lot.bidCount === 1 ? 'bid' : 'bids'}</p></div>
                 </div>
               </div>
@@ -151,7 +151,7 @@
                 </div>
                 <h3 class="mt-2 line-clamp-2 font-semibold group-hover:text-[#a95739]">{lot.title}</h3>
                 <p class="mt-2 truncate text-xs text-slate-500">{lot.auction.title}</p>
-                <p class="mt-1 text-sm font-semibold">{formatMoney(lot.currentBid || lot.startingBid)}</p>
+                <p class="mt-1 text-sm font-semibold">{formatMoney(lot.currentBid || lot.startingBid, lot.auction?.currency)}</p>
               </div>
             </a>
           {/each}

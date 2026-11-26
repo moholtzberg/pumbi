@@ -1,4 +1,5 @@
 import { invoiceHouseContact } from '$lib/utils/addresses.js';
+import { auctionCurrency } from '$lib/utils/region.js';
 import prisma from '$lib/prisma.js';
 
 function parseSettings(settings) {
@@ -127,7 +128,7 @@ export async function createInvoiceForSoldLot(lotId) {
         auctionHouseId: house.id,
         buyerId: lot.highestBidderId,
         status: 'UNPAID',
-        currency: 'usd',
+        currency: auctionCurrency(auction, house),
         hammerPrice: totals.hammerPrice,
         buyerPremiumRate: totals.buyerPremiumRate,
         buyerPremiumAmount: totals.buyerPremiumAmount,

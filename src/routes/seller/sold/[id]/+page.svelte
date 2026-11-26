@@ -15,7 +15,7 @@
   $effect(() => { invoice = data.invoice; });
 
   function money(amount) {
-    return new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(Number(amount || 0));
+    return new Intl.NumberFormat('en-US', { style: 'currency', currency: (invoice.currency || 'usd').toUpperCase() }).format(Number(amount || 0));
   }
 
   async function api(action, payload = {}) {

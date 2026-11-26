@@ -933,7 +933,7 @@
   function formatCurrency(amount) {
     return new Intl.NumberFormat('en-US', {
       style: 'currency',
-      currency: 'USD'
+      currency: (auction?.currency || 'usd').toUpperCase()
     }).format(amount);
   }
 </script>

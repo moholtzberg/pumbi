@@ -37,6 +37,7 @@ export async function PATCH({ params, request, locals }) {
     });
   }
   const updates = parsed.data;
+  if (updates.currency && updates.currency !== existing.currency) throw error(409, 'Auction currency is fixed at creation. Create a new auction to use a different currency.');
   const startDate = updates.startDate || existing.startDate;
   const endDate = updates.endDate || existing.endDate;
 

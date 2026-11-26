@@ -212,7 +212,7 @@
   function formatCurrency(amount) {
     return new Intl.NumberFormat('en-US', {
       style: 'currency',
-      currency: 'USD'
+      currency: (lot?.auction?.currency || 'usd').toUpperCase()
     }).format(amount);
   }
   

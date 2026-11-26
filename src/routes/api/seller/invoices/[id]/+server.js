@@ -18,7 +18,7 @@ async function loadSellerInvoice(invoiceId, user) {
       auction: { select: { id: true, title: true } },
       auctionHouse: { include: { locations: true } },
       shipment: true,
-      buyer: { select: { id: true, name: true, email: true, phone: true } }
+      buyer: { select: { id: true, name: true, email: true, phone: true, preferredLocale: true } }
     }
   });
   if (!invoice) throw error(404, 'Invoice not found');

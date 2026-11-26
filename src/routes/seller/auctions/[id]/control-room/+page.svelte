@@ -166,7 +166,7 @@
   }
 
   function money(amount) {
-    return new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(amount || 0);
+    return new Intl.NumberFormat('en-US', { style: 'currency', currency: (data?.auction?.currency || 'usd').toUpperCase() }).format(amount || 0);
   }
 
   function time(value) {
@@ -338,7 +338,7 @@
             {/if}
             {#if isAuctioneer && !auctionEnded}
               {#key openLot.id}
-                <PhoneBidForm {auctionId} lot={openLot} disabled={Boolean(busyAction)} onbusychange={busy => { phoneBidBusy = busy; }} onrecorded={async result => {
+                <PhoneBidForm currency={data?.auction?.currency || 'usd'} {auctionId} lot={openLot} disabled={Boolean(busyAction)} onbusychange={busy => { phoneBidBusy = busy; }} onrecorded={async result => {
                   actionSuccess = `Phone maximum saved · current bid ${money(result.currentBid)} · ${result.isLeading ? 'caller is leading' : 'caller was automatically outbid'}${result.newBuyer ? ' · new caller registered' : ''}`;
                   await refresh();
                 }} />

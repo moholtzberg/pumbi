@@ -1,7 +1,7 @@
 <script>
   import CountdownTimer from '$lib/components/CountdownTimer.svelte';
   let { info, cameraLive = false, preview = false } = $props();
-  const money = value => new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', maximumFractionDigits: 2 }).format(value || 0);
+  const money = value => new Intl.NumberFormat('en-US', { style: 'currency', currency: (info?.currency || 'usd').toUpperCase(), maximumFractionDigits: 2 }).format(value || 0);
 </script>
 
 <div class="broadcast-overlay pointer-events-none absolute inset-0 z-10 flex flex-col justify-between text-white" aria-label="Auction broadcast information">

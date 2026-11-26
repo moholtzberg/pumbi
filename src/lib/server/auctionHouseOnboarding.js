@@ -194,7 +194,7 @@ export function userAgent(request) {
 export async function getEditableHouse(id) {
   const house = await prisma.auctionHouse.findUnique({
     where: { id },
-    select: { id: true, onboardingStatus: true }
+    select: { id: true, onboardingStatus: true, country: true, stripeConnectAccountId: true }
   });
   if (!house) throw error(404, 'Auction house not found');
   requireEditableStatus(house.onboardingStatus);

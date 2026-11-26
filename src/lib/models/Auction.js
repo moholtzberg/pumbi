@@ -5,6 +5,7 @@ import prisma from '$lib/prisma.js';
 const auctionSchema = z.object({
   id: z.string().optional(),
   title: z.string().min(1, 'Title is required'),
+  currency: z.enum(['usd','ils','eur','gbp','cad','aud']).optional(),
   description: z.string().nullable().optional(),
   startDate: z.coerce.date(), // Coerce strings/numbers to Date objects
   endDate: z.coerce.date(), // Coerce strings/numbers to Date objects

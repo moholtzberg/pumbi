@@ -14,6 +14,7 @@ const lotSelect = {
     select: {
       id: true,
       title: true,
+      currency: true,
       status: true,
       startDate: true,
       endDate: true,

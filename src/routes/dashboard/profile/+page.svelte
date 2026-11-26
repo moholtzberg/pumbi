@@ -1,4 +1,9 @@
 <script>
+  import { translate } from '$lib/i18n.js';
+  import { page } from '$app/stores';
+  const t = (text, values) => translate($page.data.locale || 'en', text, values);
+
+  import { legacyAddress } from '$lib/utils/addresses.js';
   import AddressBook from '$lib/components/AddressBook.svelte';
   import { onMount } from 'svelte';
   import { goto } from '$app/navigation';
@@ -16,6 +21,7 @@
     firstName: '',
     lastName: '',
     phone: '',
+    country: 'US',
     address: ''
   });
   
@@ -54,7 +60,8 @@
         firstName: currentUser.firstName || '',
         lastName: currentUser.lastName || '',
         phone: currentUser.phone || '',
-        address: currentUser.address || ''
+        address: currentUser.address || '',
+        country: currentUser.country || legacyAddress(currentUser.address).country
       };
     } catch (error) {
       console.error('Error loading user data:', error);
@@ -80,6 +87,7 @@
           firstName: formData.firstName || null,
           lastName: formData.lastName || null,
           phone: formData.phone || null,
+          country: formData.country,
           address: formData.address || null
         })
       });
@@ -112,16 +120,16 @@
           <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7" />
           </svg>
-          Back to Dashboard
+          {t("Back to Dashboard")}
         </a>
       </div>
       
-      <h1 class="text-3xl font-bold text-gray-900 mb-8">Edit Profile</h1>
+      <h1 class="text-3xl font-bold text-gray-900 mb-8">{t("Edit Profile")}</h1>
       
       {#if loading}
         <div class="text-center py-12">
           <PumbiLoader size="lg" label="Loading" />
-          <p class="mt-4 text-gray-600">Loading...</p>
+          <p class="mt-4 text-gray-600">{t("Loading...")}</p>
         </div>
       {:else}
         <div class="bg-white rounded-lg shadow-lg p-6">
@@ -138,9 +146,11 @@
           {/if}
           
           <form onsubmit={(e) => { e.preventDefault(); saveProfile(); }} class="space-y-6">
+            <label class="mb-5 block text-sm font-semibold">{t("Country")}<select bind:value={formData.country} class="mt-2 block w-full border border-gray-300 bg-white p-3"><option value="US">{t("United States")}</option><option value="IL">{t("Israel")}</option><option value="GB">{t("United Kingdom")}</option><option value="CA">{t("Canada")}</option><option value="AU">{t("Australia")}</option><option value="DE">{t("Germany")}</option><option value="FR">{t("France")}</option>{#if !['US','IL','GB','CA','AU','DE','FR'].includes(formData.country)}<option value={formData.country}>{formData.country}</option>{/if}</select></label>
+            <p class="mb-4 text-sm text-slate-600">{formData.country === 'IL' ? 'טלפון ישראלי: 050-123-4567 או ‎+972501234567. אין צורך במדינה/מחוז בכתובת ישראלית.' : 'Include your country code when entering an international phone number.'}</p>
             <div>
               <label for="firstName" class="block text-sm font-medium text-gray-700 mb-2">
-                First Name <span class="text-red-500">*</span>
+                {t("First Name")} <span class="text-red-500">*</span>
               </label>
               <input
                 id="firstName"
@@ -154,7 +164,7 @@
             
             <div>
               <label for="lastName" class="block text-sm font-medium text-gray-700 mb-2">
-                Last Name <span class="text-red-500">*</span>
+                {t("Last Name")} <span class="text-red-500">*</span>
               </label>
               <input
                 id="lastName"
@@ -168,7 +178,7 @@
             
             <div>
               <label for="phone" class="block text-sm font-medium text-gray-700 mb-2">
-                Phone Number <span class="text-red-500">*</span>
+                {t("Phone Number")} <span class="text-red-500">*</span>
               </label>
               <input
                 id="phone"
@@ -182,7 +192,7 @@
             
             <div>
               <label for="address" class="block text-sm font-medium text-gray-700 mb-2">
-                Address <span class="text-red-500">*</span>
+                {t("Address")} <span class="text-red-500">*</span>
               </label>
               <textarea
                 id="address"
@@ -197,7 +207,7 @@
             
             <div class="bg-[#efe8dc] border border-[#ddd6ca] rounded-lg p-4">
               <p class="text-sm text-[#18372f]">
-                <strong>Next:</strong> After completing your profile, use Account verification to confirm your email, phone, photo ID and selfie, and a valid card.
+                <strong>{t("Next:")}</strong> {t("After completing your profile, use Account verification to confirm your email, phone, photo ID and selfie, and a valid card.")}
               </p>
             </div>
             
@@ -208,16 +218,16 @@
                 class="flex-1 bg-[#18372f] text-white py-3 px-6 rounded-lg hover:bg-[#152c26] transition-colors font-semibold disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 {#if saving}
-                  Saving...
+                  {t("Saving...")}
                 {:else}
-                  Save Profile
+                  {t("Save Profile")}
                 {/if}
               </button>
               <a
                 href="/dashboard"
                 class="flex-1 bg-gray-200 text-gray-700 py-3 px-6 rounded-lg hover:bg-gray-300 transition-colors font-semibold text-center"
               >
-                Cancel
+                {t("Cancel")}
               </a>
             </div>
           </form>

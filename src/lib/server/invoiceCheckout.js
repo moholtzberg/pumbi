@@ -112,6 +112,8 @@ export async function createInvoiceCheckoutSession({ invoiceId, origin, buyerUse
 
   const sessionParams = {
     mode: 'payment',
+    locale: 'auto',
+    billing_address_collection: 'required',
     ...(sellerUser ? { payment_method_types: ['card'] } : {}),
     customer_email: invoice.buyer.email || buyerUser?.email,
     line_items: lineItems,

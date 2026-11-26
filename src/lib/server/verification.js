@@ -2,6 +2,10 @@ import { error } from '@sveltejs/kit';
 import { env } from '$env/dynamic/private';
 import { createHash, createHmac, randomInt, timingSafeEqual } from 'node:crypto';
 import prisma from '$lib/prisma.js';
+import { countryCode, normalizeRegionalPhone, normalizeLocale } from '$lib/utils/region.js';
+import { translate } from '$lib/i18n.js';
+import { connectCountryParams, payoutAvailability, israelConnectEnabled } from '$lib/server/connectCountries.js';
+import { shippingDefaults, legacyAddress } from '$lib/utils/addresses.js';
 import { addressBook } from '$lib/server/userAddresses.js';
 import { stripeSellerContactDefaults } from '$lib/utils/addresses.js';
 import { connectStatusForAccount, getStripe } from '$lib/server/stripe.js';
@@ -15,6 +19,8 @@ export const verificationUserSelect = {
   lastName: true,
   name: true,
   address: true,
+  country: true,
+  preferredLocale: true,
   role: true,
   emailVerifiedAt: true,
   phoneVerifiedAt: true,
@@ -32,6 +38,7 @@ export const verificationUserSelect = {
     select: {
       id: true,
       businessType: true,
+      country: true,
       stripeConnectAccountId: true,
       stripeConnectStatus: true,
       stripeConnectDetailsSubmitted: true,
@@ -90,10 +97,14 @@ export function publicVerification(user) {
       firstName: user.firstName,
       lastName: user.lastName,
       address: user.address,
+      country: user.country || legacyAddress(user.address).country,
+      preferredLocale: user.preferredLocale,
       role: user.role,
       isVerifiedBuyer: user.isVerifiedBuyer,
       isVerifiedBidder: user.isVerifiedBidder
     },
+    israelOnboardingAvailable: israelConnectEnabled() || Boolean(user.sellerProfile?.stripeConnectAccountId),
+    payoutAvailability: payoutAvailability(user.sellerProfile?.country || user.country, user.sellerProfile?.stripeConnectAccountId),
     checks,
     completedCount: Object.values(checks).filter(Boolean).length,
     identity: {
@@ -109,6 +120,8 @@ export function publicVerification(user) {
     seller: user.sellerProfile ? {
       profileId: user.sellerProfile.id,
       businessType: user.sellerProfile.businessType,
+      country: user.sellerProfile.country,
+      availability: payoutAvailability(user.sellerProfile.country || user.country, user.sellerProfile.stripeConnectAccountId),
       status: user.sellerProfile.stripeConnectStatus,
       detailsSubmitted: user.sellerProfile.stripeConnectDetailsSubmitted,
       payoutsEnabled: user.sellerProfile.stripeConnectPayoutsEnabled,
@@ -137,19 +150,19 @@ function hashCode(userId, channel, code) {
   return createHmac('sha256', otpSecret()).update(`${userId}:${channel}:${code}`).digest('hex');
 }
 
-async function deliverVerificationCode(channel, target, code) {
+async function deliverVerificationCode(channel, target, code, locale = 'en') {
   if (channel === 'EMAIL') {
     await sendTransactionalEmail({
       to: target,
-      subject: 'Your Pumbi verification code',
-      text: `Your Pumbi verification code is ${code}. It expires in 10 minutes. If you did not request this code, you can ignore this email.`,
-      html: `<p>Your Pumbi verification code is:</p><p style="font-size:28px;font-weight:700;letter-spacing:4px">${code}</p><p>This code expires in 10 minutes. If you did not request it, you can ignore this email.</p>`
+      subject: translate(locale, 'Your Pumbi verification code'),
+      text: translate(locale, 'Your Pumbi verification code is {code}. It expires in 10 minutes.', { code }),
+      html: `<div lang="${normalizeLocale(locale)}" dir="${normalizeLocale(locale) === 'he' ? 'rtl' : 'ltr'}"><p>${translate(locale, 'Your Pumbi verification code is {code}. It expires in 10 minutes.', { code })}</p></div>`
     });
     return;
   }
   await smtp2goRequest('sms/send', {
     destination: [target],
-    content: `Your Pumbi verification code is ${code}. It expires in 10 minutes.`
+    content: translate(locale, 'Your Pumbi verification code is {code}. It expires in 10 minutes.', { code })
   });
 }
 
@@ -158,7 +171,7 @@ export async function startContactVerification(user, channel) {
     throw error(503, 'Verification storage is not loaded. Regenerate Prisma Client and restart the application.');
   }
   const databaseChannel = otpChannel(channel);
-  const target = channel === 'email' ? user.email : normalizePhone(user.phone);
+  const target = channel === 'email' ? user.email : normalizePhone(user.phone, user.country || legacyAddress(user.address).country);
   if (!target) throw error(400, channel === 'email' ? 'Add an email address first' : 'Add a phone number first');
   const now = new Date();
   const oneMinuteAgo = new Date(now.getTime() - 60_000);
@@ -193,7 +206,7 @@ export async function startContactVerification(user, channel) {
     });
   });
   try {
-    await deliverVerificationCode(databaseChannel, target, code);
+    await deliverVerificationCode(databaseChannel, target, code, user.preferredLocale);
   } catch (deliveryError) {
     await prisma.contactVerificationCode.delete({ where: { id: record.id } }).catch(() => {});
     throw deliveryError;
@@ -207,7 +220,7 @@ export async function checkContactVerification(user, channel, code) {
   }
   const databaseChannel = otpChannel(channel);
   if (!/^\d{6}$/.test(code || '')) throw error(400, 'Enter the six-digit verification code');
-  const target = channel === 'email' ? user.email : normalizePhone(user.phone);
+  const target = channel === 'email' ? user.email : normalizePhone(user.phone, user.country || legacyAddress(user.address).country);
   if (!target) throw error(400, 'Verification destination is missing');
   const record = await prisma.contactVerificationCode.findFirst({
     where: {
@@ -298,6 +311,8 @@ export async function startCardVerification(user, origin) {
   }
   const checkout = await stripe.checkout.sessions.create({
     mode: 'setup',
+    locale: 'auto',
+    billing_address_collection: 'required',
     customer: customerId,
     payment_method_types: ['card'],
     success_url: `${origin}/dashboard/verification?stripe_session_id={CHECKOUT_SESSION_ID}`,
@@ -340,6 +355,7 @@ export async function syncCardCheckoutSession(sessionOrId, expectedUserId = null
 
 export async function syncSellerConnectedAccount(account) {
   const data = {
+    ...(countryCode(account.country) && { country: countryCode(account.country) }),
     stripeConnectStatus: connectStatusForAccount(account),
     stripeConnectDetailsSubmitted: Boolean(account.details_submitted),
     stripeConnectChargesEnabled: Boolean(account.charges_enabled),
@@ -358,9 +374,12 @@ export async function refreshSellerForUser(userId) {
   return prisma.sellerProfile.findUnique({ where: { userId } });
 }
 
-export async function startSellerConnect(user, origin, requestedBusinessType = 'INDIVIDUAL') {
+export async function startSellerConnect(user, origin, requestedBusinessType = 'INDIVIDUAL', requestedCountry = null) {
   const businessType = requestedBusinessType === 'BUSINESS' ? 'BUSINESS' : 'INDIVIDUAL';
   const stripe = getStripe();
+  const { addresses } = await addressBook(user);
+  const country = countryCode(requestedCountry || user.sellerProfile?.country || user.country || shippingDefaults(user, addresses).address.country);
+  if (!country) throw error(400, 'Choose your actual country');
   let profile = await prisma.sellerProfile.upsert({
     where: { userId: user.id },
     create: {
@@ -369,10 +388,12 @@ export async function startSellerConnect(user, origin, requestedBusinessType = '
       legalName: [user.firstName, user.lastName].filter(Boolean).join(' ') || user.name,
       contactEmail: user.email,
       contactPhone: user.phone,
-      address: user.address
+      address: user.address,
+      country
     },
     update: {},
   });
+  if (profile.stripeConnectAccountId && profile.country && profile.country !== country) throw error(409, 'Country cannot be changed after payout onboarding starts.');
   if (profile.stripeConnectAccountId && profile.businessType !== businessType) {
     throw error(409, 'Seller type cannot be changed after Stripe onboarding has started');
   }
@@ -380,9 +401,11 @@ export async function startSellerConnect(user, origin, requestedBusinessType = '
     profile = await prisma.sellerProfile.update({ where: { id: profile.id }, data: { businessType } });
   }
   if (!profile.stripeConnectAccountId) {
-    const { addresses } = await addressBook(user);
+    const countryParams = connectCountryParams(country, user.preferredLocale);
+    profile = await prisma.sellerProfile.update({ where: { id: profile.id }, data: { country } });
     const account = await stripe.accounts.create({
       type: 'express',
+      ...countryParams,
       ...stripeSellerContactDefaults(user, profile, addresses),
       business_type: businessType === 'BUSINESS' ? 'company' : 'individual',
       capabilities: { transfers: { requested: true } },
@@ -395,7 +418,9 @@ export async function startSellerConnect(user, origin, requestedBusinessType = '
     });
   }
   const account = await stripe.accounts.retrieve(profile.stripeConnectAccountId);
-  if (!account.deleted) await syncSellerConnectedAccount(account);
+  if (account.deleted) throw error(409, 'The connected Stripe account was deleted');
+  if (requestedCountry && account.country && account.country !== country) throw error(409, 'Country cannot be changed after payout onboarding starts.');
+  await syncSellerConnectedAccount(account);
   const link = await stripe.accountLinks.create({
     account: profile.stripeConnectAccountId,
     type: 'account_onboarding',
@@ -410,11 +435,7 @@ export function maskPhone(phone) {
   return `${phone.slice(0, Math.max(2, phone.length - 4)).replace(/\d/g, '•')}${phone.slice(-4)}`;
 }
 
-function normalizePhone(phone) {
+function normalizePhone(phone, country = 'US') {
   if (!phone) throw error(400, 'Add a phone number first');
-  if (/^\+[1-9]\d{7,14}$/.test(phone)) return phone;
-  const digits = phone.replace(/\D/g, '');
-  if (digits.length === 10) return `+1${digits}`;
-  if (digits.length === 11 && digits.startsWith('1')) return `+${digits}`;
-  throw error(400, 'Phone number must include a valid country code, for example +12125551234');
+  try { return normalizeRegionalPhone(phone, country || 'US'); } catch (err) { throw error(400, err.message); }
 }

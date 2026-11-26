@@ -24,13 +24,14 @@ export async function GET({ params, locals }) {
     }
 
     // Parse settings JSON or return empty object
-    const settings = auction.settings ? JSON.parse(auction.settings) : {};
+    const settings = { ...(auction.settings ? JSON.parse(auction.settings) : {}), currency: (auction.currency || 'usd').toUpperCase() };
 
     // For public access (non-logged-in users), only return gallery-related settings
     const user = await getAuthenticatedUser(locals);
     if (!user) {
       // Public access - only return gallery template settings
       return json({
+        currency: settings.currency,
         galleryTemplate: settings.galleryTemplate || 'card-grid',
         galleryTemplateSettings: settings.galleryTemplateSettings || {},
         liveVideoUrl: settings.liveVideoUrl || null,
@@ -49,6 +50,7 @@ export async function GET({ params, locals }) {
 
     // Otherwise, return only gallery settings (public access)
     return json({
+      currency: settings.currency,
       galleryTemplate: settings.galleryTemplate || 'card-grid',
       galleryTemplateSettings: settings.galleryTemplateSettings || {},
       liveVideoUrl: settings.liveVideoUrl || null,
@@ -84,7 +86,9 @@ export async function PATCH({ params, request, locals }) {
     const data = await request.json();
 
     // Validate the settings data
+    if (data.currency && data.currency.toLowerCase() !== (auction.currency || 'usd')) throw error(409, 'Auction currency is fixed at creation. Create a new auction to use a different currency.');
     let validated = await auctionSettingsSchema.parseAsync(data);
+    validated.currency = (auction.currency || 'usd').toUpperCase();
 
     // Update the auction settings
     await prisma.$transaction(async tx => {

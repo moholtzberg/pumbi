@@ -3,6 +3,7 @@ export function broadcastInfo({ auction, currentLot = null, nextLot = null, bidd
   const hasBid = Boolean(currentLot?.highestBidderId || currentLot?.highestBidderName || Number(currentLot?.currentBid) > Number(currentLot?.startingBid || 0));
   return {
     platform: 'Pumbi',
+    currency: auction?.currency || 'usd',
     fairWarning: Boolean(biddingOpen && currentLot?.fairWarningAt),
     house: auction?.auctionHouse?.name || auction?.privateHouseNameSnapshot || 'Auction house',
     title: auction?.title || 'Live auction',

@@ -463,3 +463,64 @@ Run `npm test` for unit and route checks. To include the rolled-back PostgreSQL
 address/checkout/onboarding integration test, set `RUN_ADDRESS_DATABASE_TESTS=1`
 and load `DATABASE_URL` (or `TEST_DATABASE_URL`) into the test environment. No real
 emails, shipping labels, or Stripe transactions are triggered by these tests.
+
+## Hebrew and Israeli buyers / sellers
+
+The header language selector switches English / עברית, persists a language cookie,
+and saves the preference for signed-in users. Hebrew renders the document right to
+left. Navigation, registration/login, buyer profile and saved addresses, invoice
+checkout, seller details, house onboarding, verification, and banking have Hebrew
+labels. Buyer invoice and verification-code emails use the saved language. Catalog
+content, seller-written terms, and other untranslated screens retain their original
+text; this is not automatic translation of user content or legal documents.
+
+Account country is independent of language. Registration and Profile accept Israel
+(`IL`), Israeli local numbers normalize to `+972`, and structured Israeli shipping
+addresses accept a seven-digit postcode without requiring a US state. Shippo quotes
+use recorded house origins rather than invented US details. A buyer-paid shipping
+rate must use the invoice currency; the application does not silently convert it.
+
+Choose `ILS` under **House settings → Localization → Default Currency** for new
+shekel auctions. New auctions snapshot their currency; existing auctions retain
+USD unless they already have an explicit currency. Changing house settings does
+not relabel existing bids or invoices. Catalog, live bidding, overlays, invoices,
+and Stripe checkout use the auction/invoice currency. ILS amounts use agorot
+(100 agorot = 1 ILS). Dashboard won-value totals are separated by currency.
+
+Stripe-hosted Checkout uses `locale: auto`; Hebrew is not in its supported locale
+list. The Identity/Connect providers determine supported languages and accepted
+identity, tax, and bank documents. Pumbi does not require Israeli users to supply
+US SSNs or EINs and does not store their raw identity/tax/bank numbers.
+
+### Israeli payout setup remains external
+
+No live Israeli payout route is activated by this change. Seller verification,
+house onboarding, and Banking show setup options instead of creating a US account
+for an Israeli recipient. Existing connected accounts can continue resolving their
+provider requirements, and actual provider payout-enabled status is still required
+before a release can be requested.
+
+- Ask Stripe to approve the platform's Israeli Connect account agreement and funds
+  flow: <https://docs.stripe.com/connect/connect-cross-border-payouts>.
+- Evaluate Stripe Global Payouts for eligible platforms:
+  <https://docs.stripe.com/global-payouts>. This needs separate recipient onboarding,
+  funding, payout APIs, and status handling; existing Connect transfers do not use it.
+- Alternatively, select an Israeli provider that supports the marketplace business
+  model, seller verification, and payouts, then integrate its API/webhooks.
+
+Only after Stripe explicitly approves the existing Connect route, configure
+`STRIPE_ISRAEL_CONNECT_AGREEMENT=full` or `recipient` to match that approval. Older
+approved recipient arrangements must not be assumed available to a new platform.
+Leaving it unset keeps new Israeli Connect onboarding unavailable. Test-mode country
+coverage does not establish live-account approval. No real payouts were made to
+validate this change. Do not create an account under a false country to bypass it.
+
+Apply `prisma/migrations/20261126010000_add_account_region` with
+`npx prisma migrate deploy` and regenerate Prisma before deploying to another
+database. This migration is already applied to the workspace's configured database.
+It adds account country/language, seller payout country, and fixed auction currency.
+
+`tests/region.test.js` and `tests/israelPayments.test.js` cover Hebrew preferences,
+Israeli phone/address parsing, country locks and activation, ILS invoice/Stripe
+amounts, and shipping currency checks. The PostgreSQL address integration test also
+covers Hebrew addresses and real shekel invoice creation; it rolls back all fixtures.

@@ -55,7 +55,7 @@ export async function load({ locals }) {
                 take: 1,
                 select: { url: true }
               },
-              auction: { select: { id: true, title: true, status: true, startDate: true, endDate: true } }
+              auction: { select: { id: true, title: true, currency: true, status: true, startDate: true, endDate: true } }
             }
           }
         }
@@ -103,6 +103,7 @@ export async function load({ locals }) {
           select: {
             id: true,
             title: true,
+            currency: true,
             status: true,
             auctionHouse: { select: { name: true } }
           }
@@ -134,6 +135,7 @@ export async function load({ locals }) {
           select: {
             id: true,
             title: true,
+            currency: true,
             status: true,
             auctionHouse: { select: { name: true } }
           }
@@ -168,7 +170,7 @@ export async function load({ locals }) {
         id: true,
         amount: true,
         timestamp: true,
-        lot: { select: { id: true, lotNumber: true, title: true, highestBidderId: true, status: true } }
+        lot: { select: { id: true, lotNumber: true, title: true, auction: { select: { currency: true } }, highestBidderId: true, status: true } }
       }
     }),
     canSeeControlRooms
@@ -189,6 +191,7 @@ export async function load({ locals }) {
           select: {
             id: true,
             title: true,
+            currency: true,
             status: true,
             type: true,
             startDate: true,
@@ -214,6 +217,7 @@ export async function load({ locals }) {
     auction: {
       id: lot.auction.id,
       title: lot.auction.title,
+      currency: lot.auction.currency,
       status: lot.auction.status,
       auctionHouseName: lot.auction.auctionHouse?.name || null
     },
@@ -304,6 +308,7 @@ export async function load({ locals }) {
       totalBids,
       leadingBids: leadingLotsMapped.length,
       wonBids: wonLots.length,
+      wonValueByCurrency: wonLots.reduce((totals, lot) => { const currency = lot.auction.currency || 'usd'; totals[currency] = (totals[currency] || 0) + Number(lot.currentBid || 0); return totals; }, {}),
       wonValue: wonLots.reduce((sum, lot) => sum + (lot.currentBid || 0), 0),
       winningBids: leadingLotsMapped.length,
       winningValue: leadingLotsMapped.reduce((sum, lot) => sum + (lot.currentBid || 0), 0)

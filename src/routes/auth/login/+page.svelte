@@ -1,4 +1,7 @@
 <script>
+  import { translate } from '$lib/i18n.js';
+  const t = (text, values) => translate($page.data.locale || 'en', text, values);
+
   import { goto } from '$app/navigation';
   import { page } from '$app/stores';
   import { loginDestination } from '$lib/utils/loginDestination.js';
@@ -51,16 +54,16 @@
   <div class="max-w-md w-full space-y-8">
     <div>
       <h2 class="mt-6 text-center font-[family-name:var(--pumbi-serif)] text-4xl font-semibold text-[#1a2821]">
-        Sign in to your account
+        {t("Sign in to your account")}
       </h2>
       <p class="mt-2 text-center text-sm text-[#435048]">
-        Don't have an account?
+        {t("Don't have an account?")}
         <a href="/auth/register" class="pumbi-link">
-          Register here
+          {t("Register here")}
         </a>
         <span class="mx-2">|</span>
         <a href="/auction-houses/signup" class="pumbi-link">
-          Register auction house
+          {t("Register auction house")}
         </a>
       </p>
     </div>
@@ -79,7 +82,7 @@
     <form class="mt-8 space-y-6" onsubmit={handleSubmit}>
       <div class="rounded-md shadow-sm -space-y-px">
         <div>
-          <label for="email" class="sr-only">Email address</label>
+          <label for="email" class="sr-only">{t("Email address")}</label>
           <input
             id="email"
             name="email"
@@ -92,7 +95,7 @@
           />
         </div>
         <div>
-          <label for="password" class="sr-only">Password</label>
+          <label for="password" class="sr-only">{t("Password")}</label>
           <input
             id="password"
             name="password"
@@ -109,7 +112,7 @@
       <div class="flex items-center justify-end">
         <div class="text-sm">
           <a href="/auth/forgot-password" class="font-medium text-[#18372f] hover:text-[#a95739]">
-            Forgot your password?
+            {t("Forgot your password?")}
           </a>
         </div>
       </div>
@@ -125,9 +128,9 @@
               <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
               <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
             </svg>
-            Signing in...
+            {t("Signing in...")}
           {:else}
-            Sign in
+            {t("Sign in")}
           {/if}
         </button>
       </div>

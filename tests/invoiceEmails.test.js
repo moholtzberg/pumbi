@@ -104,3 +104,16 @@ test('invoice email includes the auction house address and contact information w
   assert.match(mail.text_body, /\+12125551234/);
   assert.match(mail.html_body, /100 Main &lt;Street&gt;/);
 });
+
+test('Hebrew buyers receive RTL invoices with shekel totals and escaped user content', async () => {
+  state.invoice.buyer.preferredLocale = 'he';
+  state.invoice.currency = 'ils';
+  await route.POST(event());
+  const mail = state.sent[0].body;
+  assert.match(mail.subject, /חשבונית INV-42/);
+  assert.match(mail.text_body, /₪/);
+  assert.match(mail.text_body, /סכום החשבונית/);
+  assert.match(mail.html_body, /dir="rtl"/);
+  assert.match(mail.html_body, /&lt;Moshe&gt;/);
+  assert.equal(state.writes.length, 0);
+});

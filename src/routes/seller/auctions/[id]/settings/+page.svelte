@@ -125,7 +125,7 @@
       if (settingsResponse.ok) {
         const existingSettings = await settingsResponse.json();
         // Merge with defaults, preserving existing values
-        settings = { ...settings, ...existingSettings };
+        settings = { ...settings, ...existingSettings, currency: (auction.currency || 'usd').toUpperCase() };
       }
     } catch (error) {
       console.error('Error loading auction:', error);
@@ -786,7 +786,7 @@
               {#if expandedSections.currency}
                 <div class="p-4">
                   <label class="block text-sm font-medium text-gray-700 mb-1">Currency</label>
-                  <select bind:value={settings.currency} class="w-full px-3 py-2 text-sm border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
+                  <select disabled bind:value={settings.currency} class="w-full px-3 py-2 text-sm border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
                     <option value="USD">USD - US Dollar</option>
                     <option value="EUR">EUR - Euro</option>
                     <option value="GBP">GBP - British Pound</option>

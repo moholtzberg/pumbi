@@ -57,7 +57,7 @@ export async function POST({ locals, request }) {
     case 'start_card':
       return json(await startCardVerification(user, origin));
     case 'start_seller':
-      return json(await startSellerConnect(user, origin, body.businessType));
+      return json(await startSellerConnect(user, origin, body.businessType, body.country));
       default:
         throw error(400, 'Unknown verification action');
     }

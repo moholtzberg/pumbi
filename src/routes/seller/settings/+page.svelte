@@ -55,7 +55,7 @@
     
     // Localization
     secondLanguage: '',
-    defaultCurrency: 'USD',
+    defaultCurrency: pageData?.auctionHouse?.country === 'IL' ? 'ILS' : 'USD',
     secondCurrency: '',
     
     // Pricing
@@ -687,7 +687,7 @@
                       </div>
                       <div>
                         <label class="block text-sm font-medium text-gray-700 mb-1">Default Currency</label>
-                        <input type="text" bind:value={settings.defaultCurrency} placeholder="USD" class="w-full px-3 py-2 text-sm border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500" />
+                        <select bind:value={settings.defaultCurrency} class="w-full px-3 py-2 text-sm border border-gray-300 rounded-md"><option value="USD">USD — US Dollar</option><option value="ILS">ILS — שקל חדש ₪</option><option value="EUR">EUR — Euro</option><option value="GBP">GBP — Pound</option><option value="CAD">CAD — Canadian Dollar</option><option value="AUD">AUD — Australian Dollar</option></select><p class="mt-2 text-xs text-gray-600">Applies to new auctions. Existing auction and invoice currencies stay fixed.</p>
                       </div>
                       <div>
                         <label class="block text-sm font-medium text-gray-700 mb-1">Second Currency</label>

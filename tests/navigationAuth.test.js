@@ -24,7 +24,7 @@ const server = await createServer({ configFile: false, ssr: { noExternal: ['@aut
     if (id === '\0nav-auth') return 'export const signOut = async () => {};';
   }, transform(source, id) {
     // Render both open menus to verify links that are otherwise hidden at SSR.
-    if (id.endsWith('/Navigation.svelte')) return compile(source.replace('let isMenuOpen = $state(false)', 'let isMenuOpen = $state(true)').replace('let isAccountOpen = $state(false)', 'let isAccountOpen = $state(true)'), { filename: id, generate: 'server' }).js.code;
+    if (id.endsWith('.svelte')) return compile(source.replace('let isMenuOpen = $state(false)', 'let isMenuOpen = $state(true)').replace('let isAccountOpen = $state(false)', 'let isAccountOpen = $state(true)'), { filename: id, generate: 'server' }).js.code;
   }
 }] });
 const layout = await server.ssrLoadModule('/src/routes/+layout.server.js');
@@ -78,4 +78,13 @@ test('menu gets current seller, team-manager and administrator data from databas
 test('a deleted user does not retain an account menu from an old JWT', async () => {
   state.user = null;
   assert.equal((await load({ user: { email: 'deleted@example.com' } })).navigationUser, null);
+});
+
+test('Hebrew menus keep both buyer and seller routes and expose the language selector', () => {
+  const html = markup({ locale: 'he', navigationUser: { id: 'seller', name: 'משה', hasAuctionHouse: true, role: 'SELLER' } });
+  assert.equal((html.match(/אזור הקונה/g) || []).length, 2);
+  assert.equal((html.match(/אזור המוכר/g) || []).length, 2);
+  assert.match(html, /href="\/dashboard"/);
+  assert.match(html, /href="\/seller"/);
+  assert.match(html, /Language \/ שפה/);
 });

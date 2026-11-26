@@ -1,5 +1,6 @@
 import { redirect } from '@sveltejs/kit';
 import prisma from '$lib/prisma.js';
+import { readSettings, defaultCurrency } from '$lib/utils/region.js';
 
 /**
  * Server-side authentication check for all seller portal routes
@@ -42,7 +43,7 @@ export async function load({ locals, url }) {
   const auctionHouse = primaryHouseId
     ? await prisma.auctionHouse.findUnique({
         where: { id: primaryHouseId },
-        select: { id: true, name: true, onboardingStatus: true }
+        select: { id: true, name: true, onboardingStatus: true, country: true, settings: true }
       })
     : null;
 
@@ -66,7 +67,7 @@ export async function load({ locals, url }) {
         auctionHouseId: primaryHouseId
       }
     },
-    auctionHouse
+    auctionHouse: auctionHouse ? { id: auctionHouse.id, name: auctionHouse.name, onboardingStatus: auctionHouse.onboardingStatus, country: auctionHouse.country, currency: readSettings(auctionHouse.settings).defaultCurrency || defaultCurrency(auctionHouse.country) } : null
   };
 }
 

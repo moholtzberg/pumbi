@@ -6,8 +6,8 @@
   let now = $state(Date.now());
   let removing = $state('');
 
-  const money = (value) => new Intl.NumberFormat('en-US', {
-    style: 'currency', currency: 'USD', maximumFractionDigits: 0
+  const money = (value, currency = 'usd') => new Intl.NumberFormat('en-US', {
+    style: 'currency', currency: currency.toUpperCase(), maximumFractionDigits: 0
   }).format(Number(value || 0));
   const firstName = data.user.firstName || data.user.name?.trim().split(/\s+/)[0] || 'there';
   const tasks = [
@@ -158,7 +158,7 @@
                 <a href={`/lots/${lot.id}`} class="block h-20 overflow-hidden rounded-sm bg-slate-100">
                   {#if lot.imageUrl}<img src={lot.imageUrl} alt={lot.title} class="h-full w-full object-cover" />{:else}<span class="grid h-full place-items-center text-2xl text-slate-300">◇</span>{/if}
                 </a>
-                <div class="min-w-0"><p class="text-xs font-bold uppercase tracking-wide text-slate-400">Lot #{lot.lotNumber} · {lot.auction.title}</p><a href={`/lots/${lot.id}`} class="mt-1 block truncate font-bold text-slate-950 hover:text-[#18372f]">{lot.title}</a><p class="mt-1 text-sm text-slate-500">Current bid <strong class="text-slate-800">{money(lot.currentBid || lot.startingBid)}</strong></p></div>
+                <div class="min-w-0"><p class="text-xs font-bold uppercase tracking-wide text-slate-400">Lot #{lot.lotNumber} · {lot.auction.title}</p><a href={`/lots/${lot.id}`} class="mt-1 block truncate font-bold text-slate-950 hover:text-[#18372f]">{lot.title}</a><p class="mt-1 text-sm text-slate-500">Current bid <strong class="text-slate-800">{money(lot.currentBid || lot.startingBid, lot.auction.currency)}</strong></p></div>
                 <div class="flex items-center justify-between gap-3 sm:block sm:text-right"><div><p class="text-xs font-bold uppercase tracking-wide text-[#a95739]">On the block in</p><p class="mt-1 font-black tabular-nums text-[#18372f]">{countdown(lot)}</p></div><button type="button" onclick={() => unwatch(lot.id)} disabled={removing === lot.id} class="mt-2 text-xs font-semibold text-slate-400 hover:text-red-600 disabled:opacity-50">Remove</button></div>
               </article>
             {/each}
@@ -173,7 +173,7 @@
       <div class="rounded-sm border bg-white p-4"><p class="text-xs font-bold uppercase tracking-wide text-slate-400">Bids placed</p><p class="mt-1 text-2xl font-black text-slate-950">{data.stats.totalBids}</p></div>
       <div class="rounded-sm border bg-white p-4"><p class="text-xs font-bold uppercase tracking-wide text-slate-400">Currently leading</p><p class="mt-1 text-2xl font-black text-[#18372f]">{data.stats.leadingBids ?? data.stats.winningBids}</p></div>
       <div class="rounded-sm border bg-white p-4"><p class="text-xs font-bold uppercase tracking-wide text-slate-400">Lots won</p><p class="mt-1 text-2xl font-black text-[#18372f]">{data.stats.wonBids || 0}</p></div>
-      <div class="rounded-sm border bg-white p-4"><p class="text-xs font-bold uppercase tracking-wide text-slate-400">Won value</p><p class="mt-1 text-2xl font-black text-[#18372f]">{money(data.stats.wonValue || 0)}</p></div>
+      <div class="rounded-sm border bg-white p-4"><p class="text-xs font-bold uppercase tracking-wide text-slate-400">Won value</p><p class="mt-1 text-2xl font-black text-[#18372f]">{#each Object.entries(data.stats.wonValueByCurrency || { usd: 0 }) as [currency, amount]}<span class="block">{money(amount, currency)}</span>{/each}</p></div>
     </section>
 
     <section id="won-lots" class="rounded-sm border border-[#ddd6ca] bg-white p-5 shadow-sm">
@@ -198,9 +198,9 @@
                 </p>
                 <a href={`/lots/${lot.id}`} class="mt-1 block truncate font-bold text-[#1a2821] hover:text-[#a95739]">{lot.title}</a>
                 <p class="mt-1 text-sm text-[#435048]">
-                  Won for <strong class="text-[#1a2821]">{money(lot.currentBid)}</strong>
+                  Won for <strong class="text-[#1a2821]">{money(lot.currentBid, lot.auction.currency)}</strong>
                   {#if lot.invoice}
-                    · Invoice total <strong class="text-[#1a2821]">{money(lot.invoice.totalAmount)}</strong>
+                    · Invoice total <strong class="text-[#1a2821]">{money(lot.invoice.totalAmount, lot.invoice.currency)}</strong>
                   {/if}
                 </p>
               </div>
@@ -245,7 +245,7 @@
                   <p class="truncate font-semibold text-[#1a2821]">{lot.title}</p>
                   <p class="text-xs text-slate-500">Lot #{lot.lotNumber} · {lot.auction.title}</p>
                 </div>
-                <p class="font-bold text-[#18372f]">{money(lot.currentBid)}</p>
+                <p class="font-bold text-[#18372f]">{money(lot.currentBid, lot.auction.currency)}</p>
               </a>
             {/each}
           </div>
@@ -254,7 +254,7 @@
     </section>
 
     <div class="grid gap-6 lg:grid-cols-[minmax(0,1.35fr)_minmax(280px,0.65fr)]">
-      <section class="rounded-sm border bg-white p-5 shadow-sm"><div class="flex items-center justify-between"><h2 class="text-lg font-black">Recent bidding</h2><a href="/" class="text-sm font-semibold text-[#18372f]">Find lots</a></div>{#if data.recentBids.length}<div class="mt-4 divide-y">{#each data.recentBids as bid}<a href={`/lots/${bid.lot.id}`} class="flex items-center justify-between gap-4 py-3 first:pt-0 last:pb-0"><div class="min-w-0"><p class="truncate font-semibold text-slate-900">{bid.lot.title}</p><p class="text-xs text-slate-500">Lot #{bid.lot.lotNumber}</p></div><div class="text-right"><p class="font-bold">{money(bid.amount)}</p><p class="text-xs {bid.lot.highestBidderId === data.user.id ? (bid.lot.status === 'SOLD' ? 'text-[#18372f]' : 'text-[#18372f]') : 'text-slate-400'}">{bid.lot.highestBidderId === data.user.id ? (bid.lot.status === 'SOLD' ? 'Won' : 'Leading') : 'Outbid'}</p></div></a>{/each}</div>{:else}<p class="mt-4 text-sm text-slate-500">You haven’t placed any bids yet.</p>{/if}</section>
+      <section class="rounded-sm border bg-white p-5 shadow-sm"><div class="flex items-center justify-between"><h2 class="text-lg font-black">Recent bidding</h2><a href="/" class="text-sm font-semibold text-[#18372f]">Find lots</a></div>{#if data.recentBids.length}<div class="mt-4 divide-y">{#each data.recentBids as bid}<a href={`/lots/${bid.lot.id}`} class="flex items-center justify-between gap-4 py-3 first:pt-0 last:pb-0"><div class="min-w-0"><p class="truncate font-semibold text-slate-900">{bid.lot.title}</p><p class="text-xs text-slate-500">Lot #{bid.lot.lotNumber}</p></div><div class="text-right"><p class="font-bold">{money(bid.amount, bid.lot.auction?.currency)}</p><p class="text-xs {bid.lot.highestBidderId === data.user.id ? (bid.lot.status === 'SOLD' ? 'text-[#18372f]' : 'text-[#18372f]') : 'text-slate-400'}">{bid.lot.highestBidderId === data.user.id ? (bid.lot.status === 'SOLD' ? 'Won' : 'Leading') : 'Outbid'}</p></div></a>{/each}</div>{:else}<p class="mt-4 text-sm text-slate-500">You haven’t placed any bids yet.</p>{/if}</section>
       <aside class="rounded-sm bg-[#152c26] p-5 text-white shadow-sm"><p class="text-xs font-bold uppercase tracking-wider text-[#d6b477]">Selling with Pumbi</p><h2 class="mt-2 text-xl font-black">Submit a lot to a public auction</h2><p class="mt-2 text-sm leading-6 text-[#bec9c4]">Manage drafts, submissions, and review status in one place.</p><a href="/dashboard/sell" class="mt-5 inline-flex rounded-lg bg-white px-4 py-2 text-sm font-bold text-[#152c26]">Manage submissions</a></aside>
     </div>
   </div>

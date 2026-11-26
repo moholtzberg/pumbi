@@ -12,7 +12,7 @@ export async function load({ locals, params, url }) {
 
   const user = await prisma.user.findUnique({
     where: { email: session.user.email },
-    select: { id: true, name: true, email: true, phone: true, address: true }
+    select: { id: true, name: true, email: true, phone: true, address: true, country: true, preferredLocale: true }
   });
   if (!user) throw redirect(302, '/auth/login');
 

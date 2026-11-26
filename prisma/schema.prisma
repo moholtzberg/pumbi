@@ -85,6 +85,8 @@ model User {
   lastName                   String?            @map("last_name")
   phone                      String? // Phone number
   address                    String? // Address
+  country                    String?
+  preferredLocale            String             @default("en") @map("preferred_locale")
   emailVerifiedAt            DateTime?          @map("email_verified_at")
   phoneVerifiedAt            DateTime?          @map("phone_verified_at")
   identityVerificationStatus VerificationStatus @default(NOT_STARTED) @map("identity_verification_status")
@@ -216,6 +218,7 @@ model ContactVerificationCode {
 model Auction {
   id                                       String        @id @default(cuid())
   title                                    String
+  currency                                 String        @default("usd")
   description                              String?
   startDate                                DateTime      @map("start_date")
   endDate                                  DateTime      @map("end_date")
@@ -543,6 +546,7 @@ model SellerProfile {
   contactEmail                  String?             @map("contact_email")
   contactPhone                  String?             @map("contact_phone")
   address                       String?
+  country                       String?
   businessType                  SellerBusinessType  @default(INDIVIDUAL) @map("business_type")
   stripeConnectAccountId        String?             @unique @map("stripe_connect_account_id")
   stripeConnectStatus           StripeConnectStatus @default(NOT_CONNECTED) @map("stripe_connect_status")

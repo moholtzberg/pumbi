@@ -113,3 +113,10 @@
 		color: var(--pumbi-terracotta);
 	}
 }
+
+/* Hebrew screens keep phone numbers, email, codes, and amounts readable. */
+html[dir="rtl"] body { font-family: 'Heebo', 'Noto Sans Hebrew', sans-serif; }
+html[dir="rtl"] input[type="email"], html[dir="rtl"] input[type="tel"],
+html[dir="rtl"] input[type="number"], html[dir="rtl"] input[inputmode="numeric"] { direction: ltr; text-align: end; }
+html[dir="rtl"] .account-dropdown { right: auto; left: 0; }
+html[dir="rtl"] .account-dropdown a, html[dir="rtl"] .account-dropdown button { text-align: start; }

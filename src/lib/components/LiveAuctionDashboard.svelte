@@ -239,7 +239,7 @@
   }
 
   function money(amount) {
-    return new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(amount || 0);
+    return new Intl.NumberFormat('en-US', { style: 'currency', currency: (auction?.currency || 'usd').toUpperCase() }).format(amount || 0);
   }
 
   function time(value) {
@@ -380,7 +380,7 @@
               {#if liveData.currentLot.fairWarningAt && liveData.biddingOpen}<p role="status" class="mt-4 border border-amber-300 bg-amber-50 p-3 text-sm font-bold text-amber-900">Fair warning — last chance to bid.</p>{/if}
               {#if session?.user && readyToBid}
                 {#key liveData.currentLot.id}
-                  <MaximumBidForm lot={liveData.currentLot} userId={session.user.id} canBid={liveData.biddingOpen} onbid={refresh} />
+                  <MaximumBidForm currency={auction?.currency || 'usd'} lot={liveData.currentLot} userId={session.user.id} canBid={liveData.biddingOpen} onbid={refresh} />
                 {/key}
               {:else}
                 <button type="button" onclick={placeBid} disabled={bidding || !nextBidAmount || (Boolean(session?.user) && !canBidNow)} class="mt-5 w-full bg-[#18372f] px-5 py-3.5 font-semibold text-white disabled:opacity-60">{bidButtonLabel()}</button>
