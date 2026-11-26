@@ -1,4 +1,5 @@
 <script>
+  import { minimumLotBid, lotBidIncrement } from '$lib/utils/bidIncrements.js';
   import { onMount } from 'svelte';
   let { auctionId, lot, currency = 'usd', disabled = false, onrecorded, onbusychange = () => {} } = $props();
   let dialog = $state(null);
@@ -16,7 +17,7 @@
   let busy = $state(false);
   let errorMessage = $state('');
   let clock = $state(Date.now());
-  let minimum = $derived(Math.round(Math.max(Number(lot.startingBid), Number(lot.currentBid) + Number(lot.bidIncrement)) * 100) / 100);
+  let minimum = $derived(minimumLotBid(lot));
   let lotOpen = $derived(lot.status === 'ACTIVE' && lot.endTime && new Date(lot.endTime).getTime() > clock);
   const money = value => new Intl.NumberFormat('en-US', { style: 'currency', currency: currency.toUpperCase() }).format(value || 0);
   const endpoint = $derived(`/api/auctions/${auctionId}/phone-bids`);

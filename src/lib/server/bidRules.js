@@ -8,9 +8,7 @@ export function bidAmount(value) {
   return Math.round(amount * 100) / 100;
 }
 
-export function minimumLotBid(lot) {
-  return Math.round(Math.max(Number(lot.startingBid), Number(lot.currentBid) + Number(lot.bidIncrement)) * 100) / 100;
-}
+export { minimumLotBid } from '$lib/utils/bidIncrements.js';
 
 export function requireOpenLot(lot, now = new Date()) {
   const auction = lot.auction;

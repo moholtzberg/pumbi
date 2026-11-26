@@ -26,11 +26,13 @@ function toNumber(value, fallback = 0) {
 }
 
 export function resolveBuyerPremiumRate({ auction, auctionHouse } = {}) {
+  // Auction/policy snapshots store fractions (0.15); invoice rates and house
+  // controls use percentage points (15). Keep existing invoice records intact.
   const auctionRate = toNumber(auction?.buyerPremiumRateSnapshot, NaN);
-  if (Number.isFinite(auctionRate)) return auctionRate;
+  if (Number.isFinite(auctionRate)) return money(auctionRate * 100);
 
   const privateRate = toNumber(auction?.privateHouseBuyerPremiumRateSnapshot, NaN);
-  if (Number.isFinite(privateRate)) return privateRate;
+  if (Number.isFinite(privateRate)) return money(privateRate * 100);
 
   const houseSettings = parseSettings(auctionHouse?.settings);
   const houseRate = toNumber(houseSettings.buyersPremium, NaN);

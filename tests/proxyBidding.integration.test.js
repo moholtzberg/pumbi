@@ -68,6 +68,27 @@ test('PostgreSQL proxy prices, private maxima, warning locks and hammer winner s
       const openAccess = await (await registrations.GET({ ...event(alice, {}), params: { id: openAuction.id } })).json();
       assert.equal(openAccess.readyToBid, true); assert.equal(openAccess.needsVerification, false); assert.equal(openAccess.registrationRequired, false);
       assert.equal(await tx.auctionRegistration.count({ where: { auctionId: openAuction.id } }), 0);
+      // Tier rules must apply to real online/automatic/phone bids, and settings
+      // saves must retain the live floor pointer while a sale is in progress.
+      await tx.auctionHouse.update({ where: { id: house.id }, data: { settings: JSON.stringify({ bidIncrements: [{ from: 0, increment: 5 }, { from: 50, increment: 10 }, { from: 1000, increment: 100 }] }) } });
+      const tierLot = await tx.lot.create({ data: { auctionId: openAuction.id, title: 'Tier test lot', lotNumber: 2, isReady: true, startingBid: 25, currentBid: 990, highestBidderId: alice.id, highestBidderName: alice.name, bidIncrement: 5, endTime: new Date(Date.now() + 3600000) } });
+      await tx.auction.update({ where: { id: openAuction.id }, data: { settings: JSON.stringify({ onBlockLotId: tierLot.id, requireRegistrationToBid: false, autoAdvanceNextLot: true }) } });
+      await bids.POST(event(alice, { lotId: tierLot.id, amount: 2000 }));
+      const tierDefense = await (await bids.POST(event(bob, { lotId: tierLot.id, amount: 1000 }))).json();
+      assert.equal(tierDefense.currentBid, 1100);
+      await assert.rejects(bids.POST(event(bob, { lotId: tierLot.id, amount: 1150 })), err => err.status === 400);
+      const phone = await server.ssrLoadModule('/src/routes/api/auctions/[id]/phone-bids/+server.js');
+      await tx.auctionRegistration.create({ data: { auctionId: openAuction.id, userId: bob.id, status: 'APPROVED' } });
+      const phoneTier = await (await phone.POST({ ...event(auctioneer, { lotId: tierLot.id, mode: 'existing', bidderId: bob.id, amount: 1200, callerConfirmed: true }), params: { id: openAuction.id } })).json();
+      assert.equal(phoneTier.currentBid, 1300);
+      const settings = await server.ssrLoadModule('/src/routes/api/auctions/[id]/settings/+server.js');
+      await settings.PATCH({ ...event(auctioneer, { automaticAuctionTimerResetSeconds: null }), params: { id: openAuction.id } });
+      const saved = JSON.parse((await tx.auction.findUnique({ where: { id: openAuction.id } })).settings);
+      assert.equal(saved.onBlockLotId, tierLot.id); assert.equal(saved.autoAdvanceNextLot, true);
+      const control = await server.ssrLoadModule('/src/routes/api/auctions/[id]/control-room/+server.js');
+      const room = await (await control.GET({ params: { id: openAuction.id }, locals: { auth: async () => ({ user: { email: auctioneer.email } }) } })).json();
+      assert.equal(room.lots.find(row => row.id === tierLot.id).effectiveBidIncrement, 100);
+      assert.equal(room.lots.find(row => row.id === tierLot.id).minimumBid, 1400);
       throw rollback;
     }, { timeout: 30000 }), err => err === rollback);
     assert.equal(await client.proxyBid.count(), before);

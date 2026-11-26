@@ -44,6 +44,7 @@ state.client.auctionHouse = {
   findUnique: async () => ({ id: 'house', settings: state.houseSettings }),
   update: async ({ data }) => { state.houseSettings = data.settings; return { id: 'house' }; }
 };
+tx.auctionHouse = state.client.auctionHouse;
 state.auth = {
   HOUSE_PERMISSIONS: { VIEW: 'VIEW', MANAGE_COMPANY: 'MANAGE_COMPANY' },
   requireAuthenticatedUser: async () => {

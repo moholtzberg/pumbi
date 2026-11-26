@@ -1,1181 +1,323 @@
 <script>
   import { onMount } from 'svelte';
-  import { goto } from '$app/navigation';
-  import BannerGenerator from '$lib/components/BannerGenerator.svelte';
-  import { getImageUrl } from '$lib/utils/imageUrl.js';
-  import PumbiLoader from '$lib/components/PumbiLoader.svelte';
-  let { data: pageData } = $props();
-
-  let session = $state(null);
-  let currentUser = $state(null);
-  let auctionHouse = $state(null);
-  let auctionHouseLogoUrl = $state(null);
+  import SettingsSection from '$lib/components/settings/SettingsSection.svelte';
+  import SettingsFields from '$lib/components/settings/SettingsFields.svelte';
+  import BidIncrementEditor from '$lib/components/settings/BidIncrementEditor.svelte';
+  import CategoryFields from '$lib/components/settings/CategoryFields.svelte';
+  import '$lib/components/settings/settings.css';
+  let { data } = $props();
   let loading = $state(true);
+  let loaded = $state(false);
   let saving = $state(false);
-  let errorMessage = $state('');
-  let successMessage = $state('');
-  let activeTab = $state('general');
-  let expandedSections = $state({});
-
-  // Default bid increments
-  const defaultBidIncrements = [
-    { from: 0, increment: 5 },
-    { from: 50, increment: 10 },
-    { from: 200, increment: 20 },
-    { from: 500, increment: 50 },
-    { from: 1000, increment: 100 },
-    { from: 2000, increment: 200 },
-    { from: 5000, increment: 500 },
-    { from: 10000, increment: 1000 },
-    { from: 20000, increment: 2000 },
-    { from: 50000, increment: 5000 },
-    { from: 100000, increment: 10000 },
-    { from: 200000, increment: 20000 },
-    { from: 500000, increment: 50000 },
-    { from: 1000000, increment: 100000 },
-    { from: 2000000, increment: 200000 },
-    { from: 5000000, increment: 500000 },
-    { from: 10000000, increment: 1000000 },
-    { from: 20000000, increment: 2000000 },
-    { from: 50000000, increment: 5000000 },
-    { from: 100000000, increment: 10000000 },
-  ];
-
+  let failure = $state('');
+  let notice = $state('');
   let settings = $state({
-    // Basic Information
-    mainLanguage: '',
-    nameInEnglish: '',
-    addressInEnglish: '',
-    disclaimerInEnglish: '',
-    
-    // Contact Information
-    email: '',
-    phone: '',
-    phoneForWhatsapp: '',
-    
-    // Localization
-    secondLanguage: '',
-    defaultCurrency: pageData?.auctionHouse?.country === 'IL' ? 'ILS' : 'USD',
-    secondCurrency: '',
-    
-    // Pricing
-    defaultItemStartPrice: null,
+    defaultCurrency: data.auctionHouse?.currency?.toUpperCase() || 'USD',
     buyersPremium: 0,
-    addVat: false,
-    
-    // Email Notifications
-    emailOnAbsenteeBid: false,
-    emailOnAbsenteeBidCancel: false,
-    emailToNotifyBidsUpdate: '',
-    
-    // Bidding Rules
-    russianUsersRequireApproval: false,
-    relistUnsoldLotsAtEnd: false,
+    bidIncrements: [],
     automaticAuctionInitialTimerSeconds: null,
     automaticAuctionTimerResetSeconds: null,
-    
-    // Payment Methods
-    paymentMethods: [
-      { method: 'Credit card', percentage: 0, vat: false },
-      { method: 'PayPal', percentage: 0, vat: false },
-      { method: 'Bank transfer', percentage: 0, vat: false },
-    ],
-    addPaymentButtonToInvoices: false,
-    
-    // Legal Documents
+    relistUnsoldLotsAtEnd: false,
+    paymentMethods: [],
     termsOfSaleInEnglish: '',
-    privacyPolicyInEnglish: '',
     disclaimerForSellersInEnglish: '',
-    
-    // Bid Increments
-    bidIncrements: defaultBidIncrements,
-    
-    // Email Templates
-    emailSignatureInEnglish: '',
-    photoIdRequestEmailTemplateInEnglish: '',
-    bidLimitEmailTemplateInEnglish: '',
-    
-    // Invoice Settings
-    additionalTextForInvoicesInEnglish: '',
-    additionalTextForConsignorStatementsInEnglish: '',
-    taxNumber: '',
-    invoiceProvider: 'None',
+    aiPrompt: '',
     categoryMetaFields: {},
-    
-    // AI Settings
-    aiPrompt: ''
   });
-  
-  let editingCategory = $state(null);
-  let newCategoryName = $state('');
-  let availableCategories = $state([]);
-
-  function toggleSection(section) {
-    expandedSections[section] = !expandedSections[section];
-  }
-  
-  async function loadAvailableCategories() {
+  const keys = [
+    'defaultCurrency',
+    'buyersPremium',
+    'bidIncrements',
+    'automaticAuctionInitialTimerSeconds',
+    'automaticAuctionTimerResetSeconds',
+    'relistUnsoldLotsAtEnd',
+    'paymentMethods',
+    'termsOfSaleInEnglish',
+    'disclaimerForSellersInEnglish',
+    'aiPrompt',
+    'categoryMetaFields',
+  ];
+  const currencies = ['USD', 'ILS', 'EUR', 'GBP', 'CAD', 'AUD'].map(
+    (value) => ({
+      value,
+      label: value === 'ILS' ? 'ILS · Israeli shekel ₪' : value,
+    }),
+  );
+  const sellingFields = [
+    {
+      key: 'defaultCurrency',
+      label: 'Currency for new auctions',
+      type: 'select',
+      options: currencies,
+      help: 'Existing auction and invoice currencies stay fixed.',
+    },
+    {
+      key: 'buyersPremium',
+      label: 'Buyer premium for new auctions (%)',
+      type: 'number',
+      max: 100,
+      step: 0.01,
+      help: 'Snapshotted when an auction is created. Existing sales keep their agreed rate.',
+    },
+  ];
+  const timingFields = [
+    {
+      key: 'automaticAuctionInitialTimerSeconds',
+      label: 'Default time on block (seconds)',
+      type: 'number',
+      min: 1,
+      step: 1,
+      placeholder: 'Platform default: 60',
+      help: 'Auction and lot overrides take precedence. Leave blank for 60 seconds.',
+    },
+    {
+      key: 'automaticAuctionTimerResetSeconds',
+      label: 'Bid refresh threshold (seconds)',
+      type: 'number',
+      min: 1,
+      step: 1,
+      placeholder: 'Platform default: 30',
+      help: 'A bid arriving with less time left refreshes the timer to this value.',
+    },
+    {
+      key: 'relistUnsoldLotsAtEnd',
+      label: 'Relist unsold lots in one final round',
+      type: 'checkbox',
+      wide: true,
+      help: 'Applies to this house. Eligible unsold lots return in the same auction; sold, withdrawn, invoiced, and previously bid-on lots are excluded.',
+    },
+  ];
+  async function load() {
     try {
-      if (!auctionHouse?.id) return;
-      const res = await fetch(`/api/categories?auctionHouseId=${auctionHouse.id}`);
-      if (res.ok) {
-        availableCategories = await res.json();
-      }
-    } catch (error) {
-      console.error('Error loading categories:', error);
-    }
-  }
-  
-  function addMetaField(category) {
-    if (!settings.categoryMetaFields[category]) {
-      settings.categoryMetaFields[category] = [];
-    }
-    settings.categoryMetaFields[category].push({
-      key: `field_${Date.now()}`,
-      label: '',
-      type: 'text',
-      required: false,
-      options: [],
-      placeholder: '',
-      helpText: ''
-    });
-  }
-  
-  function removeMetaField(category, index) {
-    settings.categoryMetaFields[category].splice(index, 1);
-    if (settings.categoryMetaFields[category].length === 0) {
-      delete settings.categoryMetaFields[category];
-    }
-  }
-  
-  function addCategory() {
-    if (newCategoryName.trim() && !settings.categoryMetaFields[newCategoryName.trim()]) {
-      settings.categoryMetaFields[newCategoryName.trim()] = [];
-      newCategoryName = '';
-    }
-  }
-  
-  function removeCategory(category) {
-    delete settings.categoryMetaFields[category];
-  }
-
-  onMount(async () => {
-    if (new URLSearchParams(window.location.search).get('tab') === 'advanced') activeTab = 'advanced';
-    await loadSession();
-    if (session?.user) {
-      await loadUserData();
-    } else {
-      goto('/auth/login');
-    }
-  });
-
-  async function loadSession() {
-    try {
-      const res = await fetch('/auth/session');
-      const data = await res.json();
-      session = data;
-    } catch (error) {
-      console.error('Error loading session:', error);
-    }
-  }
-
-  async function loadUserData() {
-    try {
-      loading = true;
-      errorMessage = '';
-
-      let userResponse = await fetch(`/api/users?email=${encodeURIComponent(session.user.email)}`);
-      if (!userResponse.ok) {
-        errorMessage = 'User account not found.';
-        loading = false;
-        return;
-      }
-      currentUser = await userResponse.json();
-      currentUser.auctionHouseId = pageData?.auctionHouse?.id || currentUser.auctionHouseId;
-
-      if (!currentUser.auctionHouseId) {
-        errorMessage = 'You need to register an auction house first.';
-        loading = false;
-        return;
-      }
-
-      const auctionHouseResponse = await fetch(`/api/auction-houses?id=${currentUser.auctionHouseId}`);
-      if (auctionHouseResponse.ok) {
-        auctionHouse = await auctionHouseResponse.json();
-        // Convert logo URL to presigned URL if it's an S3 key
-        if (auctionHouse?.logoUrl) {
-          auctionHouseLogoUrl = await getImageUrl(auctionHouse.logoUrl);
-        }
-        
-        // Load existing settings
-        const settingsResponse = await fetch(`/api/auction-houses/${auctionHouse.id}/settings`);
-        if (settingsResponse.ok) {
-          const existingSettings = await settingsResponse.json();
-          // Merge with defaults, preserving existing values
-          settings = { ...settings, ...existingSettings };
-          if (!settings.categoryMetaFields) {
-            settings.categoryMetaFields = {};
-          }
-          await loadAvailableCategories();
-          // Ensure bid increments array exists
-          if (!settings.bidIncrements || settings.bidIncrements.length === 0) {
-            settings.bidIncrements = defaultBidIncrements;
-          }
-        }
-      }
-    } catch (error) {
-      console.error('Error loading user data:', error);
-      errorMessage = 'Error loading your account data. Please try again.';
+      if (!data.auctionHouse?.id) throw new Error('Choose an auction house before editing its settings.');
+      const response = await fetch(
+        `/api/auction-houses/${data.auctionHouse.id}/settings`,
+      );
+      const result = await response.json();
+      if (!response.ok)
+        throw new Error(result.message || 'Unable to load settings');
+      settings = {
+        ...settings, ...result,
+        bidIncrements: Array.isArray(result.bidIncrements) ? result.bidIncrements : [],
+        paymentMethods: Array.isArray(result.paymentMethods) ? result.paymentMethods : [],
+        categoryMetaFields: result.categoryMetaFields && typeof result.categoryMetaFields === 'object' && !Array.isArray(result.categoryMetaFields) ? result.categoryMetaFields : {}
+      };
+      loaded = true;
+    } catch (err) {
+      failure = err.message;
     } finally {
       loading = false;
     }
   }
-
-  function addBidIncrement() {
-    settings.bidIncrements = [...settings.bidIncrements, { from: 0, increment: 0 }];
-  }
-
-  function removeBidIncrement(index) {
-    settings.bidIncrements = settings.bidIncrements.filter((_, i) => i !== index);
-  }
-
-  function addPaymentMethod() {
-    settings.paymentMethods = [...settings.paymentMethods, { method: '', percentage: 0, vat: false }];
-  }
-
-  function removePaymentMethod(index) {
-    settings.paymentMethods = settings.paymentMethods.filter((_, i) => i !== index);
-  }
-
-  async function saveSettings() {
+  onMount(load);
+  async function save(event) {
+    event.preventDefault();
+    saving = true;
+    failure = '';
+    notice = '';
     try {
-      saving = true;
-      errorMessage = '';
-      successMessage = '';
-
-      const response = await fetch(`/api/auction-houses/${auctionHouse.id}/settings`, {
-        method: 'PATCH',
-        headers: {
-          'Content-Type': 'application/json',
+      const body = Object.fromEntries(
+        keys.map((key) => [key, settings[key] ?? null]),
+      );
+      const response = await fetch(
+        `/api/auction-houses/${data.auctionHouse.id}/settings`,
+        {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(body),
         },
-        body: JSON.stringify(settings),
-      });
-
-      if (!response.ok) {
-        const error = await response.json();
-        throw new Error(error.message || 'Failed to save settings');
-      }
-
-      successMessage = 'Settings saved successfully!';
-      setTimeout(() => {
-        successMessage = '';
-      }, 3000);
-    } catch (error) {
-      console.error('Error saving settings:', error);
-      errorMessage = error.message || 'Failed to save settings. Please try again.';
+      );
+      const result = await response.json();
+      if (!response.ok)
+        throw new Error(result.message || 'Unable to save settings');
+      settings = { ...settings, ...result.settings };
+      notice = 'House settings saved.';
+    } catch (err) {
+      failure = err.message;
     } finally {
       saving = false;
     }
   }
 </script>
 
-<svelte:head>
-  <title>Auction House Settings</title>
-</svelte:head>
-
-<div class="mx-auto w-full max-w-[1240px] px-4 py-8 sm:px-6 lg:px-8">
-  {#if loading}
-      <div class="py-16 text-center">
-        <PumbiLoader size="lg" label="Loading" />
-        <p class="mt-4 text-sm text-[var(--pumbi-muted)]">Loading settings…</p>
-      </div>
-    {:else if errorMessage && !auctionHouse}
-      <div class="pumbi-panel p-6 text-center">
-        <p class="text-red-800">{errorMessage}</p>
-        <a href="/auction-houses/signup" class="pumbi-link mt-2 inline-block">Register an auction house</a>
-      </div>
-    {:else}
-      <div class="pumbi-panel overflow-hidden">
-        <div class="flex flex-wrap items-center justify-between gap-4 border-b border-[var(--pumbi-line)] bg-[var(--pumbi-forest-deep)] px-6 py-5 text-[#f7f4ee]">
-          <div>
-            <p class="text-[10px] font-bold uppercase tracking-[0.16em] text-[#d6b477]">House-wide</p>
-            <h1 class="mt-1 font-[family-name:var(--pumbi-serif)] text-2xl font-semibold">House settings</h1>
-            {#if auctionHouse}
-              <p class="mt-1 text-sm text-[#bec9c4]">{auctionHouse.name} · {auctionHouse.slug}</p>
-            {/if}
-          </div>
-          <button
-            type="button"
-            onclick={saveSettings}
-            disabled={saving}
-            class="bg-white px-5 py-2 text-xs font-bold uppercase tracking-wide text-[var(--pumbi-forest)] disabled:opacity-50"
+<svelte:head><title>House settings | Pumbi</title></svelte:head>
+<main
+  class="settings-page mx-auto w-full max-w-[1240px] px-4 py-8 sm:px-6 lg:px-8"
+>
+  <header class="settings-heading">
+    <div>
+      <span class="pumbi-eyebrow">{data.auctionHouse?.name}</span>
+      <h1>House settings</h1>
+      <p>
+        Defaults for this auction house. Each auction shows its own overrides;
+        lot timers can override both.
+      </p>
+    </div>
+    <a href="/seller" class="pumbi-btn-secondary">Back to dashboard</a>
+  </header>
+  <div class="settings-note mb-6">
+    <strong>One place for each setting</strong>
+    <p>
+      Company details and addresses live in <a
+        class="underline"
+        href="/seller/onboarding"
+      >
+        Company profile
+      </a>. Manage <a class="underline" href="/seller/banking">banking</a>,
+      <a class="underline" href="/seller/team">team access</a>, and
+      <a class="underline" href="/seller/marketing">marketing reminders</a> in their
+      dedicated pages.
+    </p>
+  </div>
+  {#if failure}<p
+      role="alert"
+      class="mb-5 border border-red-200 bg-red-50 p-4 text-sm text-red-800"
+    >
+      {failure}
+    </p>{/if}
+  {#if notice}<p
+      role="status"
+      class="mb-5 border border-emerald-200 bg-emerald-50 p-4 text-sm text-emerald-900"
+    >
+      {notice}
+    </p>{/if}
+  {#if loading}<p class="pumbi-panel p-8">Loading house settings…</p>{:else if !loaded}
+    <button type="button" class="pumbi-btn-secondary" onclick={() => { loading = true; failure = ''; load(); }}>Retry loading</button>
+  {:else}
+    <nav class="settings-nav" aria-label="Settings sections">
+      <a href="#selling">Selling defaults</a><a href="#increments">
+        Bid increments
+      </a><a href="#timing">Live auction defaults</a><a href="#payments">
+        Payment methods
+      </a><a href="#catalog">Catalog fields</a><a href="#terms">Terms</a>
+    </nav>
+    <form onsubmit={save}>
+      <fieldset disabled={saving} class="settings-sections">
+        <div id="selling">
+          <SettingsSection
+            title="Selling defaults"
+            description="Rates and currency are agreed at auction creation, so changing these defaults does not change an existing sale."
           >
-            {saving ? 'Saving…' : 'Save settings'}
-          </button>
+            <SettingsFields bind:values={settings} fields={sellingFields} />
+          </SettingsSection>
         </div>
-
-        {#if errorMessage}
-          <div class="bg-red-50 border-l-4 border-red-400 p-4 mx-6 mt-4">
-            <p class="text-red-800 text-sm">{errorMessage}</p>
-          </div>
-        {/if}
-
-        {#if successMessage}
-          <div class="bg-green-50 border-l-4 border-green-400 p-4 mx-6 mt-4">
-            <p class="text-green-800 text-sm">{successMessage}</p>
-          </div>
-        {/if}
-
-        <!-- Tabs -->
-        <div class="border-b border-gray-200">
-          <nav class="flex -mb-px">
-              <button
-              onclick={() => activeTab = 'general'}
-              class="px-6 py-4 text-sm font-medium border-b-2 transition-colors {activeTab === 'general' ? 'border-blue-600 text-blue-600' : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'}"
-            >
-              General
-            </button>
-            <button
-              onclick={() => activeTab = 'metaFields'}
-              class="px-6 py-4 text-sm font-medium border-b-2 transition-colors {activeTab === 'metaFields' ? 'border-blue-600 text-blue-600' : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'}"
-            >
-              Category Meta Fields
-            </button>
-            <button
-              onclick={() => activeTab = 'pricing'}
-              class="px-6 py-4 text-sm font-medium border-b-2 transition-colors {activeTab === 'pricing' ? 'border-blue-600 text-blue-600' : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'}"
-            >
-              Pricing & Payments
-            </button>
-            <button
-              onclick={() => activeTab = 'legal'}
-              class="px-6 py-4 text-sm font-medium border-b-2 transition-colors {activeTab === 'legal' ? 'border-blue-600 text-blue-600' : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'}"
-            >
-              Legal & Documents
-            </button>
-            <button
-              onclick={() => activeTab = 'email'}
-              class="px-6 py-4 text-sm font-medium border-b-2 transition-colors {activeTab === 'email' ? 'border-blue-600 text-blue-600' : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'}"
-            >
-              Email & Notifications
-            </button>
-            <button
-              onclick={() => activeTab = 'advanced'}
-              class="px-6 py-4 text-sm font-medium border-b-2 transition-colors {activeTab === 'advanced' ? 'border-blue-600 text-blue-600' : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'}"
-            >
-              Advanced
-            </button>
-            <button
-              onclick={() => activeTab = 'ai'}
-              class="px-6 py-4 text-sm font-medium border-b-2 transition-colors {activeTab === 'ai' ? 'border-blue-600 text-blue-600' : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'}"
-            >
-              AI Settings
-            </button>
-            <button
-              onclick={() => activeTab = 'banner'}
-              class="px-6 py-4 text-sm font-medium border-b-2 transition-colors {activeTab === 'banner' ? 'border-blue-600 text-blue-600' : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'}"
-            >
-              Banner
-            </button>
-          </nav>
+        <div id="increments">
+          <SettingsSection
+            title="Bid increment schedule"
+            description="Applies to online bids, automatic counterbids, and phone bids. Auction-specific schedules override this table."
+          >
+            <BidIncrementEditor
+              bind:rows={settings.bidIncrements}
+              currency={settings.defaultCurrency?.toLowerCase() || 'usd'}
+            />
+          </SettingsSection>
         </div>
-
-        <!-- Tab Content -->
-        <form onsubmit={(e) => { e.preventDefault(); saveSettings(); }} class="p-6">
-          <!-- General Tab -->
-          {#if activeTab === 'general'}
-            <div class="space-y-4">
-              <!-- Basic Information -->
-              <div class="border border-gray-200 rounded-lg">
-                <button
-                  type="button"
-                  onclick={() => toggleSection('basic')}
-                  class="w-full px-4 py-3 flex items-center justify-between bg-gray-50 hover:bg-gray-100 transition-colors"
+        <div id="timing">
+          <SettingsSection
+            title="Live auction defaults"
+            description="Timing precedence: lot → auction → house → platform. Starting, hammering, and ending a sale remain in the control room."
+          >
+            <SettingsFields bind:values={settings} fields={timingFields} />
+          </SettingsSection>
+        </div>
+        <div id="payments">
+          <SettingsSection
+            title="External payment methods"
+            description="Pumbi card checkout is built in. Add the other payment methods buyers may select; the seller confirms these payments. These names do not add surcharges or tax."
+          >
+            <div class="space-y-3">
+              {#each settings.paymentMethods as method, index}<div
+                  class="flex items-center gap-3"
                 >
-                  <span class="font-medium text-gray-900">Basic Information</span>
-                  <svg class="w-5 h-5 text-gray-500 transform transition-transform {expandedSections.basic ? 'rotate-180' : ''}" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
-                  </svg>
-                </button>
-                {#if expandedSections.basic}
-                  <div class="p-4 space-y-4">
-                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                      <div>
-                        <label class="block text-sm font-medium text-gray-700 mb-1">Main Language</label>
-                        <input type="text" bind:value={settings.mainLanguage} placeholder="e.g., English" class="w-full px-3 py-2 text-sm border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500" />
-                      </div>
-                      <div>
-                        <label class="block text-sm font-medium text-gray-700 mb-1">Name in English</label>
-                        <input type="text" bind:value={settings.nameInEnglish} class="w-full px-3 py-2 text-sm border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500" />
-                      </div>
-                      <div class="md:col-span-2">
-                        <label class="block text-sm font-medium text-gray-700 mb-1">Address in English</label>
-                        <textarea bind:value={settings.addressInEnglish} rows="2" class="w-full px-3 py-2 text-sm border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"></textarea>
-                      </div>
-                      <div class="md:col-span-2">
-                        <label class="block text-sm font-medium text-gray-700 mb-1">Disclaimer in English</label>
-                        <textarea bind:value={settings.disclaimerInEnglish} rows="2" class="w-full px-3 py-2 text-sm border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"></textarea>
-                      </div>
-                    </div>
-                  </div>
-                {/if}
-              </div>
-
-              <!-- Logo -->
-              <div class="border border-gray-200 rounded-lg">
-                <button
-                  type="button"
-                  onclick={() => toggleSection('logo')}
-                  class="w-full px-4 py-3 flex items-center justify-between bg-gray-50 hover:bg-gray-100 transition-colors"
-                >
-                  <span class="font-medium text-gray-900">Logo</span>
-                  <svg class="w-5 h-5 text-gray-500 transform transition-transform {expandedSections.logo ? 'rotate-180' : ''}" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
-                  </svg>
-                </button>
-                {#if expandedSections.logo}
-                  <div class="p-4 space-y-4">
-                    {#if auctionHouse?.logoUrl}
-                      <div class="flex items-center gap-4">
-                        <div>
-                          <p class="text-sm font-medium text-gray-700 mb-2">Current Logo</p>
-                          <img src={auctionHouseLogoUrl || auctionHouse.logoUrl} alt="Auction House Logo" class="h-24 w-24 object-contain border border-gray-200 rounded-lg p-2 bg-white" />
-                        </div>
-                        <div class="flex-1">
-                          <p class="text-sm text-gray-600 mb-2">Logo URL:</p>
-                          <input 
-                            type="text" 
-                            value={auctionHouse.logoUrl} 
-                            readonly
-                            class="w-full px-3 py-2 text-sm border border-gray-300 rounded-md bg-gray-50 text-gray-600"
-                          />
-                        </div>
-                      </div>
-                    {:else}
-                      <p class="text-sm text-gray-600">No logo uploaded yet.</p>
-                    {/if}
-                    
-                    <div>
-                      <label class="block text-sm font-medium text-gray-700 mb-2">Upload New Logo</label>
-                      <input
-                        type="file"
-                        accept="image/*"
-                        class="w-full px-3 py-2 text-sm border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                        onchange={async (e) => {
-                          const file = e.target.files?.[0];
-                          if (!file) return;
-                          
-                          try {
-                            const formData = new FormData();
-                            formData.append('files', file);
-                            
-                            const uploadResponse = await fetch('/api/upload/image', {
-                              method: 'POST',
-                              body: formData
-                            });
-                            
-                            if (!uploadResponse.ok) {
-                              throw new Error('Failed to upload logo');
-                            }
-                            
-                            const { images } = await uploadResponse.json();
-                            if (images && images.length > 0) {
-                              // Store the S3 key (not a presigned URL, as those expire)
-                              const logoUrl = images[0].url;
-                              
-                              // Update auction house logo URL
-                              const updateResponse = await fetch(`/api/auction-houses/${auctionHouse.id}`, {
-                                method: 'PATCH',
-                                headers: {
-                                  'Content-Type': 'application/json'
-                                },
-                                body: JSON.stringify({ logoUrl })
-                              });
-                              
-                              if (updateResponse.ok) {
-                                const updated = await updateResponse.json();
-                                if (updated.auctionHouse) {
-                                  auctionHouse.logoUrl = updated.auctionHouse.logoUrl;
-                                  // Convert to presigned URL for display
-                                  if (updated.auctionHouse.logoUrl) {
-                                    auctionHouseLogoUrl = await getImageUrl(updated.auctionHouse.logoUrl);
-                                  } else {
-                                    auctionHouseLogoUrl = null;
-                                  }
-                                  successMessage = 'Logo uploaded successfully!';
-                                  setTimeout(() => {
-                                    successMessage = '';
-                                  }, 3000);
-                                }
-                              } else {
-                                throw new Error('Failed to save logo URL');
-                              }
-                            }
-                            
-                            e.target.value = '';
-                          } catch (error) {
-                            console.error('Error uploading logo:', error);
-                            errorMessage = error.message || 'Failed to upload logo. Please try again.';
-                            setTimeout(() => {
-                              errorMessage = '';
-                            }, 5000);
-                          }
-                        }}
-                      />
-                      <p class="mt-1 text-xs text-gray-500">Upload an image file (PNG, JPG, SVG, etc.) to use as your auction house logo.</p>
-                    </div>
-                    
-                    <div>
-                      <label class="block text-sm font-medium text-gray-700 mb-2">Or Enter Logo URL</label>
-                      <div class="flex gap-2">
-                        <input
-                          type="url"
-                          id="logo-url-input"
-                          placeholder="https://example.com/logo.png"
-                          class="flex-1 px-3 py-2 text-sm border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                        />
-                        <button
-                          type="button"
-                          onclick={async () => {
-                            const input = document.getElementById('logo-url-input');
-                            const logoUrl = input?.value?.trim();
-                            if (!logoUrl) {
-                              errorMessage = 'Please enter a logo URL';
-                              setTimeout(() => {
-                                errorMessage = '';
-                              }, 3000);
-                              return;
-                            }
-                            
-                            try {
-                              const updateResponse = await fetch(`/api/auction-houses/${auctionHouse.id}`, {
-                                method: 'PATCH',
-                                headers: {
-                                  'Content-Type': 'application/json'
-                                },
-                                body: JSON.stringify({ logoUrl })
-                              });
-                              
-                              if (updateResponse.ok) {
-                                const updated = await updateResponse.json();
-                                if (updated.auctionHouse) {
-                                  auctionHouse.logoUrl = updated.auctionHouse.logoUrl;
-                                  // Convert to presigned URL for display
-                                  if (updated.auctionHouse.logoUrl) {
-                                    auctionHouseLogoUrl = await getImageUrl(updated.auctionHouse.logoUrl);
-                                  } else {
-                                    auctionHouseLogoUrl = null;
-                                  }
-                                  if (input) input.value = '';
-                                  successMessage = 'Logo URL saved successfully!';
-                                  setTimeout(() => {
-                                    successMessage = '';
-                                  }, 3000);
-                                }
-                              } else {
-                                throw new Error('Failed to save logo URL');
-                              }
-                            } catch (error) {
-                              console.error('Error saving logo URL:', error);
-                              errorMessage = error.message || 'Failed to save logo URL. Please try again.';
-                              setTimeout(() => {
-                                errorMessage = '';
-                              }, 5000);
-                            }
-                          }}
-                          class="px-4 py-2 bg-blue-600 text-white text-sm rounded-md hover:bg-blue-700 transition-colors"
-                        >
-                          Save URL
-                        </button>
-                      </div>
-                    </div>
-                    
-                    {#if auctionHouse?.logoUrl}
-                      <div>
-                        <button
-                          type="button"
-                          onclick={async () => {
-                            if (!confirm('Are you sure you want to remove the logo?')) return;
-                            
-                            try {
-                              const updateResponse = await fetch(`/api/auction-houses/${auctionHouse.id}`, {
-                                method: 'PATCH',
-                                headers: {
-                                  'Content-Type': 'application/json'
-                                },
-                                body: JSON.stringify({ logoUrl: null })
-                              });
-                              
-                              if (updateResponse.ok) {
-                                auctionHouse.logoUrl = null;
-                                auctionHouseLogoUrl = null;
-                                successMessage = 'Logo removed successfully!';
-                                setTimeout(() => {
-                                  successMessage = '';
-                                }, 3000);
-                              } else {
-                                throw new Error('Failed to remove logo');
-                              }
-                            } catch (error) {
-                              console.error('Error removing logo:', error);
-                              errorMessage = error.message || 'Failed to remove logo. Please try again.';
-                              setTimeout(() => {
-                                errorMessage = '';
-                              }, 5000);
-                            }
-                          }}
-                          class="px-4 py-2 bg-red-600 text-white text-sm rounded-md hover:bg-red-700 transition-colors"
-                        >
-                          Remove Logo
-                        </button>
-                      </div>
-                    {/if}
-                  </div>
-                {/if}
-              </div>
-
-              <!-- Contact Information -->
-              <div class="border border-gray-200 rounded-lg">
-                <button
-                  type="button"
-                  onclick={() => toggleSection('contact')}
-                  class="w-full px-4 py-3 flex items-center justify-between bg-gray-50 hover:bg-gray-100 transition-colors"
-                >
-                  <span class="font-medium text-gray-900">Contact Information</span>
-                  <svg class="w-5 h-5 text-gray-500 transform transition-transform {expandedSections.contact ? 'rotate-180' : ''}" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
-                  </svg>
-                </button>
-                {#if expandedSections.contact}
-                  <div class="p-4">
-                    <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
-                      <div>
-                        <label class="block text-sm font-medium text-gray-700 mb-1">Email</label>
-                        <input type="email" bind:value={settings.email} class="w-full px-3 py-2 text-sm border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500" />
-                      </div>
-                      <div>
-                        <label class="block text-sm font-medium text-gray-700 mb-1">Phone</label>
-                        <input type="tel" bind:value={settings.phone} class="w-full px-3 py-2 text-sm border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500" />
-                      </div>
-                      <div>
-                        <label class="block text-sm font-medium text-gray-700 mb-1">Phone for WhatsApp</label>
-                        <input type="tel" bind:value={settings.phoneForWhatsapp} class="w-full px-3 py-2 text-sm border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500" />
-                      </div>
-                    </div>
-                  </div>
-                {/if}
-              </div>
-
-              <!-- Localization -->
-              <div class="border border-gray-200 rounded-lg">
-                <button
-                  type="button"
-                  onclick={() => toggleSection('localization')}
-                  class="w-full px-4 py-3 flex items-center justify-between bg-gray-50 hover:bg-gray-100 transition-colors"
-                >
-                  <span class="font-medium text-gray-900">Localization</span>
-                  <svg class="w-5 h-5 text-gray-500 transform transition-transform {expandedSections.localization ? 'rotate-180' : ''}" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
-                  </svg>
-                </button>
-                {#if expandedSections.localization}
-                  <div class="p-4">
-                    <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
-                      <div>
-                        <label class="block text-sm font-medium text-gray-700 mb-1">Second Language</label>
-                        <input type="text" bind:value={settings.secondLanguage} placeholder="e.g., Hebrew" class="w-full px-3 py-2 text-sm border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500" />
-                      </div>
-                      <div>
-                        <label class="block text-sm font-medium text-gray-700 mb-1">Default Currency</label>
-                        <select bind:value={settings.defaultCurrency} class="w-full px-3 py-2 text-sm border border-gray-300 rounded-md"><option value="USD">USD — US Dollar</option><option value="ILS">ILS — שקל חדש ₪</option><option value="EUR">EUR — Euro</option><option value="GBP">GBP — Pound</option><option value="CAD">CAD — Canadian Dollar</option><option value="AUD">AUD — Australian Dollar</option></select><p class="mt-2 text-xs text-gray-600">Applies to new auctions. Existing auction and invoice currencies stay fixed.</p>
-                      </div>
-                      <div>
-                        <label class="block text-sm font-medium text-gray-700 mb-1">Second Currency</label>
-                        <input type="text" bind:value={settings.secondCurrency} placeholder="ILS" class="w-full px-3 py-2 text-sm border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500" />
-                      </div>
-                    </div>
-                  </div>
-                {/if}
-              </div>
-            </div>
-          {/if}
-
-          <!-- Pricing & Payments Tab -->
-          {#if activeTab === 'pricing'}
-            <div class="space-y-4">
-              <!-- Pricing -->
-              <div class="border border-gray-200 rounded-lg">
-                <button
-                  type="button"
-                  onclick={() => toggleSection('pricing')}
-                  class="w-full px-4 py-3 flex items-center justify-between bg-gray-50 hover:bg-gray-100 transition-colors"
-                >
-                  <span class="font-medium text-gray-900">Pricing Settings</span>
-                  <svg class="w-5 h-5 text-gray-500 transform transition-transform {expandedSections.pricing ? 'rotate-180' : ''}" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
-                  </svg>
-                </button>
-                {#if expandedSections.pricing}
-                  <div class="p-4 space-y-4">
-                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                      <div>
-                        <label class="block text-sm font-medium text-gray-700 mb-1">Default Item Start Price</label>
-                        <input type="number" bind:value={settings.defaultItemStartPrice} step="0.01" min="0" class="w-full px-3 py-2 text-sm border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500" />
-                      </div>
-                      <div>
-                        <label class="block text-sm font-medium text-gray-700 mb-1">Buyer's Premium (%)</label>
-                        <input type="number" bind:value={settings.buyersPremium} step="0.01" min="0" max="100" class="w-full px-3 py-2 text-sm border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500" />
-                      </div>
-                      <div class="md:col-span-2">
-                        <label class="flex items-center">
-                          <input type="checkbox" bind:checked={settings.addVat} class="mr-2 h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded" />
-                          <span class="text-sm font-medium text-gray-700">Add VAT</span>
-                        </label>
-                      </div>
-                    </div>
-                  </div>
-                {/if}
-              </div>
-
-              <!-- Payment Methods -->
-              <div class="border border-gray-200 rounded-lg">
-                <button
-                  type="button"
-                  onclick={() => toggleSection('paymentMethods')}
-                  class="w-full px-4 py-3 flex items-center justify-between bg-gray-50 hover:bg-gray-100 transition-colors"
-                >
-                  <span class="font-medium text-gray-900">Payment Methods</span>
-                  <svg class="w-5 h-5 text-gray-500 transform transition-transform {expandedSections.paymentMethods ? 'rotate-180' : ''}" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
-                  </svg>
-                </button>
-                {#if expandedSections.paymentMethods}
-                  <div class="p-4 space-y-3">
-                    <p class="text-xs text-gray-600 mb-3">Enter additional fees for each payment method. Use the Add button to include additional payment methods.</p>
-                    {#each settings.paymentMethods as paymentMethod, index}
-                      <div class="flex items-center gap-3 p-3 bg-gray-50 rounded-md">
-                        <input type="text" bind:value={paymentMethod.method} placeholder="Payment method name" class="flex-1 px-3 py-2 text-sm border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500" />
-                        <input type="number" bind:value={paymentMethod.percentage} step="0.01" min="0" max="100" placeholder="%" class="w-24 px-3 py-2 text-sm border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500" />
-                        <label class="flex items-center">
-                          <input type="checkbox" bind:checked={paymentMethod.vat} class="mr-1 h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded" />
-                          <span class="text-xs text-gray-700">VAT</span>
-                        </label>
-                        <button type="button" onclick={() => removePaymentMethod(index)} class="text-red-600 hover:text-red-800 text-sm px-2 py-1">Delete</button>
-                      </div>
-                    {/each}
-                    <button type="button" onclick={addPaymentMethod} class="text-blue-600 hover:text-blue-800 text-sm px-4 py-2 border border-blue-600 rounded-md">
-                      Add Payment Method
-                    </button>
-                    <div class="mt-3">
-                      <label class="flex items-center">
-                        <input type="checkbox" bind:checked={settings.addPaymentButtonToInvoices} class="mr-2 h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded" />
-                        <span class="text-sm font-medium text-gray-700">Add payment button to invoices</span>
-                      </label>
-                    </div>
-                  </div>
-                {/if}
-              </div>
-
-              <!-- Bid Increments -->
-              <div class="border border-gray-200 rounded-lg">
-                <button
-                  type="button"
-                  onclick={() => toggleSection('bidIncrements')}
-                  class="w-full px-4 py-3 flex items-center justify-between bg-gray-50 hover:bg-gray-100 transition-colors"
-                >
-                  <span class="font-medium text-gray-900">Bid Increments</span>
-                  <svg class="w-5 h-5 text-gray-500 transform transition-transform {expandedSections.bidIncrements ? 'rotate-180' : ''}" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
-                  </svg>
-                </button>
-                {#if expandedSections.bidIncrements}
-                  <div class="p-4">
-                    <div class="overflow-x-auto">
-                      <table class="min-w-full divide-y divide-gray-200 text-sm">
-                        <thead class="bg-gray-50">
-                          <tr>
-                            <th class="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase">From</th>
-                            <th class="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase">Increment</th>
-                            <th class="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase">Delete</th>
-                          </tr>
-                        </thead>
-                        <tbody class="bg-white divide-y divide-gray-200">
-                          {#each settings.bidIncrements as increment, index}
-                            <tr>
-                              <td class="px-3 py-2">
-                                <input type="number" bind:value={increment.from} step="0.01" min="0" class="w-full px-2 py-1 text-sm border border-gray-300 rounded focus:ring-2 focus:ring-blue-500 focus:border-blue-500" />
-                              </td>
-                              <td class="px-3 py-2">
-                                <input type="number" bind:value={increment.increment} step="0.01" min="0" class="w-full px-2 py-1 text-sm border border-gray-300 rounded focus:ring-2 focus:ring-blue-500 focus:border-blue-500" />
-                              </td>
-                              <td class="px-3 py-2">
-                                <button type="button" onclick={() => removeBidIncrement(index)} class="text-red-600 hover:text-red-800 text-xs">Delete</button>
-                              </td>
-                            </tr>
-                          {/each}
-                        </tbody>
-                      </table>
-                    </div>
-                    <button type="button" onclick={addBidIncrement} class="mt-3 text-blue-600 hover:text-blue-800 text-sm px-4 py-2 border border-blue-600 rounded-md">
-                      Add Increment
-                    </button>
-                  </div>
-                {/if}
-              </div>
-            </div>
-          {/if}
-
-          <!-- Legal & Documents Tab -->
-          {#if activeTab === 'legal'}
-            <div class="space-y-4">
-              <div class="border border-gray-200 rounded-lg">
-                <div class="p-4 space-y-4">
-                  <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-1">Terms of Sale in English</label>
-                    <textarea bind:value={settings.termsOfSaleInEnglish} rows="6" class="w-full px-3 py-2 text-sm border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"></textarea>
-                  </div>
-                  <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-1">Privacy Policy in English</label>
-                    <textarea bind:value={settings.privacyPolicyInEnglish} rows="6" class="w-full px-3 py-2 text-sm border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"></textarea>
-                  </div>
-                  <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-1">Disclaimer for Sellers in English</label>
-                    <textarea bind:value={settings.disclaimerForSellersInEnglish} rows="6" class="w-full px-3 py-2 text-sm border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"></textarea>
-                  </div>
-                </div>
-              </div>
-            </div>
-          {/if}
-
-          <!-- Email & Notifications Tab -->
-          {#if activeTab === 'email'}
-            <div class="space-y-4">
-              <!-- Email Notifications -->
-              <div class="border border-gray-200 rounded-lg">
-                <button
-                  type="button"
-                  onclick={() => toggleSection('emailNotifications')}
-                  class="w-full px-4 py-3 flex items-center justify-between bg-gray-50 hover:bg-gray-100 transition-colors"
-                >
-                  <span class="font-medium text-gray-900">Email Notifications</span>
-                  <svg class="w-5 h-5 text-gray-500 transform transition-transform {expandedSections.emailNotifications ? 'rotate-180' : ''}" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
-                  </svg>
-                </button>
-                {#if expandedSections.emailNotifications}
-                  <div class="p-4 space-y-3">
-                    <label class="flex items-center">
-                      <input type="checkbox" bind:checked={settings.emailOnAbsenteeBid} class="mr-2 h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded" />
-                      <span class="text-sm text-gray-700">Send email when user places an absentee bid</span>
-                    </label>
-                    <label class="flex items-center">
-                      <input type="checkbox" bind:checked={settings.emailOnAbsenteeBidCancel} class="mr-2 h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded" />
-                      <span class="text-sm text-gray-700">Send email when user cancels absentee bid</span>
-                    </label>
-                    <div>
-                      <label class="block text-sm font-medium text-gray-700 mb-1">Email to notify bids update</label>
-                      <input type="email" bind:value={settings.emailToNotifyBidsUpdate} class="w-full px-3 py-2 text-sm border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500" />
-                    </div>
-                  </div>
-                {/if}
-              </div>
-
-              <!-- Email Templates -->
-              <div class="border border-gray-200 rounded-lg">
-                <button
-                  type="button"
-                  onclick={() => toggleSection('emailTemplates')}
-                  class="w-full px-4 py-3 flex items-center justify-between bg-gray-50 hover:bg-gray-100 transition-colors"
-                >
-                  <span class="font-medium text-gray-900">Email Templates</span>
-                  <svg class="w-5 h-5 text-gray-500 transform transition-transform {expandedSections.emailTemplates ? 'rotate-180' : ''}" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
-                  </svg>
-                </button>
-                {#if expandedSections.emailTemplates}
-                  <div class="p-4 space-y-4">
-                    <div>
-                      <label class="block text-sm font-medium text-gray-700 mb-1">Email Signature in English</label>
-                      <textarea bind:value={settings.emailSignatureInEnglish} rows="4" class="w-full px-3 py-2 text-sm border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"></textarea>
-                    </div>
-                    <div>
-                      <label class="block text-sm font-medium text-gray-700 mb-1">Photo ID Request Email Template</label>
-                      <textarea bind:value={settings.photoIdRequestEmailTemplateInEnglish} rows="6" class="w-full px-3 py-2 text-sm border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"></textarea>
-                    </div>
-                    <div>
-                      <label class="block text-sm font-medium text-gray-700 mb-1">Bid Limit Email Template</label>
-                      <textarea bind:value={settings.bidLimitEmailTemplateInEnglish} rows="6" class="w-full px-3 py-2 text-sm border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"></textarea>
-                    </div>
-                  </div>
-                {/if}
-              </div>
-            </div>
-          {/if}
-
-          <!-- Advanced Tab -->
-          {#if activeTab === 'advanced'}
-            <div class="space-y-4">
-              <section class="rounded-lg border border-gray-200 bg-white p-4">
-                <label class="flex cursor-pointer items-start gap-3">
-                  <input type="checkbox" bind:checked={settings.relistUnsoldLotsAtEnd} class="mt-1 rounded border-gray-300 text-[#18372f]" />
-                  <span><span class="font-semibold text-gray-900">Relist unsold lots at the end of an auction</span><span class="mt-1 block text-sm text-gray-600">Reoffer unsold, ready lots once in another round of the same auction. Lot numbers and catalog details stay the same; bidding restarts at the opening price. Sold, withdrawn, invoiced, and previously bid-on lots are excluded. The auction ends after this extra round.</span><span class="mt-2 block text-xs text-gray-500">With auto-advance enabled, the first relisted lot opens automatically. Otherwise, open it from the control room.</span></span>
-                </label>
-              </section>
-              <!-- Bidding Rules -->
-              <div class="border border-gray-200 rounded-lg">
-                <button
-                  type="button"
-                  onclick={() => toggleSection('biddingRules')}
-                  class="w-full px-4 py-3 flex items-center justify-between bg-gray-50 hover:bg-gray-100 transition-colors"
-                >
-                  <span class="font-medium text-gray-900">Bidding Rules</span>
-                  <svg class="w-5 h-5 text-gray-500 transform transition-transform {expandedSections.biddingRules ? 'rotate-180' : ''}" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
-                  </svg>
-                </button>
-                {#if expandedSections.biddingRules}
-                  <div class="p-4 space-y-4">
-                    <label class="flex items-center">
-                      <input type="checkbox" bind:checked={settings.russianUsersRequireApproval} class="mr-2 h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded" />
-                      <span class="text-sm font-medium text-gray-700">Russian users require special bidding approval</span>
-                    </label>
-                    <div>
-                      <label class="block text-sm font-medium text-gray-700 mb-1">Default time on block (seconds)</label>
-                      <input type="number" min="1" bind:value={settings.automaticAuctionInitialTimerSeconds} placeholder="Platform default: 60" class="w-full px-3 py-2 text-sm border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500" />
-                    </div>
-                    <div>
-                      <label class="block text-sm font-medium text-gray-700 mb-1">Bid refresh threshold (seconds)</label>
-                      <input type="number" min="1" bind:value={settings.automaticAuctionTimerResetSeconds} placeholder="Platform default: 30" class="w-full px-3 py-2 text-sm border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500" />
-                      <p class="mt-1 text-xs text-gray-500">Auctions inherit these values unless they define their own.</p>
-                    </div>
-                  </div>
-                {/if}
-              </div>
-
-              <!-- Invoice Settings -->
-              <div class="border border-gray-200 rounded-lg">
-                <button
-                  type="button"
-                  onclick={() => toggleSection('invoiceSettings')}
-                  class="w-full px-4 py-3 flex items-center justify-between bg-gray-50 hover:bg-gray-100 transition-colors"
-                >
-                  <span class="font-medium text-gray-900">Invoice Settings</span>
-                  <svg class="w-5 h-5 text-gray-500 transform transition-transform {expandedSections.invoiceSettings ? 'rotate-180' : ''}" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
-                  </svg>
-                </button>
-                {#if expandedSections.invoiceSettings}
-                  <div class="p-4 space-y-4">
-                    <div>
-                      <label class="block text-sm font-medium text-gray-700 mb-1">Additional Text for Invoices in English</label>
-                      <textarea bind:value={settings.additionalTextForInvoicesInEnglish} rows="4" class="w-full px-3 py-2 text-sm border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"></textarea>
-                    </div>
-                    <div>
-                      <label class="block text-sm font-medium text-gray-700 mb-1">Additional Text for Consignor Statements in English</label>
-                      <textarea bind:value={settings.additionalTextForConsignorStatementsInEnglish} rows="4" class="w-full px-3 py-2 text-sm border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"></textarea>
-                    </div>
-                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                      <div>
-                        <label class="block text-sm font-medium text-gray-700 mb-1">Tax Number</label>
-                        <input type="text" bind:value={settings.taxNumber} class="w-full px-3 py-2 text-sm border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500" />
-                      </div>
-                      <div>
-                        <label class="block text-sm font-medium text-gray-700 mb-1">Invoice Provider</label>
-                        <select bind:value={settings.invoiceProvider} class="w-full px-3 py-2 text-sm border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500">
-                          <option value="None">None</option>
-                          <option value="QuickBooks">QuickBooks</option>
-                          <option value="Xero">Xero</option>
-                          <option value="FreshBooks">FreshBooks</option>
-                          <option value="Other">Other</option>
-                        </select>
-                      </div>
-                    </div>
-                  </div>
-                {/if}
-              </div>
-            </div>
-            
-            <!-- Category Meta Fields Tab -->
-            {#if activeTab === 'metaFields'}
-              <div class="p-6 space-y-6">
-                <div class="mb-6">
-                  <h2 class="text-xl font-bold text-gray-900 mb-2">Category Meta Fields Configuration</h2>
-                  <p class="text-sm text-gray-600">Define custom fields for different categories. These fields will appear when creating or editing lots in the specified category.</p>
-                </div>
-                
-                <!-- Add New Category -->
-                <div class="bg-gray-50 p-4 rounded-lg mb-6">
-                  <div class="flex gap-2">
-                    <input
+                  <label class="flex-1">
+                    <span class="sr-only">
+                      Payment method {index + 1}
+                    </span><input
                       type="text"
-                      bind:value={newCategoryName}
-                      placeholder="Enter category name (e.g., Books, Art, Jewelry)"
-                      class="flex-1 px-3 py-2 text-sm border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                      onkeydown={(e) => { if (e.key === 'Enter') addCategory(); }}
+                      bind:value={method.method}
+                      maxlength="100"
+                      placeholder="Bank transfer, cash, check…"
+                      required
                     />
-                    <button
-                      onclick={addCategory}
-                      class="px-4 py-2 bg-blue-600 text-white text-sm rounded-md hover:bg-blue-700 transition-colors"
-                    >
-                      Add Category
-                    </button>
-                  </div>
-                </div>
-                
-                <!-- Configured Categories -->
-                {#each Object.entries(settings.categoryMetaFields || {}) as [category, fields]}
-                  <div class="border border-gray-200 rounded-lg p-4 mb-4">
-                    <div class="flex items-center justify-between mb-4">
-                      <h3 class="text-lg font-semibold text-gray-900">{category}</h3>
-                      <button
-                        onclick={() => removeCategory(category)}
-                        class="text-red-600 hover:text-red-800 text-sm font-medium"
-                      >
-                        Remove Category
-                      </button>
-                    </div>
-                    
-                    {#each fields as field, index}
-                      <div class="bg-white border border-gray-200 rounded-lg p-4 mb-3">
-                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-3">
-                          <div>
-                            <label class="block text-xs font-medium text-gray-700 mb-1">Field Label</label>
-                            <input
-                              type="text"
-                              bind:value={field.label}
-                              placeholder="e.g., Author, Year Printed"
-                              class="w-full px-3 py-2 text-sm border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                            />
-                          </div>
-                          <div>
-                            <label class="block text-xs font-medium text-gray-700 mb-1">Field Type</label>
-                            <select
-                              bind:value={field.type}
-                              class="w-full px-3 py-2 text-sm border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                            >
-                              <option value="text">Text</option>
-                              <option value="number">Number</option>
-                              <option value="date">Date</option>
-                              <option value="boolean">Yes/No</option>
-                              <option value="select">Dropdown</option>
-                            </select>
-                          </div>
-                        </div>
-                        
-                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-3">
-                          <div>
-                            <label class="block text-xs font-medium text-gray-700 mb-1">Placeholder</label>
-                            <input
-                              type="text"
-                              bind:value={field.placeholder}
-                              placeholder="Optional placeholder text"
-                              class="w-full px-3 py-2 text-sm border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                            />
-                          </div>
-                          <div class="flex items-center">
-                            <label class="flex items-center">
-                              <input
-                                type="checkbox"
-                                bind:checked={field.required}
-                                class="mr-2 h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
-                              />
-                              <span class="text-xs font-medium text-gray-700">Required field</span>
-                            </label>
-                          </div>
-                        </div>
-                        
-                        {#if field.type === 'select'}
-                          <div class="mb-3">
-                            <label class="block text-xs font-medium text-gray-700 mb-1">Options (one per line)</label>
-                            <textarea
-                              value={field.options?.join('\n') || ''}
-                              oninput={(e) => {
-                                field.options = e.target.value.split('\n').filter(o => o.trim());
-                              }}
-                              placeholder="Option 1&#10;Option 2&#10;Option 3"
-                              rows="3"
-                              class="w-full px-3 py-2 text-sm border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                            ></textarea>
-                          </div>
-                        {/if}
-                        
-                        <div class="mb-3">
-                          <label class="block text-xs font-medium text-gray-700 mb-1">Help Text (optional)</label>
-                          <input
-                            type="text"
-                            bind:value={field.helpText}
-                            placeholder="Additional information for users"
-                            class="w-full px-3 py-2 text-sm border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                          />
-                        </div>
-                        
-                        <button
-                          onclick={() => removeMetaField(category, index)}
-                          class="text-red-600 hover:text-red-800 text-xs font-medium"
-                        >
-                          Remove Field
-                        </button>
-                      </div>
-                    {/each}
-                    
-                    <button
-                      onclick={() => addMetaField(category)}
-                      class="w-full mt-2 px-4 py-2 bg-gray-100 text-gray-700 text-sm rounded-md hover:bg-gray-200 transition-colors"
-                    >
-                      + Add Field
-                    </button>
-                  </div>
-                {/each}
-                
-                {#if Object.keys(settings.categoryMetaFields || {}).length === 0}
-                  <div class="text-center py-12 text-gray-500">
-                    <p>No category meta fields configured yet.</p>
-                    <p class="text-sm mt-2">Add a category above to get started.</p>
-                  </div>
-                {/if}
-              </div>
-            {/if}
-            
-            {#if activeTab === 'ai'}
-              <div class="p-6 space-y-4">
-                <div>
-                  <h3 class="text-lg font-semibold text-gray-900 mb-4">AI Settings</h3>
-                  <div>
-                    <label class="block text-sm font-medium text-gray-700 mb-2">
-                      AI Prompt (Base Prompt for All Auctions)
-                    </label>
-                    <textarea
-                      bind:value={settings.aiPrompt}
-                      rows="6"
-                      placeholder="Enter base context, tone, style guidelines, or information about your auction house that should be included in all AI-generated content. This will be combined with auction-specific prompts."
-                      class="w-full px-3 py-2 text-sm border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                    ></textarea>
-                    <p class="text-xs text-gray-500 mt-1">
-                      This base prompt will be added to all AI requests for generating titles, descriptions, and summarizing notes across all auctions in this auction house. Individual auctions can add their own prompts that will be combined with this one.
-                    </p>
-                  </div>
-                </div>
-              </div>
-            {/if}
-            
-            {#if activeTab === 'banner'}
-              <div class="p-6">
-                <BannerGenerator 
-                  type="auctionHouse" 
-                  {auctionHouse}
-                  onSave={(bannerUrl) => {
-                    // Save banner URL to auction house settings
-                    if (settings) {
-                      settings.bannerUrl = bannerUrl;
-                      saveSettings();
-                    }
-                  }}
-                />
-              </div>
-            {/if}
-
-        {/if}
-          </form>
+                  </label><button
+                    type="button"
+                    class="settings-remove"
+                    onclick={() =>
+                      (settings.paymentMethods = settings.paymentMethods.filter(
+                        (_, i) => i !== index,
+                      ))}
+                  >
+                    Remove
+                  </button>
+                </div>{/each}<button
+                type="button"
+                class="pumbi-btn-secondary"
+                onclick={() =>
+                  (settings.paymentMethods = [
+                    ...settings.paymentMethods,
+                    { method: '', percentage: 0, vat: false },
+                  ])}
+              >
+                Add payment method
+              </button>
+            </div>
+          </SettingsSection>
+        </div>
+        <div id="catalog">
+          <SettingsSection
+            title="Catalog fields"
+            description="Custom fields for lots in each category. Used when creating and editing catalog entries."
+          >
+            <CategoryFields bind:settings />
+          </SettingsSection>
+        </div>
+        <div id="terms">
+          <SettingsSection
+            title="Terms for new auctions"
+            description="Terms are snapshotted with each new sale. Existing auctions keep the terms accepted by their participants."
+          >
+            <SettingsFields
+              bind:values={settings}
+              fields={[
+                {
+                  key: 'termsOfSaleInEnglish',
+                  label: 'Buyer terms',
+                  type: 'textarea',
+                  wide: true,
+                },
+                {
+                  key: 'disclaimerForSellersInEnglish',
+                  label: 'Seller terms',
+                  type: 'textarea',
+                  wide: true,
+                },
+              ]}
+            />
+          </SettingsSection>
+        </div>
+        <SettingsSection
+          title="Catalog writing guidance"
+          description="House instructions for supported AI catalog tools. An auction prompt can provide more specific guidance."
+        >
+          <SettingsFields
+            bind:values={settings}
+            fields={[
+              {
+                key: 'aiPrompt',
+                label: 'House catalog prompt',
+                type: 'textarea',
+                wide: true,
+              },
+            ]}
+          />
+        </SettingsSection>
+      </fieldset>
+      <div class="settings-save">
+        <p class="settings-help">Changes take effect after saving.</p>
+        <button class="pumbi-btn" disabled={saving}>
+          {saving ? 'Saving…' : 'Save house settings'}
+        </button>
       </div>
-    {/if}
-</div>
+    </form>
+  {/if}
+</main>

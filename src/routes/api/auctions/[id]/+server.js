@@ -1,7 +1,8 @@
 import { json, error } from '@sveltejs/kit';
 import { db } from '$lib/db.js';
 import prisma from '$lib/prisma.js';
-import { finishOrRelistAuction, preserveRelistState } from '$lib/server/auctionCompletion.js';
+import { updateAuctionSettings } from '$lib/server/auctionSettings.js';
+import { finishOrRelistAuction } from '$lib/server/auctionCompletion.js';
 import { auctionUpdateSchema } from '$lib/zod.js';
 import {
   HOUSE_PERMISSIONS,
@@ -79,7 +80,7 @@ export async function PATCH({ params, request, locals }) {
     await prisma.$transaction(async tx => {
       await tx.$queryRaw`SELECT id FROM auctions WHERE id = ${params.id} FOR UPDATE`;
       const current = await tx.auction.findUnique({ where: { id: params.id }, select: { settings: true } });
-      await tx.auction.update({ where: { id: params.id }, data: { ...updates, settings: JSON.stringify(preserveRelistState(current.settings, updates.settings)) } });
+      await tx.auction.update({ where: { id: params.id }, data: { ...updates, settings: JSON.stringify(await updateAuctionSettings(current.settings, updates.settings, existing.currency || 'usd')) } });
     });
   } else {
     await db.auctions.update(params.id, updates);

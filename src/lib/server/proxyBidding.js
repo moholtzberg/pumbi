@@ -1,7 +1,8 @@
 import { error } from '@sveltejs/kit';
 import { lockHouseBidderAccess, requireUnblockedBidder } from '$lib/server/bidderAccess.js';
 import { auctionBidAccess } from '$lib/utils/biddingAccess.js';
-import { minimumLotBid } from './bidRules.js';
+import { minimumLotBid, lotBidIncrement } from '$lib/utils/bidIncrements.js';
+import { formatMoney } from '$lib/utils/region.js';
 import { extendedEndTime, resolveLotTiming } from './lotTiming.js';
 
 const cents = value => Math.round(Number(value) * 100);
@@ -21,7 +22,7 @@ export function resolveProxyPrice(lot, candidates) {
   const [winner, runnerUp] = ranked;
   if (!winner) throw new Error('No valid maximum bid');
   const floor = lot.highestBidderId ? current : cents(minimumLotBid(lot));
-  const price = Math.min(winner.limit, Math.max(current, floor, runnerUp ? runnerUp.limit + cents(lot.bidIncrement) : floor));
+  const price = Math.min(winner.limit, Math.max(current, floor, runnerUp ? runnerUp.limit + cents(lotBidIncrement(lot, dollars(runnerUp.limit))) : floor));
   return { winner, price: dollars(price) };
 }
 
@@ -39,7 +40,7 @@ export async function submitMaximumBid(tx, { lot, buyer, maximum, source = 'ONLI
   const previousLimit = previous ? Number(previous.maxAmount) : 0;
   const leading = lot.highestBidderId === buyer.id;
   if (maximum <= previousLimit || (leading && maximum <= Number(lot.currentBid))) throw error(400, 'Your new maximum must be higher than your existing maximum');
-  if (!leading && maximum < minimumLotBid(lot)) throw error(400, `Maximum bid must be at least $${minimumLotBid(lot).toFixed(2)}`);
+  if (!leading && maximum < minimumLotBid(lot)) throw error(400, `Maximum bid must be at least ${formatMoney(minimumLotBid(lot), lot.auction?.currency || 'usd')}`);
   const userName = buyer.name || buyer.email || 'Bidder';
   const commitment = { userName, maxAmount: maximum, source, recordedById, priorityAt: now };
   await tx.proxyBid.upsert({ where: { lotId_userId: { lotId: lot.id, userId: buyer.id } }, create: { lotId: lot.id, userId: buyer.id, ...commitment }, update: commitment });

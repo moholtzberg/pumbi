@@ -1,6 +1,8 @@
 import { z } from 'zod';
 import { BaseModel } from './BaseModel.js';
 import prisma from '$lib/prisma.js';
+import { minimumLotBid } from '$lib/utils/bidIncrements.js';
+import { formatMoney } from '$lib/utils/region.js';
 
 const bidSchema = z.object({
   id: z.string().optional(),
@@ -44,7 +46,8 @@ export class Bid extends BaseModel {
     if (this.data.lotId && this.data.amount !== undefined) {
       try {
         const lot = await prisma.lot.findUnique({
-          where: { id: this.data.lotId }
+          where: { id: this.data.lotId },
+          include: { auction: { include: { auctionHouse: true } } }
         });
 
         if (!lot) {
@@ -52,9 +55,9 @@ export class Bid extends BaseModel {
           return;
         }
 
-        const minimumBid = lot.currentBid + lot.bidIncrement;
+        const minimumBid = minimumLotBid(lot);
         if (this.data.amount < minimumBid) {
-          this.addError('amount', `Bid must be at least $${minimumBid.toFixed(2)}`);
+          this.addError('amount', `Bid must be at least ${formatMoney(minimumBid, lot.auction?.currency || 'usd')}`);
         }
       } catch (error) {
         // If we can't validate, continue (might be a new lot)

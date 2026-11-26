@@ -508,3 +508,20 @@ test('blocks from another house do not apply, and an inactive block restores ord
   state.blocks = [{ auctionHouseId: 'foreign', userId: 'buyer', active: true }, { auctionHouseId: 'house', userId: 'buyer', active: false }];
   assert.equal((await maximum(state.users[0], 100)).isLeading, true);
 });
+
+test('house tiers apply to incoming online bids and automatic defenses at a competing maximum', async () => {
+  state.auction.auctionHouse.settings=JSON.stringify({bidIncrements:[{from:0,increment:5},{from:1000,increment:100}]});
+  opening();
+  assert.equal((await maximum(state.users[0],2000)).currentBid,25);
+  const defense=await maximum(state.users[1],1000);
+  assert.equal(defense.currentBid,1100);assert.equal(defense.isLeading,false);
+  await assert.rejects(maximum(state.users[1],1150),err=>err.status===400);
+});
+
+test('phone bids follow the same house tier instead of a lot fixed fallback', async () => {
+  state.auction.auctionHouse.settings=JSON.stringify({bidIncrements:[{from:0,increment:5},{from:1000,increment:100}]});
+  Object.assign(state.lot,{currentBid:1000,bidIncrement:5});
+  await assert.rejects(phone.POST(event(payload({amount:1005}))),err=>err.status===400);
+  const result=await (await phone.POST(event(payload({amount:1100})))).json();
+  assert.equal(result.currentBid,1100);
+});

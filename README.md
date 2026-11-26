@@ -524,3 +524,44 @@ It adds account country/language, seller payout country, and fixed auction curre
 Israeli phone/address parsing, country locks and activation, ILS invoice/Stripe
 amounts, and shipping currency checks. The PostgreSQL address integration test also
 covers Hebrew addresses and real shekel invoice creation; it rolls back all fixtures.
+
+## Bid increment schedules and settings ownership
+
+Bidding uses the same price-tier resolver for online bids, proxy defenses, phone
+bids, the lot page, and the control room. An increment threshold is inclusive:
+with `0 → 5`, `50 → 10`, and `1000 → 100`, the next bid after 45 is 50,
+after 50 is 60, and after 1000 is 1100. Proxy defenses apply the tier at the
+competing maximum and remain capped by the winning maximum. Opening bids start
+at the lot's opening price.
+
+For private auctions the order is **auction schedule → current house schedule →
+lot fixed increment**. House schedules can be enabled/disabled under
+**House settings → Bid increments**; each auction can opt into its own schedule.
+Public auctions with a published policy schedule retain that policy's rules.
+Tables require a tier starting at 0, unique nonnegative thresholds, and positive
+increments, with at most two decimals. Saves sort the table automatically.
+
+House settings own currency and fee defaults for new auctions, the house tier
+schedule, default timers, final-round relisting, external payment method names,
+category fields, terms for new sales, and house catalog-writing guidance. Company
+identity, addresses/branding, banking, team access, and marketing each link to their
+existing dedicated screen. Auction settings own sale details, registration,
+auto-advance, buyer-paid shipping, optional increment/timer overrides, external
+stream URLs, catalog appearance, and auction catalog guidance. Currency and
+snapshotted fees are displayed as read-only sale facts. Lot timers override the
+auction timer, then house timer, then platform default.
+
+Inactive and overlapping legacy switches are omitted from the forms; existing
+stored values are preserved. Payment method fee/VAT fields are not presented as
+working surcharges. State managed by the control room, including `onBlockLotId`
+and the unsold relist round, survives settings saves and cannot be forged by a
+settings request. Omitted settings and nested gallery fields are merged under the
+auction/house row lock rather than replaced by a partial request.
+
+Fee snapshots use fractions (0.15); invoices use percentage points (15). The rate
+resolver now converts those units for new invoices and the read-only settings
+summary. Previously issued invoice amounts are not rewritten.
+
+No migration is required. Tests cover tier boundaries, proxy limits/ties, phone
+and online enforcement, validation, settings permissions/inheritance, state
+preservation, and real rolled-back PostgreSQL bidding/settings transactions.

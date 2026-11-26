@@ -1,4 +1,5 @@
 import prisma from './prisma.js';
+import { publicLotBidRules } from './utils/bidIncrements.js';
 import { auctionCurrency } from './utils/region.js';
 import { AuctionHouse, User, Auction, Lot, Bid } from './models/index.js';
 
@@ -136,6 +137,7 @@ async function mapLot(prismaLot) {
     startingBid: prismaLot.startingBid,
     currentBid: prismaLot.currentBid,
     bidIncrement: prismaLot.bidIncrement,
+    ...publicLotBidRules(prismaLot),
     imageUrl,
     imageUrls: typeof imageUrls === 'string' ? imageUrls : (imageUrls ? JSON.stringify(imageUrls) : null),
     images, // New: array of image objects
@@ -311,7 +313,7 @@ export const db = {
         const lot = await prisma.lot.findUnique({
           where: { id },
           include: {
-            auction: true,
+            auction: { include: { auctionHouse: true } },
             images: {
               orderBy: [{ isPrimary: 'desc' }, { displayOrder: 'asc' }]
             }
@@ -324,7 +326,7 @@ export const db = {
           const lot = await prisma.lot.findUnique({
             where: { id },
             include: {
-              auction: true
+              auction: { include: { auctionHouse: true } }
             }
           });
           return await mapLot(lot);

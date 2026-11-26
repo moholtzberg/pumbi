@@ -1,3 +1,4 @@
+import { publicLotBidRules } from '$lib/utils/bidIncrements.js';
 import { randomUUID } from 'node:crypto';
 import { json, error } from '@sveltejs/kit';
 import prisma from '$lib/prisma.js';
@@ -130,7 +131,7 @@ export async function GET({ params }) {
     lobby: !auction.auctioneerStartedAt,
     biddingOpen,
     autoAdvanceNextLot: isAutoAdvanceEnabled(auction),
-    currentLot,
+    currentLot: currentLot ? { ...currentLot, ...publicLotBidRules(currentLot, auction) } : null,
     pastLots,
     upcomingLots,
     lotRail,

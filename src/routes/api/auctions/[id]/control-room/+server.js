@@ -1,3 +1,4 @@
+import { publicLotBidRules } from '$lib/utils/bidIncrements.js';
 import { json, error } from '@sveltejs/kit';
 import prisma from '$lib/prisma.js';
 import { requireAuthenticatedUser, requireAuctionAccess, requireAuctionHousePermission, HOUSE_PERMISSIONS } from '$lib/server/authorization.js';
@@ -104,7 +105,7 @@ export async function GET({ params, locals }) {
     autoAdvanceNextLot: isAutoAdvanceEnabled(auction),
     defaultExtendSeconds: openLotTiming?.bidExtensionSeconds || 30,
     settingsPath: `/seller/auctions/${auction.id}/settings`,
-    lots,
+    lots: lots.map(lot => ({ ...lot, ...publicLotBidRules(lot, auction) })),
     bids: bids.map((bid) => ({
       id: bid.id,
       amount: bid.amount,

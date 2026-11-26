@@ -1,4 +1,5 @@
 <script>
+  import { lotBidIncrement } from '$lib/utils/bidIncrements.js';
   import { requiresBidderRegistration } from '$lib/utils/biddingAccess.js';
   import MaximumBidForm from '$lib/components/MaximumBidForm.svelte';
   import { onMount } from 'svelte';
@@ -306,7 +307,7 @@
                 </div>
                 <div>
                   <p class="text-sm text-gray-500 mb-1">Bid Increment</p>
-                  <p class="text-2xl font-bold text-gray-900">{formatCurrency(lot.bidIncrement)}</p>
+                  <p class="text-2xl font-bold text-gray-900">{formatCurrency(lotBidIncrement(lot))}</p>
                 </div>
               </div>
             </div>

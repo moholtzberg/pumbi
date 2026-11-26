@@ -854,7 +854,7 @@
 
               <div>
                 <label for="bidIncrement" class="block text-sm font-medium text-gray-700 mb-2">
-                  Bid Increment ($) *
+                  Fixed increment (fallback when no schedule) *
                 </label>
                 <input
                   id="bidIncrement"

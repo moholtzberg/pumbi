@@ -1,4 +1,5 @@
 <script>
+  import { minimumLotBid, lotBidIncrement } from '$lib/utils/bidIncrements.js';
   import { onMount } from 'svelte';
   let { lot, userId, currency = lot?.auction?.currency || 'usd', canBid = true, onbid = async () => {} } = $props();
   let maximum = $state(null);
@@ -8,7 +9,7 @@
   let message = $state('');
   let problem = $state('');
   let leading = $derived(lot.highestBidderId === userId);
-  let nextBid = $derived(Math.round(Math.max(Number(lot.startingBid), Number(lot.currentBid) + Number(lot.bidIncrement)) * 100) / 100);
+  let nextBid = $derived(minimumLotBid(lot));
   let minimum = $derived(leading ? Math.round((Math.max(Number(lot.currentBid), maximum || 0) + 0.01) * 100) / 100 : nextBid);
   const money = value => new Intl.NumberFormat('en-US', { style: 'currency', currency: currency.toUpperCase() }).format(value || 0);
   let version = 0;
@@ -57,7 +58,7 @@
   {#if message}<p role="status" class="rounded border border-[#c5d0c8] bg-[#e8eee9] p-3 text-sm font-semibold text-[#18372f]">{message}</p>{/if}
   <form class="space-y-3" onsubmit={event => { event.preventDefault(); submit(amount); }}>
     <label class="block text-sm font-bold">{leading ? 'Increase your maximum bid' : 'Your maximum bid (USD)'}<input type="number" min={minimum} step="0.01" required bind:value={amount} placeholder={String(minimum)} disabled={busy || !canBid || loadingMaximum} class="mt-2 w-full rounded-sm border border-[#c9cfc8] bg-white px-3 py-3 text-base text-[#1a2821]" /></label>
-    <p class="text-xs leading-5 text-[#526058]">We bid for you in increments of {money(lot.bidIncrement)}, only as much as needed to lead, up to your maximum. Equal maximums go to the earlier bidder. Your maximum is private and can only be increased while bidding is open.</p>
+    <p class="text-xs leading-5 text-[#526058]">The current increment is {money(lotBidIncrement(lot))}. It follows the configured price tiers as bidding rises. We bid only as much as needed to lead, up to your maximum. Equal maximums go to the earlier bidder. Your maximum is private and can only be increased while bidding is open.</p>
     <button class="w-full bg-[#18372f] px-4 py-3 font-bold text-white disabled:opacity-50" disabled={busy || !canBid || loadingMaximum}>{busy ? 'Saving maximum…' : leading ? 'Increase maximum' : 'Set maximum & bid'}</button>
   </form>
   {#if !leading}<button type="button" class="w-full rounded-sm border border-[#c9cfc8] bg-white px-4 py-3 text-sm font-bold text-[#18372f] disabled:opacity-50" disabled={busy || !canBid || loadingMaximum} onclick={() => submit(nextBid)}>Bid {money(nextBid)} only</button>{/if}

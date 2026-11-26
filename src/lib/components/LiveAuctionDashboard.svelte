@@ -1,4 +1,5 @@
 <script>
+  import { minimumLotBid } from '$lib/utils/bidIncrements.js';
   import { onMount, onDestroy } from 'svelte';
   import { page } from '$app/stores';
   import { goto } from '$app/navigation';
@@ -42,10 +43,7 @@
   let nextBidAmount = $derived.by(() => {
     const lot = liveData.currentLot;
     if (!lot) return 0;
-    const currentBid = Number(lot.currentBid) || 0;
-    const startingBid = Number(lot.startingBid) || 0;
-    const increment = Number(lot.bidIncrement) || 0;
-    return Math.max(startingBid, currentBid + increment);
+    return minimumLotBid(lot);
   });
 
   let readyToBid = $derived(Boolean(bidAccess?.readyToBid));

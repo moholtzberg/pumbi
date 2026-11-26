@@ -1,7 +1,10 @@
 import { json, error } from '@sveltejs/kit';
-import { auctionSettingsSchema } from '$lib/zod.js';
+import { updateAuctionSettings } from '$lib/server/auctionSettings.js';
+import { resolveBidIncrementSchedule } from '$lib/utils/bidIncrements.js';
+import { resolveLotTiming } from '$lib/server/lotTiming.js';
+import { resolveBuyerPremiumRate, resolveBuyerPaysShipping } from '$lib/server/invoices.js';
+import { readSettings } from '$lib/utils/region.js';
 import prisma from '$lib/prisma.js';
-import { preserveRelistState } from '$lib/server/auctionCompletion.js';
 import {
   HOUSE_PERMISSIONS,
   canManageAuctionHouse,
@@ -16,7 +19,7 @@ export async function GET({ params, locals }) {
   try {
     const auction = await prisma.auction.findUnique({
       where: { id: params.id },
-      include: { seller: true }
+      include: { seller: true, auctionHouse: true }
     });
 
     if (!auction) {
@@ -45,7 +48,14 @@ export async function GET({ params, locals }) {
       ? isPlatformAdmin(user)
       : canManageAuctionHouse(user, auction.auctionHouseId);
     if (canManage) {
-      return json(settings);
+      return json({ ...settings, _inheritance: {
+        houseId: auction.auctionHouseId,
+        house: (() => { const house = readSettings(auction.auctionHouse?.settings); return { bidIncrements: house.bidIncrements || [], automaticAuctionInitialTimerSeconds: house.automaticAuctionInitialTimerSeconds ?? 60, automaticAuctionTimerResetSeconds: house.automaticAuctionTimerResetSeconds ?? 30, aiPrompt: house.aiPrompt || '' }; })(),
+        increments: resolveBidIncrementSchedule(auction),
+        timers: resolveLotTiming({ auction, auctionHouse: auction.auctionHouse || {} }),
+        buyerPremium: resolveBuyerPremiumRate({ auction, auctionHouse: auction.auctionHouse }),
+        buyerPaysShipping: resolveBuyerPaysShipping({ auction, auctionHouse: auction.auctionHouse })
+      } }, { headers: { 'cache-control': 'private, no-store' } });
     }
 
     // Otherwise, return only gallery settings (public access)
@@ -73,7 +83,7 @@ export async function PATCH({ params, request, locals }) {
 
     const auction = await prisma.auction.findUnique({
       where: { id: params.id },
-      include: { seller: true }
+      include: { seller: true, auctionHouse: true }
     });
 
     requireAuctionAccess(user, auction);
@@ -85,16 +95,12 @@ export async function PATCH({ params, request, locals }) {
 
     const data = await request.json();
 
-    // Validate the settings data
-    if (data.currency && data.currency.toLowerCase() !== (auction.currency || 'usd')) throw error(409, 'Auction currency is fixed at creation. Create a new auction to use a different currency.');
-    let validated = await auctionSettingsSchema.parseAsync(data);
-    validated.currency = (auction.currency || 'usd').toUpperCase();
-
-    // Update the auction settings
+    if (!data || typeof data !== 'object' || Array.isArray(data)) throw error(400, 'Settings must be an object');
+    let validated;
     await prisma.$transaction(async tx => {
       await tx.$queryRaw`SELECT id FROM auctions WHERE id = ${params.id} FOR UPDATE`;
       const current = await tx.auction.findUnique({ where: { id: params.id }, select: { settings: true } });
-      validated = preserveRelistState(current.settings, validated);
+      validated = await updateAuctionSettings(current.settings, data, auction.currency || 'usd');
       await tx.auction.update({ where: { id: params.id }, data: { settings: JSON.stringify(validated) } });
     });
 

@@ -54,16 +54,14 @@ export async function PATCH({ params, request, locals }) {
 
     const data = await request.json();
 
-    // Validate the settings data
-    const existing = auctionHouse.settings ? JSON.parse(auctionHouse.settings) : {};
-    const validated = { ...existing, ...await auctionHouseSettingsSchema.parseAsync({ ...existing, ...data }) };
-
-    // Update the auction house settings
-    const updated = await prisma.auctionHouse.update({
-      where: { id: params.id },
-      data: {
-        settings: JSON.stringify(validated)
-      }
+    if (!data || typeof data !== 'object' || Array.isArray(data)) throw error(400, 'Settings must be an object');
+    let validated;
+    await prisma.$transaction(async tx => {
+      await tx.$queryRaw`SELECT id FROM auction_houses WHERE id = ${params.id} FOR UPDATE`;
+      const current = await tx.auctionHouse.findUnique({ where: { id: params.id } });
+      const existing = current.settings ? JSON.parse(current.settings) : {};
+      validated = { ...existing, ...await auctionHouseSettingsSchema.parseAsync({ ...existing, ...data }) };
+      await tx.auctionHouse.update({ where: { id: params.id }, data: { settings: JSON.stringify(validated) } });
     });
 
     return json({ 

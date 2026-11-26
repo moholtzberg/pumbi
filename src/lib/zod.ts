@@ -37,9 +37,18 @@ export const auctionHouseSignupSchema = z.object({
 
 // Bid increment structure
 const bidIncrementSchema = z.object({
-  from: z.number().min(0),
-  increment: z.number().min(0),
+  from: z.number().finite().min(0).max(Number.MAX_SAFE_INTEGER / 100).multipleOf(0.01),
+  increment: z.number().finite().positive().max(Number.MAX_SAFE_INTEGER / 100).multipleOf(0.01),
 })
+
+export const bidIncrementScheduleSchema = z.array(bidIncrementSchema).max(100).superRefine((rows, ctx) => {
+  const starts = new Set();
+  rows.forEach((row, index) => {
+    if (starts.has(row.from)) ctx.addIssue({ code: z.ZodIssueCode.custom, path: [index, 'from'], message: 'Each price threshold must be unique' });
+    starts.add(row.from);
+  });
+  if (rows.length && !starts.has(0)) ctx.addIssue({ code: z.ZodIssueCode.custom, message: 'Start the first tier at 0 so all bid amounts are covered' });
+}).transform(rows => [...rows].sort((a, b) => a.from - b.from));
 
 // Payment method structure
 const paymentMethodSchema = z.object({
@@ -92,7 +101,7 @@ export const auctionHouseSettingsSchema = z.object({
   disclaimerForSellersInEnglish: z.string().optional().nullable(),
   
   // Bid Increments
-  bidIncrements: z.array(bidIncrementSchema).optional().default([]),
+  bidIncrements: bidIncrementScheduleSchema.optional().default([]),
   
   // Email Templates
   emailSignatureInEnglish: z.string().optional().nullable(),
@@ -122,6 +131,7 @@ export const auctionHouseSettingsSchema = z.object({
 
 // Auction settings schema (nested within each auction)
 export const auctionSettingsSchema = z.object({
+  bidIncrements: bidIncrementScheduleSchema.optional().nullable(),
   // Default Auction Settings
   defaultAuctionDurationDays: z.coerce.number().min(1).optional().nullable(),
   defaultPreviewPeriodDays: z.coerce.number().min(0).optional().nullable(),
