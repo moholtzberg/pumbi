@@ -1,41 +1,45 @@
 <script>
+  import { page as localePage } from '$app/stores';
+  import { translate as translateUi } from '$lib/i18n.js';
+  const ui = (text, values) => translateUi($localePage.data.locale || 'en', text, values);
+
   let { settings = $bindable({}) } = $props();
 </script>
 
 <div class="space-y-4">
   <div>
     <label class="block text-sm font-medium text-gray-700 mb-2">
-      Select Template
+      {ui("Select Template")}
     </label>
     <select
       bind:value={settings.galleryTemplate}
       class="w-full px-3 py-2 text-sm border border-gray-300 rounded-sm focus:ring-2 focus:ring-[#18372f] focus:border-[#18372f]"
     >
-      <option value="card-grid">Card Grid - Traditional card layout</option>
+      <option value="card-grid">{ui("Card Grid - Traditional card layout")}</option>
       <option value="image-slider">
-        Image Slider - Carousel with multiple images
+        {ui("Image Slider - Carousel with multiple images")}
       </option>
       <option value="overlay-text">
-        Overlay Text - Full image with text overlay
+        {ui("Overlay Text - Full image with text overlay")}
       </option>
-      <option value="minimal-grid">Minimal Grid - Clean minimal design</option>
-      <option value="masonry">Masonry - Pinterest-style layout</option>
+      <option value="minimal-grid">{ui("Minimal Grid - Clean minimal design")}</option>
+      <option value="masonry">{ui("Masonry - Pinterest-style layout")}</option>
       <option value="carousel-hover">
-        Carousel Hover - Natural aspect ratio with content on hover
+        {ui("Carousel Hover - Natural aspect ratio with content on hover")}
       </option>
     </select>
     <p class="text-xs text-gray-500 mt-1">
-      Choose how lots are displayed in the gallery
+      {ui("Choose how lots are displayed in the gallery")}
     </p>
   </div>
 
   <!-- Template-specific settings -->
   {#if settings.galleryTemplate === 'card-grid'}
     <div class="border-t pt-4 space-y-3">
-      <h4 class="text-sm font-semibold text-gray-900">Card Grid Settings</h4>
+      <h4 class="text-sm font-semibold text-gray-900">{ui("Card Grid Settings")}</h4>
       <div>
         <label class="block text-sm font-medium text-gray-700 mb-1">
-          Columns
+          {ui("Columns")}
         </label>
         <input
           type="number"
@@ -51,9 +55,9 @@
           bind:checked={
             settings.galleryTemplateSettings.cardGridShowDescription
           }
-          class="mr-2 h-4 w-4 text-[#18372f] focus:ring-[#18372f] border-gray-300 rounded"
+          class="me-2 h-4 w-4 text-[#18372f] focus:ring-[#18372f] border-gray-300 rounded"
         />
-        <span class="text-sm text-gray-700">Show description</span>
+        <span class="text-sm text-gray-700">{ui("Show description")}</span>
       </label>
       <label class="settings-toggle">
         <input
@@ -61,26 +65,26 @@
           bind:checked={
             settings.galleryTemplateSettings.cardGridShowStartingBid
           }
-          class="mr-2 h-4 w-4 text-[#18372f] focus:ring-[#18372f] border-gray-300 rounded"
+          class="me-2 h-4 w-4 text-[#18372f] focus:ring-[#18372f] border-gray-300 rounded"
         />
-        <span class="text-sm text-gray-700">Show starting bid</span>
+        <span class="text-sm text-gray-700">{ui("Show starting bid")}</span>
       </label>
     </div>
   {:else if settings.galleryTemplate === 'image-slider'}
     <div class="border-t pt-4 space-y-3">
-      <h4 class="text-sm font-semibold text-gray-900">Image Slider Settings</h4>
+      <h4 class="text-sm font-semibold text-gray-900">{ui("Image Slider Settings")}</h4>
       <label class="settings-toggle">
         <input
           type="checkbox"
           bind:checked={settings.galleryTemplateSettings.sliderAutoPlay}
-          class="mr-2 h-4 w-4 text-[#18372f] focus:ring-[#18372f] border-gray-300 rounded"
+          class="me-2 h-4 w-4 text-[#18372f] focus:ring-[#18372f] border-gray-300 rounded"
         />
-        <span class="text-sm text-gray-700">Auto-play slideshow</span>
+        <span class="text-sm text-gray-700">{ui("Auto-play slideshow")}</span>
       </label>
       {#if settings.galleryTemplateSettings.sliderAutoPlay}
         <div>
           <label class="block text-sm font-medium text-gray-700 mb-1">
-            Auto-play Interval (ms)
+            {ui("Auto-play Interval (ms)")}
           </label>
           <input
             type="number"
@@ -95,38 +99,38 @@
         <input
           type="checkbox"
           bind:checked={settings.galleryTemplateSettings.sliderShowDots}
-          class="mr-2 h-4 w-4 text-[#18372f] focus:ring-[#18372f] border-gray-300 rounded"
+          class="me-2 h-4 w-4 text-[#18372f] focus:ring-[#18372f] border-gray-300 rounded"
         />
-        <span class="text-sm text-gray-700">Show navigation dots</span>
+        <span class="text-sm text-gray-700">{ui("Show navigation dots")}</span>
       </label>
       <label class="settings-toggle">
         <input
           type="checkbox"
           bind:checked={settings.galleryTemplateSettings.sliderShowArrows}
-          class="mr-2 h-4 w-4 text-[#18372f] focus:ring-[#18372f] border-gray-300 rounded"
+          class="me-2 h-4 w-4 text-[#18372f] focus:ring-[#18372f] border-gray-300 rounded"
         />
-        <span class="text-sm text-gray-700">Show arrow buttons</span>
+        <span class="text-sm text-gray-700">{ui("Show arrow buttons")}</span>
       </label>
     </div>
   {:else if settings.galleryTemplate === 'overlay-text'}
     <div class="border-t pt-4 space-y-3">
-      <h4 class="text-sm font-semibold text-gray-900">Overlay Text Settings</h4>
+      <h4 class="text-sm font-semibold text-gray-900">{ui("Overlay Text Settings")}</h4>
       <div>
         <label class="block text-sm font-medium text-gray-700 mb-1">
-          Text Position
+          {ui("Text Position")}
         </label>
         <select
           bind:value={settings.galleryTemplateSettings.overlayTextPosition}
           class="w-full px-3 py-2 text-sm border border-gray-300 rounded-sm focus:ring-2 focus:ring-[#18372f] focus:border-[#18372f]"
         >
-          <option value="top">Top</option>
-          <option value="center">Center</option>
-          <option value="bottom">Bottom</option>
+          <option value="top">{ui("Top")}</option>
+          <option value="center">{ui("Center")}</option>
+          <option value="bottom">{ui("Bottom")}</option>
         </select>
       </div>
       <div>
         <label class="block text-sm font-medium text-gray-700 mb-1">
-          Overlay Opacity: {Math.round(
+          {ui("Overlay Opacity:")} {Math.round(
             settings.galleryTemplateSettings.overlayTextOpacity * 100,
           )}%
         </label>
@@ -141,24 +145,24 @@
       </div>
       <div>
         <label class="block text-sm font-medium text-gray-700 mb-1">
-          Button Style
+          {ui("Button Style")}
         </label>
         <select
           bind:value={settings.galleryTemplateSettings.overlayButtonStyle}
           class="w-full px-3 py-2 text-sm border border-gray-300 rounded-sm focus:ring-2 focus:ring-[#18372f] focus:border-[#18372f]"
         >
-          <option value="white">White</option>
-          <option value="colored">Colored</option>
-          <option value="outline">Outline</option>
+          <option value="white">{ui("White")}</option>
+          <option value="colored">{ui("Colored")}</option>
+          <option value="outline">{ui("Outline")}</option>
         </select>
       </div>
     </div>
   {:else if settings.galleryTemplate === 'minimal-grid'}
     <div class="border-t pt-4 space-y-3">
-      <h4 class="text-sm font-semibold text-gray-900">Minimal Grid Settings</h4>
+      <h4 class="text-sm font-semibold text-gray-900">{ui("Minimal Grid Settings")}</h4>
       <div>
         <label class="block text-sm font-medium text-gray-700 mb-1">
-          Columns
+          {ui("Columns")}
         </label>
         <input
           type="number"
@@ -174,17 +178,17 @@
           bind:checked={
             settings.galleryTemplateSettings.minimalGridShowDescription
           }
-          class="mr-2 h-4 w-4 text-[#18372f] focus:ring-[#18372f] border-gray-300 rounded"
+          class="me-2 h-4 w-4 text-[#18372f] focus:ring-[#18372f] border-gray-300 rounded"
         />
-        <span class="text-sm text-gray-700">Show description</span>
+        <span class="text-sm text-gray-700">{ui("Show description")}</span>
       </label>
     </div>
   {:else if settings.galleryTemplate === 'masonry'}
     <div class="border-t pt-4 space-y-3">
-      <h4 class="text-sm font-semibold text-gray-900">Masonry Settings</h4>
+      <h4 class="text-sm font-semibold text-gray-900">{ui("Masonry Settings")}</h4>
       <div>
         <label class="block text-sm font-medium text-gray-700 mb-1">
-          Columns
+          {ui("Columns")}
         </label>
         <input
           type="number"
@@ -198,9 +202,9 @@
         <input
           type="checkbox"
           bind:checked={settings.galleryTemplateSettings.masonryVaryHeights}
-          class="mr-2 h-4 w-4 text-[#18372f] focus:ring-[#18372f] border-gray-300 rounded"
+          class="me-2 h-4 w-4 text-[#18372f] focus:ring-[#18372f] border-gray-300 rounded"
         />
-        <span class="text-sm text-gray-700">Vary image heights</span>
+        <span class="text-sm text-gray-700">{ui("Vary image heights")}</span>
       </label>
     </div>
   {/if}

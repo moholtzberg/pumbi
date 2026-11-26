@@ -1,4 +1,8 @@
 <script>
+  import { page as localePage } from '$app/stores';
+  import { translate as translateUi } from '$lib/i18n.js';
+  const ui = (text, values) => translateUi($localePage.data.locale || 'en', text, values);
+
   import { page } from '$app/stores';
 
   let { auctionId } = $props();
@@ -7,10 +11,10 @@
   let base = $derived(`/seller/auctions/${auctionId}/lots`);
 
   let items = $derived([
-    { href: base, label: 'Catalog', exact: true },
-    { href: `${base}/advanced`, label: 'Advanced grid' },
-    { href: `${base}/bulk`, label: 'Bulk CSV' },
-    { href: `${base}/tools`, label: 'Banners' }
+    { href: base, label: ui("Catalog"), exact: true },
+    { href: `${base}/advanced`, label: ui("Advanced grid") },
+    { href: `${base}/bulk`, label: ui("Bulk CSV") },
+    { href: `${base}/tools`, label: ui("Banners") }
   ]);
 
   function isActive(item) {
@@ -22,7 +26,7 @@
   }
 </script>
 
-<nav class="lots-subnav" aria-label="Lot tools">
+<nav class="lots-subnav" aria-label={ui("Lot tools")}>
   {#each items as item}
     <a href={item.href} class:active={isActive(item)}>{item.label}</a>
   {/each}

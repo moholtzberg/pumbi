@@ -1,4 +1,8 @@
 <script>
+  import { page as localePage } from '$app/stores';
+  import { translate as translateUi } from '$lib/i18n.js';
+  const ui = (text, values) => translateUi($localePage.data.locale || 'en', text, values);
+
   let {
     generatingBanner = false,
     generatedBannerUrl = null,
@@ -14,7 +18,7 @@
     disabled={generatingBanner || !canGenerate}
     class="w-full bg-purple-600 text-white py-2 text-sm rounded hover:bg-purple-700 transition-colors font-semibold disabled:bg-gray-400 disabled:cursor-not-allowed"
   >
-    {generatingBanner ? 'Generating...' : 'Generate Banner'}
+    {generatingBanner ? ui("Generating...") : ui("Generate Banner")}
   </button>
   
   {#if generatedBannerUrl}
@@ -22,7 +26,7 @@
       onclick={onDownload}
       class="w-full bg-green-600 text-white py-2 text-sm rounded hover:bg-green-700 transition-colors font-semibold"
     >
-      Download Banner
+      {ui("Download Banner")}
     </button>
   {/if}
 </div>

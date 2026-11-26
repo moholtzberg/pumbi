@@ -1,4 +1,8 @@
 <script>
+  import { page as localePage } from '$app/stores';
+  import { translate as translateUi } from '$lib/i18n.js';
+  const ui = (text, values) => translateUi($localePage.data.locale || 'en', text, values);
+
   let {
     imageUrl = '',
     imageId = null,
@@ -67,13 +71,13 @@
       
       img.onerror = (err) => {
         console.error('Failed to load image:', err);
-        alert('Failed to load image. Please check the image URL or try again.');
+        alert(ui("Failed to load image. Please check the image URL or try again."));
       };
       
       img.src = imageSrc;
     } catch (err) {
       console.error('Error loading image:', err);
-      alert('Failed to load image. Please try again.');
+      alert(ui("Failed to load image. Please try again."));
     }
   }
 
@@ -306,7 +310,7 @@
       // Convert to blob
       tempCanvas.toBlob(async (blob) => {
         if (!blob) {
-          throw new Error('Failed to create image blob');
+          throw new Error(ui("Failed to create image blob"));
         }
         
         // Upload the edited image
@@ -324,8 +328,8 @@
         });
         
         if (!response.ok) {
-          const error = await response.json().catch(() => ({ message: 'Failed to save image' }));
-          throw new Error(error.message || 'Failed to save image');
+          const error = await response.json().catch(() => ({ message: ui("Failed to save image") }));
+          throw new Error(error.message || ui("Failed to save image"));
         }
         
         const result = await response.json();
@@ -333,7 +337,7 @@
       }, 'image/jpeg', quality);
     } catch (error) {
       console.error('Error saving image:', error);
-      alert(`Failed to save image: ${error.message}`);
+      alert(ui("Failed to save image: {value0}", { value0: error.message }));
     } finally {
       saving = false;
     }
@@ -344,12 +348,12 @@
   <div class="bg-white rounded-lg shadow-xl max-w-5xl w-full max-h-[90vh] overflow-y-auto">
     <div class="p-6">
       <div class="flex items-center justify-between mb-4">
-        <h2 class="text-2xl font-bold text-gray-900">Edit Image</h2>
+        <h2 class="text-2xl font-bold text-gray-900">{ui("Edit Image")}</h2>
         <button
           type="button"
           onclick={onCancel}
           class="text-gray-500 hover:text-gray-700 text-2xl leading-none"
-          aria-label="Close"
+          aria-label={ui("Close")}
         >
           ×
         </button>
@@ -374,7 +378,7 @@
         <div class="space-y-4">
           <!-- Rotation -->
           <div class="bg-gray-50 rounded-lg p-4">
-            <h3 class="text-sm font-semibold text-gray-900 mb-3">Rotation</h3>
+            <h3 class="text-sm font-semibold text-gray-900 mb-3">{ui("Rotation")}</h3>
             <div class="flex gap-2">
               <button
                 type="button"
@@ -404,44 +408,44 @@
           
           <!-- Flip/Mirror -->
           <div class="bg-gray-50 rounded-lg p-4">
-            <h3 class="text-sm font-semibold text-gray-900 mb-3">Flip/Mirror</h3>
+            <h3 class="text-sm font-semibold text-gray-900 mb-3">{ui("Flip/Mirror")}</h3>
             <div class="flex gap-2">
               <button
                 type="button"
                 onclick={flipHorizontal}
                 class="flex-1 px-3 py-2 bg-white border border-gray-300 rounded hover:bg-gray-50 text-sm font-medium"
               >
-                ↔ Horizontal
+                {ui("↔ Horizontal")}
               </button>
               <button
                 type="button"
                 onclick={flipVertical}
                 class="flex-1 px-3 py-2 bg-white border border-gray-300 rounded hover:bg-gray-50 text-sm font-medium"
               >
-                ↕ Vertical
+                {ui("↕ Vertical")}
               </button>
             </div>
           </div>
           
           <!-- Crop -->
           <div class="bg-gray-50 rounded-lg p-4">
-            <h3 class="text-sm font-semibold text-gray-900 mb-3">Crop</h3>
-            <p class="text-xs text-gray-600 mb-2">Click and drag on the image to select crop area</p>
+            <h3 class="text-sm font-semibold text-gray-900 mb-3">{ui("Crop")}</h3>
+            <p class="text-xs text-gray-600 mb-2">{ui("Click and drag on the image to select crop area")}</p>
             <button
               type="button"
               onclick={resetCrop}
               class="w-full px-3 py-2 bg-white border border-gray-300 rounded hover:bg-gray-50 text-sm font-medium"
             >
-              Reset Crop
+              {ui("Reset Crop")}
             </button>
           </div>
           
           <!-- Resize -->
           <div class="bg-gray-50 rounded-lg p-4">
-            <h3 class="text-sm font-semibold text-gray-900 mb-3">Resize</h3>
+            <h3 class="text-sm font-semibold text-gray-900 mb-3">{ui("Resize")}</h3>
             <div class="space-y-2">
               <div>
-                <label class="block text-xs text-gray-700 mb-1">Max Width (px)</label>
+                <label class="block text-xs text-gray-700 mb-1">{ui("Max Width (px)")}</label>
                 <input
                   type="number"
                   bind:value={maxWidth}
@@ -451,7 +455,7 @@
                 />
               </div>
               <div>
-                <label class="block text-xs text-gray-700 mb-1">Max Height (px)</label>
+                <label class="block text-xs text-gray-700 mb-1">{ui("Max Height (px)")}</label>
                 <input
                   type="number"
                   bind:value={maxHeight}
@@ -461,7 +465,7 @@
                 />
               </div>
               <div>
-                <label class="block text-xs text-gray-700 mb-1">Quality: {(quality * 100).toFixed(0)}%</label>
+                <label class="block text-xs text-gray-700 mb-1">{ui("Quality:")} {(quality * 100).toFixed(0)}%</label>
                 <input
                   type="range"
                   bind:value={quality}
@@ -482,14 +486,14 @@
                 onclick={resetAll}
                 class="flex-1 px-4 py-2 bg-gray-200 text-gray-700 rounded hover:bg-gray-300 text-sm font-medium"
               >
-                Reset All
+                {ui("Reset All")}
               </button>
               <button
                 type="button"
                 onclick={onCancel}
                 class="flex-1 px-4 py-2 bg-gray-200 text-gray-700 rounded hover:bg-gray-300 text-sm font-medium"
               >
-                Cancel
+                {ui("Cancel")}
               </button>
               <button
                 type="button"
@@ -497,7 +501,7 @@
                 disabled={saving}
                 class="flex-1 px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 disabled:bg-gray-400 disabled:cursor-not-allowed text-sm font-medium"
               >
-                {saving ? 'Saving...' : 'Save'}
+                {saving ? ui("Saving...") : ui("Save")}
               </button>
             </div>
           </div>

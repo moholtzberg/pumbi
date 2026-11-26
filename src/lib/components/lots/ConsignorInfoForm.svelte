@@ -1,12 +1,16 @@
 <script>
+  import { page as localePage } from '$app/stores';
+  import { translate as translateUi } from '$lib/i18n.js';
+  const ui = (text, values) => translateUi($localePage.data.locale || 'en', text, values);
+
   let { consignorInfo = $bindable() } = $props();
 </script>
 
 <div>
-  <h3 class="text-lg font-semibold text-gray-900 mb-3">Consignor Information</h3>
+  <h3 class="text-lg font-semibold text-gray-900 mb-3">{ui("Consignor Information")}</h3>
   <div class="grid grid-cols-2 gap-4">
     <div>
-      <label for="consignor-name" class="block text-sm font-medium text-gray-700 mb-1">Name *</label>
+      <label for="consignor-name" class="block text-sm font-medium text-gray-700 mb-1">{ui("Name *")}</label>
       <input
         id="consignor-name"
         type="text"
@@ -16,7 +20,7 @@
       />
     </div>
     <div>
-      <label for="consignor-phone" class="block text-sm font-medium text-gray-700 mb-1">Phone</label>
+      <label for="consignor-phone" class="block text-sm font-medium text-gray-700 mb-1">{ui("Phone")}</label>
       <input
         id="consignor-phone"
         type="tel"
@@ -25,7 +29,7 @@
       />
     </div>
     <div class="col-span-2">
-      <label for="consignor-address" class="block text-sm font-medium text-gray-700 mb-1">Address</label>
+      <label for="consignor-address" class="block text-sm font-medium text-gray-700 mb-1">{ui("Address")}</label>
       <input
         id="consignor-address"
         type="text"
@@ -34,7 +38,7 @@
       />
     </div>
     <div>
-      <label for="consignor-city" class="block text-sm font-medium text-gray-700 mb-1">City</label>
+      <label for="consignor-city" class="block text-sm font-medium text-gray-700 mb-1">{ui("City")}</label>
       <input
         id="consignor-city"
         type="text"
@@ -43,7 +47,7 @@
       />
     </div>
     <div>
-      <label for="consignor-state" class="block text-sm font-medium text-gray-700 mb-1">State</label>
+      <label for="consignor-state" class="block text-sm font-medium text-gray-700 mb-1">{ui("State")}</label>
       <input
         id="consignor-state"
         type="text"
@@ -52,7 +56,7 @@
       />
     </div>
     <div>
-      <label for="consignor-zip" class="block text-sm font-medium text-gray-700 mb-1">ZIP Code</label>
+      <label for="consignor-zip" class="block text-sm font-medium text-gray-700 mb-1">{ui("ZIP Code")}</label>
       <input
         id="consignor-zip"
         type="text"
@@ -61,7 +65,7 @@
       />
     </div>
     <div>
-      <label for="consignor-email" class="block text-sm font-medium text-gray-700 mb-1">Email</label>
+      <label for="consignor-email" class="block text-sm font-medium text-gray-700 mb-1">{ui("Email")}</label>
       <input
         id="consignor-email"
         type="email"

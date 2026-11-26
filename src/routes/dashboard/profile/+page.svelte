@@ -1,4 +1,8 @@
 <script>
+  import { page as localePage } from '$app/stores';
+  import { translate as translateUi } from '$lib/i18n.js';
+  const ui = (text, values) => translateUi($localePage.data.locale || 'en', text, values);
+
   import { translate } from '$lib/i18n.js';
   import { page } from '$app/stores';
   const t = (text, values) => translate($page.data.locale || 'en', text, values);
@@ -52,7 +56,7 @@
       });
       
       if (!userResponse.ok) {
-        throw new Error('Failed to load user data');
+        throw new Error(ui("Failed to load user data"));
       }
       
       currentUser = await userResponse.json();
@@ -65,7 +69,7 @@
       };
     } catch (error) {
       console.error('Error loading user data:', error);
-      error = 'Failed to load profile data';
+      error = ui("Failed to load profile data");
     } finally {
       loading = false;
     }
@@ -94,10 +98,10 @@
       
       if (!response.ok) {
         const errorData = await response.json();
-        throw new Error(errorData.message || 'Failed to update profile');
+        throw new Error(errorData.message || ui("Failed to update profile"));
       }
       
-      success = 'Profile updated successfully!';
+      success = ui("Profile updated successfully!");
       await loadUserData();
       
       setTimeout(() => {
@@ -105,7 +109,7 @@
       }, 3000);
     } catch (err) {
       console.error('Error saving profile:', err);
-      error = err.message || 'Failed to update profile';
+      error = err.message || ui("Failed to update profile");
     } finally {
       saving = false;
     }
@@ -117,7 +121,7 @@
     <div class="max-w-2xl mx-auto">
       <div class="mb-6">
         <a href="/dashboard" class="text-[#18372f] hover:text-[#18372f] flex items-center">
-          <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <svg class="w-5 h-5 me-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7" />
           </svg>
           {t("Back to Dashboard")}
@@ -128,14 +132,14 @@
       
       {#if loading}
         <div class="text-center py-12">
-          <PumbiLoader size="lg" label="Loading" />
+          <PumbiLoader size="lg" label={ui("Loading")} />
           <p class="mt-4 text-gray-600">{t("Loading...")}</p>
         </div>
       {:else}
         <div class="bg-white rounded-lg shadow-lg p-6">
           {#if error}
             <div class="mb-4 bg-red-50 border border-red-200 rounded-lg p-4">
-              <p class="text-red-800 text-sm">{error}</p>
+              <p class="text-red-800 text-sm">{ui(error)}</p>
             </div>
           {/if}
           
@@ -147,7 +151,7 @@
           
           <form onsubmit={(e) => { e.preventDefault(); saveProfile(); }} class="space-y-6">
             <label class="mb-5 block text-sm font-semibold">{t("Country")}<select bind:value={formData.country} class="mt-2 block w-full border border-gray-300 bg-white p-3"><option value="US">{t("United States")}</option><option value="IL">{t("Israel")}</option><option value="GB">{t("United Kingdom")}</option><option value="CA">{t("Canada")}</option><option value="AU">{t("Australia")}</option><option value="DE">{t("Germany")}</option><option value="FR">{t("France")}</option>{#if !['US','IL','GB','CA','AU','DE','FR'].includes(formData.country)}<option value={formData.country}>{formData.country}</option>{/if}</select></label>
-            <p class="mb-4 text-sm text-slate-600">{formData.country === 'IL' ? 'טלפון ישראלי: 050-123-4567 או ‎+972501234567. אין צורך במדינה/מחוז בכתובת ישראלית.' : 'Include your country code when entering an international phone number.'}</p>
+            <p class="mb-4 text-sm text-slate-600">{formData.country === 'IL' ? 'טלפון ישראלי: 050-123-4567 או ‎+972501234567. אין צורך במדינה/מחוז בכתובת ישראלית.' : ui("Include your country code when entering an international phone number.")}</p>
             <div>
               <label for="firstName" class="block text-sm font-medium text-gray-700 mb-2">
                 {t("First Name")} <span class="text-red-500">*</span>
@@ -158,7 +162,7 @@
                 bind:value={formData.firstName}
                 required
                 class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                placeholder="John"
+                placeholder={ui("John")}
               />
             </div>
             
@@ -172,7 +176,7 @@
                 bind:value={formData.lastName}
                 required
                 class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                placeholder="Doe"
+                placeholder={ui("Doe")}
               />
             </div>
             

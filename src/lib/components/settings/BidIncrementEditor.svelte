@@ -1,4 +1,8 @@
 <script>
+  import { page as localePage } from '$app/stores';
+  import { translate as translateUi } from '$lib/i18n.js';
+  const ui = (text, values) => translateUi($localePage.data.locale || 'en', text, values);
+
   import {
     STANDARD_BID_INCREMENTS,
     lotBidIncrement,
@@ -46,12 +50,12 @@
     /><span>
       <strong>
         {scope === 'auction'
-          ? 'Override the house increment schedule for this auction'
-          : 'Use a house increment schedule'}
+          ? ui("Override the house increment schedule for this auction")
+          : ui("Use a house increment schedule")}
       </strong><small>
         {scope === 'auction'
-          ? 'Leave off to follow the house schedule. A published public-auction policy takes precedence.'
-          : 'When off, lots use their individual fixed increment unless the auction has a schedule.'}
+          ? ui("Leave off to follow the house schedule. A published public-auction policy takes precedence.")
+          : ui("When off, lots use their individual fixed increment unless the auction has a schedule.")}
       </small>
     </span>
   </label>
@@ -60,15 +64,15 @@
       <table class="settings-table">
         <thead>
           <tr>
-            <th>Bid amount from (inclusive)</th><th>Increment</th><th>
-              <span class="sr-only">Actions</span>
+            <th>{ui("Bid amount from (inclusive)")}</th><th>{ui("Increment")}</th><th>
+              <span class="sr-only">{ui("Actions")}</span>
             </th>
           </tr>
         </thead><tbody>
           {#each rows as row, index}<tr>
               <td>
                 <input
-                  aria-label={`Price threshold ${index + 1}`}
+                  aria-label={ui("Price threshold {value0}", { value0: index + 1 })}
                   type="number"
                   min="0"
                   step="0.01"
@@ -78,7 +82,7 @@
                 />
               </td><td>
                 <input
-                  aria-label={`Increment ${index + 1}`}
+                  aria-label={ui("Increment {value0}", { value0: index + 1 })}
                   type="number"
                   min="0.01"
                   step="0.01"
@@ -93,7 +97,7 @@
                   disabled={locked || rows.length === 1}
                   onclick={() => (rows = rows.filter((_, i) => i !== index))}
                 >
-                  Remove
+                  {ui("Remove")}
                 </button>
               </td>
             </tr>{/each}
@@ -107,7 +111,7 @@
         disabled={locked}
         onclick={add}
       >
-        Add tier
+        {ui("Add tier")}
       </button><button
         type="button"
         class="pumbi-btn-secondary"
@@ -115,17 +119,15 @@
         onclick={() =>
           (rows = STANDARD_BID_INCREMENTS.map((row) => ({ ...row })))}
       >
-        Use standard tiers
+        {ui("Use standard tiers")}
       </button>
     </div>
     <p class="settings-help">
-      Start at 0. Each threshold must be unique and each increment positive.
-      Rules are sorted when saved. The increment changes when the current bid
-      reaches a threshold.
+      {ui("Start at 0. Each threshold must be unique and each increment positive. Rules are sorted when saved. The increment changes when the current bid reaches a threshold.")}
     </p>
   {:else if inherited.length}
     <div class="settings-note">
-      <p class="font-semibold">Inherited house schedule</p>
+      <p class="font-semibold">{ui("Inherited house schedule")}</p>
       <p class="mt-2 text-sm">
         {inherited
           .map((row) => `${money(row.from)} → +${money(row.increment)}`)
@@ -135,7 +137,7 @@
   {/if}
   {#if effective.length}<div class="settings-preview">
       <label>
-        <span>Preview at bid amount</span><input
+        <span>{ui("Preview at bid amount")}</span><input
           type="number"
           min="0"
           step="0.01"
@@ -143,7 +145,7 @@
         />
       </label>
       <p>
-        Increment <strong>
+        {ui("Increment")} <strong>
           {money(
             lotBidIncrement({
               currentBid: preview,
@@ -152,8 +154,7 @@
             }),
           )}
         </strong><small>
-          Automatic counterbids use the tier at the competing maximum. The
-          winning bid never exceeds the bidder’s maximum.
+          {ui("Automatic counterbids use the tier at the competing maximum. The winning bid never exceeds the bidder’s maximum.")}
         </small>
       </p>
     </div>{/if}

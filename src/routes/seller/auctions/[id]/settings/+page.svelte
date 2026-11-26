@@ -1,4 +1,9 @@
 <script>
+  import { page as localePage } from '$app/stores';
+  import { translate as translateUi } from '$lib/i18n.js';
+  const ui = (text, values) => translateUi($localePage.data.locale || 'en', text, values);
+  const uiStatus = value => ui(String(value ?? '').replaceAll('_', ' '));
+
   import { onMount } from 'svelte';
   import { page } from '$app/stores';
   import SettingsSection from '$lib/components/settings/SettingsSection.svelte';
@@ -89,7 +94,7 @@
     const result = await response.json();
     if (!response.ok)
       throw new Error(
-        result.message || result.error || 'Unable to save settings',
+        result.message || result.error || ui("Unable to save settings"),
       );
     return result;
   }
@@ -152,8 +157,8 @@
       }
       notice =
         kind === 'details'
-          ? 'Auction details saved.'
-          : 'Auction settings saved.';
+          ? ui("Auction details saved.")
+          : ui("Auction settings saved.");
     } catch (err) {
       failure = err.message;
     } finally {
@@ -162,59 +167,55 @@
   }
 </script>
 
-<svelte:head><title>Auction settings | Pumbi</title></svelte:head>
+<svelte:head><title>{ui("Auction settings | Pumbi")}</title></svelte:head>
 <div class="settings-page">
   <header class="settings-heading">
     <div>
-      <span class="pumbi-eyebrow">This auction only</span>
-      <h1>Auction settings</h1>
+      <span class="pumbi-eyebrow">{ui("This auction only")}</span>
+      <h1>{ui("Auction settings")}</h1>
       <p>
-        Override house defaults for this sale. Start, hammer, and end the
-        auction in the control room.
+        {ui("Override house defaults for this sale. Start, hammer, and end the auction in the control room.")}
       </p>
     </div>
     {#if auction}<a
         href={`/seller/auctions/${auction.id}/control-room`}
         class="pumbi-btn-secondary"
       >
-        Control room
+        {ui("Control room")}
       </a>{/if}
   </header>
   {#if failure}<p
       role="alert"
       class="mb-5 border border-red-200 bg-red-50 p-4 text-sm text-red-800"
     >
-      {failure}
+      {ui(failure)}
     </p>{/if}
   {#if notice}<p
       role="status"
       class="mb-5 border border-emerald-200 bg-emerald-50 p-4 text-sm text-emerald-900"
     >
-      {notice}
+      {ui(notice)}
     </p>{/if}
   {#if loading}<p class="pumbi-panel p-8">
-      Loading auction settings…
+      {ui("Loading auction settings…")}
     </p>{:else if auction}
     <div class="settings-note mb-6">
       <strong>{auction.title}</strong>
       <p>
-        Currency: {(auction.currency || 'usd').toUpperCase()} · Buyer premium: {info.buyerPremium}%
-        · Status: {auction.status}
+        {ui("Currency:")} {(auction.currency || 'usd').toUpperCase()} {ui("· Buyer premium:")} {info.buyerPremium}{ui("% · Status:")} {uiStatus(auction.status)}
       </p>
       <p>
-        Currency and agreed fees stay fixed for this sale. Change defaults for
-        new sales in <a class="underline" href="/seller/settings">
-          House settings
-        </a>. Company details, banking, and marketing are managed in the house
-        portal.
+        {ui("Currency and agreed fees stay fixed for this sale. Change defaults for new sales in")} <a class="underline" href="/seller/settings">
+          {ui("House settings")}
+        </a>{ui(". Company details, banking, and marketing are managed in the house portal.")}
       </p>
     </div>
-    <nav class="settings-nav" aria-label="Auction settings sections">
-      <a href="#details">Sale details</a><a href="#bidding">Bidding</a><a
+    <nav class="settings-nav" aria-label={ui("Auction settings sections")}>
+      <a href="#details">{ui("Sale details")}</a><a href="#bidding">{ui("Bidding")}</a><a
         href="#timers"
       >
-        Timers
-      </a><a href="#stream">Stream</a><a href="#gallery">Catalog appearance</a>
+        {ui("Timers")}
+      </a><a href="#stream">{ui("Stream")}</a><a href="#gallery">{ui("Catalog appearance")}</a>
     </nav>
     <form
       id="details"
@@ -223,8 +224,8 @@
     >
       <fieldset disabled={Boolean(busy)}>
         <SettingsSection
-          title="Sale details"
-          description="Scheduled dates describe the catalog window. Live floor controls remain in the control room."
+          title={ui("Sale details")}
+          description={ui("Scheduled dates describe the catalog window. Live floor controls remain in the control room.")}
         >
           <SettingsFields
             bind:values={details}
@@ -241,13 +242,13 @@
           />
           <div class="settings-grid mt-5">
             <label>
-              <span>Scheduled start</span><input
+              <span>{ui("Scheduled start")}</span><input
                 type="datetime-local"
                 bind:value={details.startDate}
                 required
               />
             </label><label>
-              <span>Scheduled end</span><input
+              <span>{ui("Scheduled end")}</span><input
                 type="datetime-local"
                 bind:value={details.endDate}
                 required
@@ -256,7 +257,7 @@
           </div>
           <div class="settings-save">
             <button class="pumbi-btn-secondary" disabled={Boolean(busy)}>
-              {busy === 'details' ? 'Saving…' : 'Save sale details'}
+              {busy === 'details' ? ui("Saving…") : ui("Save sale details")}
             </button>
           </div>
         </SettingsSection>
@@ -266,8 +267,8 @@
       <fieldset disabled={Boolean(busy)} class="settings-sections">
         <div id="bidding">
           <SettingsSection
-            title="Bidding and access"
-            description="One registration rule controls approval and verification. Proxy bidding is built into bid entry; it follows the same increment rules as phone bids."
+            title={ui("Bidding and access")}
+            description={ui("One registration rule controls approval and verification. Proxy bidding is built into bid entry; it follows the same increment rules as phone bids.")}
           >
             <SettingsFields
               bind:values={settings}
@@ -296,11 +297,9 @@
               ]}
             />
             <div class="mt-6 border-t border-[var(--pumbi-line)] pt-6">
-              <h3 class="mb-4 text-lg font-semibold">Bid increment schedule</h3>
+              <h3 class="mb-4 text-lg font-semibold">{ui("Bid increment schedule")}</h3>
               {#if info.increments.source === 'policy'}<p class="settings-note">
-                  This public auction follows its published platform-policy
-                  increment schedule. Change the policy for future sales in
-                  platform administration.
+                  {ui("This public auction follows its published platform-policy increment schedule. Change the policy for future sales in platform administration.")}
                 </p>
                 <p class="mt-3 text-sm">
                   {info.increments.rows
@@ -317,8 +316,8 @@
         </div>
         <div id="timers">
           <SettingsSection
-            title="Lot timing"
-            description="Lot overrides take precedence over this page, followed by house and platform defaults. Blank values inherit."
+            title={ui("Lot timing")}
+            description={ui("Lot overrides take precedence over this page, followed by house and platform defaults. Blank values inherit.")}
           >
             <SettingsFields
               bind:values={settings}
@@ -343,19 +342,19 @@
               ]}
             />
             <p class="settings-help mt-4">
-              Relisting unsold lots is a house-wide option in <a
+              {ui("Relisting unsold lots is a house-wide option in")} <a
                 class="underline"
                 href="/seller/settings#timing"
               >
-                House settings
+                {ui("House settings")}
               </a>.
             </p>
           </SettingsSection>
         </div>
         <div id="stream">
           <SettingsSection
-            title="Live stream"
-            description="Broadcast your camera from the control room. These optional URLs provide an external video or audio feed."
+            title={ui("Live stream")}
+            description={ui("Broadcast your camera from the control room. These optional URLs provide an external video or audio feed.")}
           >
             <SettingsFields
               bind:values={settings}
@@ -370,23 +369,23 @@
         </div>
         <div id="gallery">
           <SettingsSection
-            title="Catalog appearance"
-            description="Choose the lot gallery layout for this auction."
+            title={ui("Catalog appearance")}
+            description={ui("Choose the lot gallery layout for this auction.")}
           >
             <GallerySettings bind:settings />
             <p class="settings-help">
-              Create promotional artwork in <a
+              {ui("Create promotional artwork in")} <a
                 class="underline"
                 href={`/seller/auctions/${auction.id}/lots/tools`}
               >
-                Banner tools
-              </a>. Company branding is managed in Company profile.
+                {ui("Banner tools")}
+              </a>{ui(". Company branding is managed in Company profile.")}
             </p>
           </SettingsSection>
         </div>
         <SettingsSection
-          title="Catalog writing guidance"
-          description="Optional instructions specific to this auction. Leave blank to use the house prompt."
+          title={ui("Catalog writing guidance")}
+          description={ui("Optional instructions specific to this auction. Leave blank to use the house prompt.")}
         >
           <SettingsFields
             bind:values={settings}
@@ -404,11 +403,10 @@
       </fieldset>
       <div class="settings-save">
         <p class="settings-help">
-          Live settings changes preserve the current lot, timers, and relist
-          state.
+          {ui("Live settings changes preserve the current lot, timers, and relist state.")}
         </p>
         <button class="pumbi-btn" disabled={Boolean(busy)}>
-          {busy === 'settings' ? 'Saving…' : 'Save auction settings'}
+          {busy === 'settings' ? ui("Saving…") : ui("Save auction settings")}
         </button>
       </div>
     </form>

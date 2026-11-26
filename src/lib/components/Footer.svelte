@@ -1,11 +1,16 @@
+<script>
+  import { page as localePage } from '$app/stores';
+  import { translate as translateUi } from '$lib/i18n.js';
+  const ui = (text, values) => translateUi($localePage.data.locale || 'en', text, values);
+</script>
 <footer id="partner" class="site-footer print:hidden">
   <div class="footer-inner">
-    <div class="footer-brand"><a href="/"><span>P</span><strong>Pumbi</strong></a><p>Remarkable objects, fairly found.</p></div>
-    <div><h3>Discover</h3><a href="/#auctions">Live auctions</a><a href="/#auctions">Upcoming</a><a href="/#category-heading">Categories</a><a href="/#auctions">Auction results</a></div>
-    <div><h3>Sell with Pumbi</h3><a href="/auction-houses/signup">For auction houses</a><a href="/auction-houses/signup">Request a demo</a><a href="/seller">Seller portal</a></div>
-    <div><h3>About</h3><a href="/#partner">How it works</a><a href="mailto:hello@pumbi.com">Contact</a><a href="/auth/register">Create an account</a></div>
+    <div class="footer-brand"><a href="/"><span>P</span><strong>Pumbi</strong></a><p>{ui("Remarkable objects, fairly found.")}</p></div>
+    <div><h3>{ui("Discover")}</h3><a href="/#auctions">{ui("Live auctions")}</a><a href="/#auctions">{ui("Upcoming")}</a><a href="/#category-heading">{ui("Categories")}</a><a href="/#auctions">{ui("Auction results")}</a></div>
+    <div><h3>{ui("Sell with Pumbi")}</h3><a href="/auction-houses/signup">{ui("For auction houses")}</a><a href="/auction-houses/signup">{ui("Request a demo")}</a><a href="/seller">{ui("Seller portal")}</a></div>
+    <div><h3>{ui("About")}</h3><a href="/#partner">{ui("How it works")}</a><a href="mailto:hello@pumbi.com">{ui("Contact")}</a><a href="/auth/register">{ui("Create an account")}</a></div>
   </div>
-  <div class="footer-bottom"><span>© {new Date().getFullYear()} Pumbi. All rights reserved.</span><div><a href="/">Privacy</a><a href="/">Terms</a><a href="/">Accessibility</a></div></div>
+  <div class="footer-bottom"><span>© {new Date().getFullYear()} {ui("Pumbi. All rights reserved.")}</span><div><a href="/">{ui("Privacy")}</a><a href="/">{ui("Terms")}</a><a href="/">{ui("Accessibility")}</a></div></div>
 </footer>
 
 <style>

@@ -1,4 +1,11 @@
 <script>
+  import { page as localePage } from '$app/stores';
+  import { translate as translateUi } from '$lib/i18n.js';
+  import { localeTag as uiLocaleTag } from '$lib/utils/region.js';
+  const uiLocale = () => uiLocaleTag($localePage.data.locale);
+  const ui = (text, values) => translateUi($localePage.data.locale || 'en', text, values);
+  const uiStatus = value => ui(String(value ?? '').replaceAll('_', ' '));
+
   import { publicHousePath } from '$lib/utils/houseSlugs.js';
   import { requiresBidderRegistration } from '$lib/utils/biddingAccess.js';
   import { onMount } from 'svelte';
@@ -87,7 +94,7 @@
   }
   
   function formatDate(dateString) {
-    return new Date(dateString).toLocaleDateString('en-US', {
+    return new Date(dateString).toLocaleDateString(uiLocale(), {
       year: 'numeric',
       month: 'short',
       day: 'numeric',
@@ -97,7 +104,7 @@
   }
   
   function formatCurrency(amount) {
-    return new Intl.NumberFormat('en-US', {
+    return new Intl.NumberFormat(uiLocale(), {
       style: 'currency',
       currency: (auction?.currency || 'usd').toUpperCase()
     }).format(amount);
@@ -115,8 +122,8 @@
 {#if loading}
   <div class="min-h-screen bg-[#f7f4ee] flex items-center justify-center">
     <div class="text-center">
-      <PumbiLoader size="lg" label="Loading auction" />
-      <p class="mt-4 text-gray-600">Loading auction...</p>
+      <PumbiLoader size="lg" label={ui("Loading auction")} />
+      <p class="mt-4 text-gray-600">{ui("Loading auction...")}</p>
     </div>
   </div>
 {:else if auction}
@@ -133,9 +140,9 @@
       <LiveAuctionDashboard {auction} videoUrl={liveVideoUrl} videoTitle={liveVideoTitle} audioUrl={liveAudioUrl} audioTitle={liveAudioTitle} />
     {:else if ['ended', 'ENDED', 'cancelled', 'CANCELLED'].includes(auction.status)}
       <div class="border-b border-[#ddd6ca] bg-[#152c26] px-4 py-8 text-center text-[#f7f4ee]">
-        <p class="text-xs font-bold uppercase tracking-[0.18em] text-[#d6b477]">Auction finished</p>
-        <p class="mt-2 font-[family-name:var(--pumbi-serif)] text-3xl font-semibold">This sale has ended</p>
-        <p class="mt-2 text-sm text-[#91a29a]">Lot results are listed below.</p>
+        <p class="text-xs font-bold uppercase tracking-[0.18em] text-[#d6b477]">{ui("Auction finished")}</p>
+        <p class="mt-2 font-[family-name:var(--pumbi-serif)] text-3xl font-semibold">{ui("This sale has ended")}</p>
+        <p class="mt-2 text-sm text-[#91a29a]">{ui("Lot results are listed below.")}</p>
       </div>
     {/if}
     <!-- Auction Header -->
@@ -148,7 +155,7 @@
                 <div class="aspect-video">
                   <iframe
                     src={streamSrc}
-                    title={liveVideoTitle || 'Auction live stream'}
+                    title={liveVideoTitle || ui("Auction live stream")}
                     class="h-full w-full"
                     allow="autoplay; encrypted-media; picture-in-picture; fullscreen"
                     allowfullscreen
@@ -160,7 +167,7 @@
               </div>
               {#if liveAudioUrl}
                 <div class="mt-3 border border-[#ddd6ca] bg-[#f7f4ee] p-4">
-                  <p class="text-sm font-semibold text-[#1a2821]">{liveAudioTitle || 'Live auction audio'}</p>
+                  <p class="text-sm font-semibold text-[#1a2821]">{liveAudioTitle || ui("Live auction audio")}</p>
                   <audio controls preload="none" src={liveAudioUrl} class="mt-2 h-9 w-full"></audio>
                 </div>
               {/if}
@@ -175,66 +182,66 @@
           <div>
             <div class="mb-4">
               <span class="px-3 py-1 text-sm font-semibold {isLive ? 'bg-[#efe8dc] text-[#a95739]' : auction.status === 'upcoming' || auction.status === 'UPCOMING' ? 'bg-[#e8eee9] text-[#18372f]' : 'bg-[#efe8dc] text-[#435048]'}">
-                {auction.status.toUpperCase()}
+                {uiStatus(auction.status.toUpperCase())}
               </span>
-              <span class="ml-2 bg-[#efe8dc] px-3 py-1 text-sm font-semibold text-[#18372f]">
-                {(auction.type || 'PRIVATE').toUpperCase()}
+              <span class="ms-2 bg-[#efe8dc] px-3 py-1 text-sm font-semibold text-[#18372f]">
+                {ui((auction.type || 'PRIVATE').toUpperCase())}
               </span>
             </div>
             <h1 class="mb-4 font-[family-name:var(--pumbi-serif)] text-4xl font-semibold text-[#1a2821]">{auction.title}</h1>
             <p class="text-gray-600 text-lg mb-6">{auction.description}</p>
             <div class="space-y-3 mb-6">
               <div class="flex items-center text-gray-700">
-                <span class="font-semibold mr-2">Auction House:</span>
+                <span class="font-semibold me-2">{ui("Auction House:")}</span>
                 {#if auction.auctionHouse?.slug}<a href={publicHousePath(auction.auctionHouse.slug)} class="font-semibold underline hover:text-[#18372f]">{auction.auctionHouse.name}</a>{:else}<span>{auction.auctionHouse?.name || 'N/A'}</span>{/if}
               </div>
               {#if shouldShowCountdown(auction)}
                 <div class="flex items-center text-gray-700">
-                  <span class="font-semibold mr-2">Starting in:</span>
+                  <span class="font-semibold me-2">{ui("Starting in:")}</span>
                   <span class="text-[#18372f] font-semibold">
                     <CountdownTimer targetDate={auction.startDate} label="" />
                   </span>
                 </div>
               {:else}
                 <div class="flex items-center text-gray-700">
-                  <span class="font-semibold mr-2">Start Date:</span>
+                  <span class="font-semibold me-2">{ui("Start Date:")}</span>
                   <span>{formatDate(auction.startDate)}</span>
                 </div>
               {/if}
               <div class="flex items-center text-gray-700">
-                <span class="font-semibold mr-2">End Date:</span>
+                <span class="font-semibold me-2">{ui("End Date:")}</span>
                 <span>{formatDate(auction.endDate)}</span>
               </div>
               <div class="flex items-center text-gray-700">
-                <span class="font-semibold mr-2">Total Lots:</span>
+                <span class="font-semibold me-2">{ui("Total Lots:")}</span>
                 <span>{auction.totalLots}</span>
               </div>
               {#if isLive}
                 <div class="flex items-center text-red-600">
-                  <span class="font-semibold mr-2">Active Bids:</span>
+                  <span class="font-semibold me-2">{ui("Active Bids:")}</span>
                   <span>{auction.currentBids}</span>
                 </div>
               {/if}
             </div>
             <div class="rounded-lg border border-gray-200 bg-[#f7f4ee] p-4 text-sm text-gray-700">
               {#if auction.type?.toUpperCase() === 'PUBLIC'}
-                <p class="font-semibold text-gray-900">Pumbi public monthly auction</p>
-                <p class="mt-1">Open to all account holders. Independent sellers may submit lots for Pumbi approval.</p>
+                <p class="font-semibold text-gray-900">{ui("Pumbi public monthly auction")}</p>
+                <p class="mt-1">{ui("Open to all account holders. Independent sellers may submit lots for Pumbi approval.")}</p>
                 {#if auction.buyerPremiumRateSnapshot != null}
-                  <p class="mt-2"><strong>Buyer premium:</strong> {Number(auction.buyerPremiumRateSnapshot) * 100}%</p>
+                  <p class="mt-2"><strong>{ui("Buyer premium:")}</strong> {Number(auction.buyerPremiumRateSnapshot) * 100}%</p>
                 {/if}
-                <a href="/dashboard/sell" class="mt-3 inline-block font-semibold text-[#18372f]">Submit an item →</a>
+                <a href="/dashboard/sell" class="mt-3 inline-block font-semibold text-[#18372f]">{ui("Submit an item →")}</a>
               {:else}
-                <p class="font-semibold text-gray-900">Auction-house managed auction</p>
-                <p class="mt-1">{#if requiresBidderRegistration(auction)}Anyone may browse. Bidding requires approval from {auction.auctionHouse?.name || 'the auction house'}.{:else}Sign in to bid. No advance registration or approval is required.{/if}</p>
+                <p class="font-semibold text-gray-900">{ui("Auction-house managed auction")}</p>
+                <p class="mt-1">{#if requiresBidderRegistration(auction)}{ui("Anyone may browse. Bidding requires approval from")} {auction.auctionHouse?.name || ui("the auction house")}.{:else}{ui("Sign in to bid. No advance registration or approval is required.")}{/if}</p>
                 {#if auction.privateHouseBuyerPremiumRateSnapshot != null}
-                  <p class="mt-2"><strong>Buyer premium:</strong> {Number(auction.privateHouseBuyerPremiumRateSnapshot) * 100}%</p>
+                  <p class="mt-2"><strong>{ui("Buyer premium:")}</strong> {Number(auction.privateHouseBuyerPremiumRateSnapshot) * 100}%</p>
                 {/if}
               {/if}
             </div>
             {#if auction.buyerTermsSnapshot || auction.privateHouseBuyerTermsSnapshot}
               <details class="mt-4 rounded-lg border border-gray-200 p-4">
-                <summary class="cursor-pointer font-semibold">Buyer terms</summary>
+                <summary class="cursor-pointer font-semibold">{ui("Buyer terms")}</summary>
                 <p class="mt-3 whitespace-pre-wrap text-sm text-gray-700">{auction.type?.toUpperCase() === 'PUBLIC' ? auction.buyerTermsSnapshot : auction.privateHouseBuyerTermsSnapshot}</p>
               </details>
             {/if}
@@ -245,11 +252,11 @@
 
     <!-- Lots Section -->
     <div id="all-lots" class="container mx-auto px-4 py-8">
-      <h2 class="text-3xl font-bold text-gray-900 mb-6">Lots ({lots.length})</h2>
+      <h2 class="text-3xl font-bold text-gray-900 mb-6">{ui("Lots (")}{lots.length})</h2>
       
       {#if lots.length === 0}
         <div class="bg-white rounded-lg shadow p-8 text-center">
-          <p class="text-gray-600">No lots available for this auction yet.</p>
+          <p class="text-gray-600">{ui("No lots available for this auction yet.")}</p>
         </div>
       {:else}
         <LotGalleryTemplate 
@@ -264,12 +271,12 @@
 {:else}
   <div class="min-h-screen bg-[#f7f4ee] flex items-center justify-center">
     <div class="text-center">
-      <p class="text-gray-600 text-lg">Auction not found</p>
+      <p class="text-gray-600 text-lg">{ui("Auction not found")}</p>
       <button
         onclick={() => goto('/')}
         class="mt-4 px-6 py-2 bg-[#18372f] text-white rounded-lg hover:bg-[#152c26]"
       >
-        Back to Auctions
+        {ui("Back to Auctions")}
       </button>
     </div>
   </div>

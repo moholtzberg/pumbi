@@ -1,4 +1,8 @@
 <script>
+  import { page as localePage } from '$app/stores';
+  import { translate as translateUi } from '$lib/i18n.js';
+  const ui = (text, values) => translateUi($localePage.data.locale || 'en', text, values);
+
   import { translate } from '$lib/i18n.js';
   const t = (text, values) => translate($page.data.locale || 'en', text, values);
 
@@ -57,7 +61,7 @@
 
 <nav class="site-nav print:hidden" class:menu-open={isMenuOpen}>
   <div class="nav-inner">
-    <a href="/" class="brand" aria-label="Pumbi home"><span>{t("P")}</span><strong>Pumbi</strong></a>
+    <a href="/" class="brand" aria-label={ui("Pumbi home")}><span>{t("P")}</span><strong>Pumbi</strong></a>
 
     <div class="desktop-links">
       <a class:active={$page.url.pathname === '/'} href="/#all-auctions-heading">{t("Auctions")}</a>
@@ -112,7 +116,7 @@
       {/if}
     </div>
 
-    <button class="menu-toggle" onclick={() => (isMenuOpen = !isMenuOpen)} aria-expanded={isMenuOpen} aria-label="Toggle navigation">
+    <button class="menu-toggle" onclick={() => (isMenuOpen = !isMenuOpen)} aria-expanded={isMenuOpen} aria-label={ui("Toggle navigation")}>
       <span></span><span></span>
     </button>
   </div>

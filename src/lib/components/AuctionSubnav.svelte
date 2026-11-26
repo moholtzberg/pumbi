@@ -1,4 +1,9 @@
 <script>
+  import { page as localePage } from '$app/stores';
+  import { translate as translateUi } from '$lib/i18n.js';
+  const ui = (text, values) => translateUi($localePage.data.locale || 'en', text, values);
+  const uiStatus = value => ui(String(value ?? '').replaceAll('_', ' '));
+
   import { page } from '$app/stores';
 
   /**
@@ -15,12 +20,12 @@
   let isPrivate = $derived(String(type || 'PRIVATE').toUpperCase() === 'PRIVATE');
 
   let items = $derived([
-    { href: `/seller/auctions/${auctionId}`, label: 'Overview', exact: true },
-    { href: `/seller/auctions/${auctionId}/control-room`, label: 'Control room' },
-    { href: `/seller/auctions/${auctionId}/lots`, label: 'Lots' },
-    { href: `/seller/auctions/${auctionId}/interest`, label: 'Interest' },
-    { href: `/seller/auctions/${auctionId}/settings`, label: 'Auction settings' },
-    ...(isPrivate ? [{ href: `/seller/auctions/${auctionId}/bidders`, label: 'Bidders' }] : [])
+    { href: `/seller/auctions/${auctionId}`, label: ui("Overview"), exact: true },
+    { href: `/seller/auctions/${auctionId}/control-room`, label: ui("Control room") },
+    { href: `/seller/auctions/${auctionId}/lots`, label: ui("Lots") },
+    { href: `/seller/auctions/${auctionId}/interest`, label: ui("Interest") },
+    { href: `/seller/auctions/${auctionId}/settings`, label: ui("Auction settings") },
+    ...(isPrivate ? [{ href: `/seller/auctions/${auctionId}/bidders`, label: ui("Bidders") }] : [])
   ]);
 
   function isActive(item) {
@@ -32,21 +37,21 @@
 <div class="auction-subnav">
   <div class="auction-subnav__head">
     <div class="min-w-0">
-      <a href="/seller" class="pumbi-link text-sm">← All auctions</a>
+      <a href="/seller" class="pumbi-link text-sm">{ui("← All auctions")}</a>
       <h1 class="mt-2 truncate font-[family-name:var(--pumbi-serif)] text-2xl font-semibold text-[var(--pumbi-ink)] lg:text-3xl">
         {title}
       </h1>
       <p class="mt-1 text-sm text-[var(--pumbi-ink-soft)]">
-        {#if status}<span class="font-semibold uppercase tracking-wide">{status}</span> · {/if}
-        {(type || 'PRIVATE').toUpperCase()} auction
+        {#if status}<span class="font-semibold uppercase tracking-wide">{uiStatus(status)}</span> · {/if}
+        {(type || 'PRIVATE').toUpperCase()} {ui("auction")}
       </p>
     </div>
     <a href={`/auctions/${auctionId}`} class="pumbi-btn-secondary shrink-0" target="_blank" rel="noreferrer">
-      Public page
+      {ui("Public page")}
     </a>
   </div>
 
-  <nav class="auction-subnav__tabs" aria-label="Auction sections">
+  <nav class="auction-subnav__tabs" aria-label={ui("Auction sections")}>
     {#each items as item}
       <a href={item.href} class:active={isActive(item)}>{item.label}</a>
     {/each}

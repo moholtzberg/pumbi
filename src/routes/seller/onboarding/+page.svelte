@@ -1,4 +1,9 @@
 <script>
+  import { page as localePage } from '$app/stores';
+  import { translate as translateUi } from '$lib/i18n.js';
+  const ui = (text, values) => translateUi($localePage.data.locale || 'en', text, values);
+  const uiStatus = value => ui(String(value ?? '').replaceAll('_', ' '));
+
   import RegionalPayoutOptions from '$lib/components/RegionalPayoutOptions.svelte';
   import { translate } from '$lib/i18n.js';
   import { page } from '$app/stores';
@@ -111,7 +116,7 @@
       if (results[3].status === 'fulfilled') assets = collection(results[3].value, 'assets');
       if (results[4].status === 'fulfilled') stripe = results[4].value.stripe || results[4].value;
     } catch (error) {
-      errorMessage = error.message || 'Unable to load onboarding. Please refresh and try again.';
+      errorMessage = error.message || ui("Unable to load onboarding. Please refresh and try again.");
     } finally {
       loading = false;
     }
@@ -121,7 +126,7 @@
     if (!company.legalName.trim() || !company.businessType || !company.registrationNumber.trim() ||
       !company.contactFirstName.trim() || !company.contactLastName.trim() ||
       !company.contactEmail.trim() || !company.contactPhone.trim() || !/^[A-Za-z]{2}$/.test(company.country.trim())) {
-      errorMessage = 'Complete all required company and contact fields.';
+      errorMessage = ui("Complete all required company and contact fields.");
       return;
     }
     await performSave(async () => {
@@ -142,7 +147,7 @@
       await action();
       successMessage = message;
     } catch (error) {
-      errorMessage = error.message || 'Something went wrong. Please try again.';
+      errorMessage = error.message || ui("Something went wrong. Please try again.");
     } finally {
       saving = false;
     }
@@ -156,7 +161,7 @@
 
   async function saveLocation() {
     if (!locationForm.addressLine1 || !locationForm.city || !locationForm.country) {
-      errorMessage = 'Address, city, and country are required.';
+      errorMessage = ui("Address, city, and country are required.");
       return;
     }
     await performSave(async () => {
@@ -176,7 +181,7 @@
   }
 
   async function deleteLocation(id) {
-    if (!confirm('Delete this location?')) return;
+    if (!confirm(ui("Delete this location?"))) return;
     await performSave(async () => {
       await request(`/api/auction-houses/${auctionHouseId}/onboarding/locations/${id}`, { method: 'DELETE' });
       locations = locations.filter((item) => item.id !== id);
@@ -185,7 +190,7 @@
 
   async function uploadDocument() {
     if (!documentFile) {
-      errorMessage = 'Choose a document to upload.';
+      errorMessage = ui("Choose a document to upload.");
       return;
     }
     await performSave(async () => {
@@ -200,7 +205,7 @@
   }
 
   async function deleteDocument(id) {
-    if (!confirm('Delete this document?')) return;
+    if (!confirm(ui("Delete this document?"))) return;
     await performSave(async () => {
       await request(`/api/auction-houses/${auctionHouseId}/onboarding/documents/${id}`, { method: 'DELETE' });
       documents = documents.filter((item) => item.id !== id);
@@ -209,7 +214,7 @@
 
   async function uploadAsset() {
     if (!assetFile) {
-      errorMessage = 'Choose a brand asset to upload.';
+      errorMessage = ui("Choose a brand asset to upload.");
       return;
     }
     await performSave(async () => {
@@ -224,7 +229,7 @@
   }
 
   async function deleteAsset(id) {
-    if (!confirm('Delete this asset?')) return;
+    if (!confirm(ui("Delete this asset?"))) return;
     await performSave(async () => {
       await request(`/api/auction-houses/${auctionHouseId}/onboarding/assets/${id}`, { method: 'DELETE' });
       assets = assets.filter((item) => item.id !== id);
@@ -235,28 +240,28 @@
     await performSave(async () => {
       const data = await request(`/api/auction-houses/${auctionHouseId}/connect`, { method: 'POST' });
       const url = data.onboardingUrl || data.url || data.link || data.accountLink?.url;
-      if (!url) throw new Error('Stripe did not return an onboarding link.');
+      if (!url) throw new Error(ui("Stripe did not return an onboarding link."));
       location.assign(url);
     }, 'Opening secure Stripe onboarding…');
   }
 
   async function acceptTerms() {
     if (!termsAccepted) {
-      errorMessage = 'You must explicitly accept the auction house terms.';
+      errorMessage = ui("You must explicitly accept the auction house terms.");
       return;
     }
     currentStep = 7;
-    successMessage = 'Terms selected. Submit the package to record your acceptance.';
+    successMessage = ui("Terms selected. Submit the package to record your acceptance.");
   }
 
   async function submitOnboarding() {
     if (!termsAccepted) {
-      errorMessage = 'Accept the terms before submitting.';
+      errorMessage = ui("Accept the terms before submitting.");
       currentStep = 6;
       return;
     }
     await performSave(async () => {
-      if (!policy) throw new Error('No active auction-house terms are available.');
+      if (!policy) throw new Error(ui("No active auction-house terms are available."));
       const data = await request(`/api/auction-houses/${auctionHouseId}/onboarding/submit`, {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -296,13 +301,13 @@
         <h1 class="mt-2 font-[family-name:var(--pumbi-serif)] text-3xl font-semibold">{t("Auction house onboarding")}</h1>
         <p class="mt-2 max-w-3xl text-sm text-[var(--pumbi-ink-soft)]">{t("Complete your business profile for review. Publishing and payouts stay limited until approval.")}</p>
       </div>
-      <span class="self-start px-3 py-1 text-sm font-semibold {statusClass(status)}">{label(status)}</span>
+      <span class="self-start px-3 py-1 text-sm font-semibold {statusClass(status)}">{uiStatus(label(status))}</span>
     </div>
 
     {#if status === 'REJECTED'}
       <div class="mb-6 rounded-xl border border-red-200 bg-red-50 p-4 text-red-900">
         <p class="font-semibold">{t("Changes requested")}</p>
-        <p class="mt-1 text-sm">{onboarding.onboardingRejectionReason || onboarding.rejectionReason || 'Please review your information and resubmit.'}</p>
+        <p class="mt-1 text-sm">{onboarding.onboardingRejectionReason || onboarding.rejectionReason || ui("Please review your information and resubmit.")}</p>
       </div>
     {:else if status === 'APPROVED'}
       <div class="mb-6 rounded-xl border border-green-200 bg-green-50 p-4 text-green-900">
@@ -316,17 +321,17 @@
       </div>
     {/if}
 
-    {#if errorMessage}<div class="mb-4 rounded-lg border border-red-200 bg-red-50 p-4 text-sm text-red-800" role="alert">{errorMessage}</div>{/if}
-    {#if successMessage}<div class="mb-4 rounded-lg border border-green-200 bg-green-50 p-4 text-sm text-green-800" role="status">{successMessage}</div>{/if}
+    {#if errorMessage}<div class="mb-4 rounded-lg border border-red-200 bg-red-50 p-4 text-sm text-red-800" role="alert">{ui(errorMessage)}</div>{/if}
+    {#if successMessage}<div class="mb-4 rounded-lg border border-green-200 bg-green-50 p-4 text-sm text-green-800" role="status">{ui(successMessage)}</div>{/if}
 
     {#if loading}
-      <div class="rounded-xl bg-white p-12 text-center shadow-sm"><PumbiLoader size="md" label="Loading onboarding" /><p class="mt-4 text-slate-600">{t("Loading onboarding…")}</p></div>
+      <div class="rounded-xl bg-white p-12 text-center shadow-sm"><PumbiLoader size="md" label={ui("Loading onboarding")} /><p class="mt-4 text-slate-600">{t("Loading onboarding…")}</p></div>
     {:else}
       <div class="grid gap-6 lg:grid-cols-[250px_minmax(0,1fr)]">
-        <nav class="rounded-xl bg-white p-3 shadow-sm lg:sticky lg:top-4 lg:self-start" aria-label="Onboarding steps">
+        <nav class="rounded-xl bg-white p-3 shadow-sm lg:sticky lg:top-4 lg:self-start" aria-label={ui("Onboarding steps")}>
           <div class="flex gap-2 overflow-x-auto lg:block lg:space-y-1">
             {#each steps as step, index}
-              <button type="button" onclick={() => currentStep = index} class="flex min-w-max items-center gap-3 rounded-lg px-3 py-2 text-left text-sm font-medium lg:w-full {currentStep === index ? 'bg-blue-50 text-blue-800' : 'text-slate-600 hover:bg-slate-50'}">
+              <button type="button" onclick={() => currentStep = index} class="flex min-w-max items-center gap-3 rounded-lg px-3 py-2 text-start text-sm font-medium lg:w-full {currentStep === index ? 'bg-blue-50 text-blue-800' : 'text-slate-600 hover:bg-slate-50'}">
                 <span class="grid h-7 w-7 place-items-center rounded-full {currentStep === index ? 'bg-blue-600 text-white' : 'bg-slate-100 text-slate-600'}">{index + 1}</span>{t(step)}
               </button>
             {/each}
@@ -346,20 +351,20 @@
               <label><span>{t("Contact last name *")}</span><input bind:value={company.contactLastName} required disabled={isLocked} autocomplete="family-name" /></label>
               <label><span>{t("Contact email *")}</span><input type="email" bind:value={company.contactEmail} required disabled={isLocked} autocomplete="email" /></label>
               <label><span>{t("Contact phone *")}</span><input type="tel" bind:value={company.contactPhone} required disabled={isLocked} autocomplete="tel" /></label>
-              <label><span>{t("Country code *")}</span><input bind:value={company.country} maxlength="2" placeholder="US" required disabled={isLocked} autocomplete="country" /></label>
+              <label><span>{t("Country code *")}</span><input bind:value={company.country} maxlength="2" placeholder={ui("US")} required disabled={isLocked} autocomplete="country" /></label>
               <div class="rounded-lg bg-blue-50 p-4 text-sm text-blue-900"><strong>{t("Tax ID:")}</strong> {t("collected securely by Stripe. Pumbi never asks you to enter a raw tax ID here.")}{#if onboarding.taxIdLast4} {t("Saved ID ending in ••••")} {onboarding.taxIdLast4}.{/if}</div>
-              <div class="sm:col-span-2 flex justify-end"><button class="primary" type="submit" disabled={saving || isLocked}>{saving ? 'Saving…' : 'Save and continue'}</button></div>
+              <div class="sm:col-span-2 flex justify-end"><button class="primary" type="submit" disabled={saving || isLocked}>{saving ? ui("Saving…") : ui("Save and continue")}</button></div>
             </form>
           {:else if currentStep === 1}
             <div class="flex items-center justify-between gap-4"><div><h2 class="text-2xl font-bold">{t("Locations")}</h2><p class="mt-1 text-sm text-slate-600">{t("Add every office, showroom, or warehouse and select one primary location.")}</p></div><button class="primary" type="button" disabled={isLocked} onclick={() => { locationForm = newLocation(); editingLocationId = ''; showLocationForm = true; }}>{t("Add location")}</button></div>
             <div class="mt-6 space-y-3">
               {#each locations as item}
-                <div class="flex flex-col justify-between gap-3 rounded-lg border p-4 sm:flex-row sm:items-center"><div><p class="font-semibold">{item.name || label(item.type)} {#if item.isPrimary}<span class="ml-2 rounded-full bg-blue-100 px-2 py-0.5 text-xs text-blue-800">{t("Primary")}</span>{/if}</p><p class="mt-1 text-sm text-slate-600">{item.addressLine1}, {item.city}{item.stateProvince ? `, ${item.stateProvince}` : ''} {item.postalCode || ''}, {item.country}</p></div><div class="flex gap-2"><button class="secondary" type="button" disabled={isLocked} onclick={() => editLocation(item)}>{t("Edit")}</button><button class="danger" type="button" disabled={isLocked} onclick={() => deleteLocation(item.id)}>{t("Delete")}</button></div></div>
+                <div class="flex flex-col justify-between gap-3 rounded-lg border p-4 sm:flex-row sm:items-center"><div><p class="font-semibold">{item.name || label(item.type)} {#if item.isPrimary}<span class="ms-2 rounded-full bg-blue-100 px-2 py-0.5 text-xs text-blue-800">{t("Primary")}</span>{/if}</p><p class="mt-1 text-sm text-slate-600">{item.addressLine1}, {item.city}{item.stateProvince ? `, ${item.stateProvince}` : ''} {item.postalCode || ''}, {item.country}</p></div><div class="flex gap-2"><button class="secondary" type="button" disabled={isLocked} onclick={() => editLocation(item)}>{t("Edit")}</button><button class="danger" type="button" disabled={isLocked} onclick={() => deleteLocation(item.id)}>{t("Delete")}</button></div></div>
               {:else}<p class="rounded-lg border border-dashed p-8 text-center text-slate-500">{t("No locations added yet.")}</p>{/each}
             </div>
             {#if showLocationForm}
               <form class="mt-6 grid gap-4 rounded-xl bg-slate-50 p-5 sm:grid-cols-2" onsubmit={(event) => { event.preventDefault(); saveLocation(); }}>
-                <label><span>{t("Location name")}</span><input bind:value={locationForm.name} placeholder="Main office" /></label>
+                <label><span>{t("Location name")}</span><input bind:value={locationForm.name} placeholder={ui("Main office")} /></label>
                 <label><span>{t("Type")}</span><select bind:value={locationForm.type}>{#each locationTypes as type}<option value={type}>{t(label(type))}</option>{/each}</select></label>
                 <label class="sm:col-span-2"><span>{t("Address line 1 *")}</span><input bind:value={locationForm.addressLine1} required autocomplete="address-line1" /></label>
                 <label class="sm:col-span-2"><span>{t("Address line 2")}</span><input bind:value={locationForm.addressLine2} autocomplete="address-line2" /></label>
@@ -367,7 +372,7 @@
                 <label><span>{t("Postal code")}</span><input bind:value={locationForm.postalCode} autocomplete="postal-code" /></label><label><span>{t("Country *")}</span><input bind:value={locationForm.country} required autocomplete="country-name" /></label>
                 <label><span>{t("Contact name")}</span><input bind:value={locationForm.contactName} /></label><label><span>{t("Contact email")}</span><input type="email" bind:value={locationForm.contactEmail} /></label>
                 <label><span>{t("Contact phone")}</span><input type="tel" bind:value={locationForm.contactPhone} /></label><label class="flex items-center gap-2 self-end pb-3"><input class="h-4 w-4" type="checkbox" bind:checked={locationForm.isPrimary} /><span class="mb-0">{t("Primary location")}</span></label>
-                <div class="flex justify-end gap-2 sm:col-span-2"><button class="secondary" type="button" onclick={() => showLocationForm = false}>{t("Cancel")}</button><button class="primary" type="submit" disabled={saving}>{saving ? 'Saving…' : 'Save location'}</button></div>
+                <div class="flex justify-end gap-2 sm:col-span-2"><button class="secondary" type="button" onclick={() => showLocationForm = false}>{t("Cancel")}</button><button class="primary" type="submit" disabled={saving}>{saving ? ui("Saving…") : ui("Save location")}</button></div>
               </form>
             {/if}
           {:else if currentStep === 2}
@@ -379,7 +384,7 @@
               <label><span>{t("Expiration date")}</span><input type="date" bind:value={documentForm.expiresAt} disabled={isLocked} /></label>
               <div class="flex items-end justify-end"><button class="primary" type="submit" disabled={saving || isLocked}>{t("Upload document")}</button></div>
             </form>
-            <div class="mt-5 space-y-3">{#each documents as item}<div class="flex items-center justify-between rounded-lg border p-4"><div><p class="font-semibold">{item.fileName || label(item.type)}</p><p class="text-sm text-slate-500">{t(label(item.type))} · <span class="rounded-full px-2 py-0.5 {statusClass(item.reviewStatus)}">{label(item.reviewStatus || 'PENDING')}</span>{item.licenseNumber ? ` · License ${item.licenseNumber}` : ''}</p></div><button class="danger" type="button" disabled={isLocked} onclick={() => deleteDocument(item.id)}>{t("Delete")}</button></div>{:else}<p class="rounded-lg border border-dashed p-8 text-center text-slate-500">{t("No compliance documents uploaded.")}</p>{/each}</div>
+            <div class="mt-5 space-y-3">{#each documents as item}<div class="flex items-center justify-between rounded-lg border p-4"><div><p class="font-semibold">{item.fileName || label(item.type)}</p><p class="text-sm text-slate-500">{t(label(item.type))} · <span class="rounded-full px-2 py-0.5 {statusClass(item.reviewStatus)}">{uiStatus(label(item.reviewStatus || 'PENDING'))}</span>{item.licenseNumber ? ui(" · License {value0}", { value0: item.licenseNumber }) : ''}</p></div><button class="danger" type="button" disabled={isLocked} onclick={() => deleteDocument(item.id)}>{t("Delete")}</button></div>{:else}<p class="rounded-lg border border-dashed p-8 text-center text-slate-500">{t("No compliance documents uploaded.")}</p>{/each}</div>
           {:else if currentStep === 3}
             <h2 class="text-2xl font-bold">{t("Brand assets")}</h2><p class="mt-1 text-sm text-slate-600">{t("Add your logo, banners, and optional brand guide.")}</p>
             <form class="mt-6 grid gap-4 rounded-xl bg-slate-50 p-5 sm:grid-cols-3" onsubmit={(event) => { event.preventDefault(); uploadAsset(); }}>
@@ -388,31 +393,31 @@
               <label><span>{t("File *")}</span><input type="file" required disabled={isLocked} accept="image/*,.pdf" onchange={(event) => assetFile = event.currentTarget.files?.[0] || null} /></label>
               <div class="sm:col-span-3 flex justify-end"><button class="primary" type="submit" disabled={saving || isLocked}>{t("Upload asset")}</button></div>
             </form>
-            <div class="mt-5 grid gap-3 sm:grid-cols-2">{#each assets as item}<div class="flex items-center justify-between rounded-lg border p-4"><div><p class="font-semibold">{item.fileName || label(item.type)}</p><p class="text-sm text-slate-500">{t(label(item.type))} · {label(item.visibility)}</p></div><button class="danger" type="button" disabled={isLocked} onclick={() => deleteAsset(item.id)}>{t("Delete")}</button></div>{:else}<p class="rounded-lg border border-dashed p-8 text-center text-slate-500 sm:col-span-2">{t("No brand assets uploaded.")}</p>{/each}</div>
+            <div class="mt-5 grid gap-3 sm:grid-cols-2">{#each assets as item}<div class="flex items-center justify-between rounded-lg border p-4"><div><p class="font-semibold">{item.fileName || label(item.type)}</p><p class="text-sm text-slate-500">{t(label(item.type))} · {uiStatus(label(item.visibility))}</p></div><button class="danger" type="button" disabled={isLocked} onclick={() => deleteAsset(item.id)}>{t("Delete")}</button></div>{:else}<p class="rounded-lg border border-dashed p-8 text-center text-slate-500 sm:col-span-2">{t("No brand assets uploaded.")}</p>{/each}</div>
           {:else if currentStep === 4}
             <h2 class="text-2xl font-bold">{t("Banking and payouts")}</h2>
-            <div class="mt-5 rounded-xl border border-blue-200 bg-blue-50 p-5"><div class="flex flex-col justify-between gap-4 sm:flex-row sm:items-center"><div><p class="font-semibold text-blue-950">{t("Stripe Connect")}</p><p class="mt-1 text-sm text-blue-800">{t("Enter bank account, routing, and Tax ID details only on Stripe’s secure site. Pumbi never collects these raw values.")}</p></div><span class="self-start rounded-full px-3 py-1 text-sm font-semibold {statusClass(stripe.status || onboarding.stripeConnectStatus)}">{label(stripe.status || onboarding.stripeConnectStatus || 'NOT_CONNECTED')}</span></div><div class="mt-4 grid gap-2 text-sm sm:grid-cols-3"><p>{t("Details submitted:")} <strong>{stripe.detailsSubmitted ? 'Yes' : 'No'}</strong></p><p>{t("Charges enabled:")} <strong>{stripe.chargesEnabled ? 'Yes' : 'No'}</strong></p><p>{t("Payouts enabled:")} <strong>{stripe.payoutsEnabled ? 'Yes' : 'No'}</strong></p></div><button class="primary mt-5" type="button" onclick={openStripe} disabled={saving || stripe.availability?.requiresActivation}>{stripe.status === 'ENABLED' ? 'Open Stripe account' : 'Connect with Stripe'}</button></div>
+            <div class="mt-5 rounded-xl border border-blue-200 bg-blue-50 p-5"><div class="flex flex-col justify-between gap-4 sm:flex-row sm:items-center"><div><p class="font-semibold text-blue-950">{t("Stripe Connect")}</p><p class="mt-1 text-sm text-blue-800">{t("Enter bank account, routing, and Tax ID details only on Stripe’s secure site. Pumbi never collects these raw values.")}</p></div><span class="self-start rounded-full px-3 py-1 text-sm font-semibold {statusClass(stripe.status || onboarding.stripeConnectStatus)}">{uiStatus(label(stripe.status || onboarding.stripeConnectStatus || 'NOT_CONNECTED'))}</span></div><div class="mt-4 grid gap-2 text-sm sm:grid-cols-3"><p>{t("Details submitted:")} <strong>{stripe.detailsSubmitted ? ui("Yes") : ui("No")}</strong></p><p>{t("Charges enabled:")} <strong>{stripe.chargesEnabled ? ui("Yes") : ui("No")}</strong></p><p>{t("Payouts enabled:")} <strong>{stripe.payoutsEnabled ? ui("Yes") : ui("No")}</strong></p></div><button class="primary mt-5" type="button" onclick={openStripe} disabled={saving || stripe.availability?.requiresActivation}>{stripe.status === 'ENABLED' ? ui("Open Stripe account") : ui("Connect with Stripe")}</button></div>
             {#if company.country === 'IL' && stripe.availability?.requiresActivation}<RegionalPayoutOptions />{/if}
             <div class="mt-6 rounded-xl border p-5"><h3 class="font-semibold">{t("Bank verification document")}</h3><p class="mt-1 text-sm text-slate-600">{t("If requested, upload a voided check or bank letter under Compliance as “Bank verification.” Do not type account or routing numbers into Pumbi.")}</p><button class="secondary mt-4" type="button" onclick={() => currentStep = 2}>{t("Go to documents")}</button></div>
           {:else if currentStep === 5}
             <h2 class="text-2xl font-bold">{t("Team")}</h2><p class="mt-2 text-slate-600">{t("Invite colleagues and assign only the access they need. Team management opens in a dedicated page.")}</p><a href="/seller/team" class="primary mt-6 inline-flex">{t("Manage team and invitations")}</a>
           {:else if currentStep === 6}
             <h2 class="text-2xl font-bold">{t("Auction house terms")}</h2>
-            <div class="mt-5 max-h-96 overflow-y-auto whitespace-pre-wrap rounded-xl border bg-slate-50 p-5 text-sm leading-6 text-slate-700">{policy?.auctionHouseTerms || onboarding.termsSnapshot || 'The current auction house terms could not be loaded. Please retry before accepting.'}</div>
+            <div class="mt-5 max-h-96 overflow-y-auto whitespace-pre-wrap rounded-xl border bg-slate-50 p-5 text-sm leading-6 text-slate-700">{policy?.auctionHouseTerms || onboarding.termsSnapshot || ui("The current auction house terms could not be loaded. Please retry before accepting.")}</div>
             <label class="mt-5 flex items-start gap-3 rounded-lg border p-4"><input class="mt-1 h-4 w-4" type="checkbox" bind:checked={termsAccepted} disabled={isLocked || !policy?.auctionHouseTerms} /><span>{t("I have read and agree to auction house terms version")} {policy?.version || onboarding.termsVersion || '—'} {t("on behalf of the company. I understand this acceptance is recorded when I submit.")}</span></label>
             <div class="mt-5 flex justify-end"><button class="primary" type="button" onclick={acceptTerms} disabled={saving || isLocked || !termsAccepted}>{t("Accept and continue")}</button></div>
           {:else}
             <h2 class="text-2xl font-bold">{t("Review and submit")}</h2><p class="mt-1 text-sm text-slate-600">{t("Confirm your onboarding package before sending it to Pumbi.")}</p>
             <div class="mt-6 grid gap-4 sm:grid-cols-2">
-              <div class="review"><span>{t("Company")}</span><strong>{company.legalName || 'Incomplete'}</strong><button type="button" onclick={() => currentStep = 0}>{t("Review")}</button></div>
+              <div class="review"><span>{t("Company")}</span><strong>{company.legalName || ui("Incomplete")}</strong><button type="button" onclick={() => currentStep = 0}>{t("Review")}</button></div>
               <div class="review"><span>{t("Locations")}</span><strong>{locations.length} {t("added")}</strong><button type="button" onclick={() => currentStep = 1}>{t("Review")}</button></div>
               <div class="review"><span>{t("Compliance")}</span><strong>{documents.length} {t("uploaded")}</strong><button type="button" onclick={() => currentStep = 2}>{t("Review")}</button></div>
               <div class="review"><span>{t("Brand assets")}</span><strong>{assets.length} {t("uploaded")}</strong><button type="button" onclick={() => currentStep = 3}>{t("Review")}</button></div>
-              <div class="review"><span>{t("Stripe Connect")}</span><strong>{label(stripe.status || onboarding.stripeConnectStatus || 'NOT_CONNECTED')}</strong><button type="button" onclick={() => currentStep = 4}>{t("Review")}</button></div>
-              <div class="review"><span>{t("Terms")}</span><strong>{termsAccepted ? 'Accepted' : 'Not accepted'}</strong><button type="button" onclick={() => currentStep = 6}>{t("Review")}</button></div>
+              <div class="review"><span>{t("Stripe Connect")}</span><strong>{uiStatus(label(stripe.status || onboarding.stripeConnectStatus || 'NOT_CONNECTED'))}</strong><button type="button" onclick={() => currentStep = 4}>{t("Review")}</button></div>
+              <div class="review"><span>{t("Terms")}</span><strong>{termsAccepted ? ui("Accepted") : ui("Not accepted")}</strong><button type="button" onclick={() => currentStep = 6}>{t("Review")}</button></div>
             </div>
             <div class="mt-6 rounded-lg bg-amber-50 p-4 text-sm text-amber-900">{t("Submitting does not grant immediate seller access. Auction publishing, payouts, and other restricted features remain unavailable while Pumbi reviews your application.")}</div>
-            <div class="mt-6 flex justify-end"><button class="primary" type="button" onclick={submitOnboarding} disabled={saving || isLocked || !termsAccepted}>{saving ? 'Submitting…' : 'Submit for review'}</button></div>
+            <div class="mt-6 flex justify-end"><button class="primary" type="button" onclick={submitOnboarding} disabled={saving || isLocked || !termsAccepted}>{saving ? ui("Submitting…") : ui("Submit for review")}</button></div>
           {/if}
 
           {#if currentStep > 0 && currentStep < 7}

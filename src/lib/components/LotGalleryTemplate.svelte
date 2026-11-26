@@ -1,4 +1,8 @@
 <script>
+  import { page as localePage } from '$app/stores';
+  import { translate as translateUi } from '$lib/i18n.js';
+  const ui = (text, values) => translateUi($localePage.data.locale || 'en', text, values);
+
   import { goto } from '$app/navigation';
   
   let { lots, template, templateSettings, formatCurrency } = $props();
@@ -94,7 +98,7 @@
             class="w-full h-48 object-cover"
           />
           <div class="absolute top-4 left-4 bg-white px-3 py-1 rounded-sm text-sm font-bold">
-            Lot #{lot.lotNumber}
+            {ui("Lot #")}{lot.lotNumber}
           </div>
         </div>
         <div class="p-6">
@@ -102,16 +106,16 @@
           <p class="text-gray-600 text-sm mb-4 line-clamp-2">{lot.description}</p>
           <div class="flex items-center justify-between mb-4">
             <div>
-              <p class="text-xs text-gray-500">Current Bid</p>
+              <p class="text-xs text-gray-500">{ui("Current Bid")}</p>
               <p class="text-xl font-bold text-[#18372f]">{formatCurrency(lot.currentBid)}</p>
             </div>
-            <div class="text-right">
-              <p class="text-xs text-gray-500">Starting Bid</p>
+            <div class="text-end">
+              <p class="text-xs text-gray-500">{ui("Starting Bid")}</p>
               <p class="text-lg font-semibold">{formatCurrency(lot.startingBid)}</p>
             </div>
           </div>
           <button class="w-full bg-[#18372f] text-white py-2 rounded-lg hover:bg-[#152c26] transition-colors font-semibold">
-            View & Bid
+            {ui("View & Bid")}
           </button>
         </div>
       </div>
@@ -154,7 +158,7 @@
                 <button
                   onclick={(e) => { e.stopPropagation(); setCurrentIndex(lot.id, (currentIndex - 1 + images.length) % images.length); }}
                   class="absolute left-2 top-1/2 transform -translate-y-1/2 bg-black/50 text-white p-2 rounded-sm hover:bg-black/70 transition-colors"
-                  aria-label="Previous image"
+                  aria-label={ui("Previous image")}
                 >
                   <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"></path>
@@ -163,7 +167,7 @@
                 <button
                   onclick={(e) => { e.stopPropagation(); setCurrentIndex(lot.id, (currentIndex + 1) % images.length); }}
                   class="absolute right-2 top-1/2 transform -translate-y-1/2 bg-black/50 text-white p-2 rounded-sm hover:bg-black/70 transition-colors"
-                  aria-label="Next image"
+                  aria-label={ui("Next image")}
                 >
                   <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path>
@@ -179,7 +183,7 @@
             />
           {/if}
           <div class="absolute top-4 left-4 bg-white px-3 py-1 rounded-sm text-sm font-bold">
-            Lot #{lot.lotNumber}
+            {ui("Lot #")}{lot.lotNumber}
           </div>
         </div>
         <div class="p-6">
@@ -187,12 +191,12 @@
           <p class="text-gray-600 text-sm mb-4 line-clamp-2">{lot.description}</p>
           <div class="flex items-center justify-between mb-4">
             <div>
-              <p class="text-xs text-gray-500">Current Bid</p>
+              <p class="text-xs text-gray-500">{ui("Current Bid")}</p>
               <p class="text-xl font-bold text-[#18372f]">{formatCurrency(lot.currentBid)}</p>
             </div>
           </div>
           <button class="w-full bg-[#18372f] text-white py-2 rounded-lg hover:bg-[#152c26] transition-colors font-semibold">
-            View & Bid
+            {ui("View & Bid")}
           </button>
         </div>
       </div>
@@ -221,7 +225,7 @@
           <div class="absolute inset-0 flex flex-col justify-between p-6 text-white">
             <div>
               <div class="bg-white/20 backdrop-blur-sm px-3 py-1 rounded-sm text-sm font-bold inline-block mb-3">
-                Lot #{lot.lotNumber}
+                {ui("Lot #")}{lot.lotNumber}
               </div>
               <h3 class="text-2xl font-bold mb-2">{lot.title}</h3>
               <p class="text-sm text-white/90 line-clamp-2 mb-4">{lot.description}</p>
@@ -230,16 +234,16 @@
             <div class="transform translate-y-4 opacity-0 group-hover:translate-y-0 group-hover:opacity-100 transition-all duration-300">
               <div class="flex items-center justify-between mb-4">
                 <div>
-                  <p class="text-xs text-white/80">Current Bid</p>
+                  <p class="text-xs text-white/80">{ui("Current Bid")}</p>
                   <p class="text-2xl font-bold">{formatCurrency(lot.currentBid)}</p>
                 </div>
-                <div class="text-right">
-                  <p class="text-xs text-white/80">Starting</p>
+                <div class="text-end">
+                  <p class="text-xs text-white/80">{ui("Starting")}</p>
                   <p class="text-lg font-semibold">{formatCurrency(lot.startingBid)}</p>
                 </div>
               </div>
               <button class="w-full bg-white text-gray-900 py-3 rounded-lg hover:bg-gray-100 transition-colors font-semibold">
-                View & Bid
+                {ui("View & Bid")}
               </button>
             </div>
           </div>
@@ -271,7 +275,7 @@
           <h3 class="text-sm font-semibold text-gray-900 mb-1 line-clamp-1">{lot.title}</h3>
           <p class="text-lg font-bold text-[#18372f] mb-2">{formatCurrency(lot.currentBid)}</p>
           <button class="w-full text-xs bg-gray-100 text-gray-700 py-1.5 rounded hover:bg-gray-200 transition-colors">
-            View
+            {ui("View")}
           </button>
         </div>
       </div>
@@ -297,11 +301,11 @@
             style="height: {imageHeight}px;"
           />
           <div class="absolute top-4 left-4 bg-white px-3 py-1 rounded-sm text-sm font-bold">
-            Lot #{lot.lotNumber}
+            {ui("Lot #")}{lot.lotNumber}
           </div>
           {#if images.length > 1}
             <div class="absolute top-4 right-4 bg-black/70 text-white text-xs px-2 py-1 rounded">
-              {images.length} photos
+              {images.length} {ui("photos")}
             </div>
           {/if}
         </div>
@@ -310,12 +314,12 @@
           <p class="text-gray-600 text-sm mb-3 line-clamp-3">{lot.description}</p>
           <div class="flex items-center justify-between mb-3">
             <div>
-              <p class="text-xs text-gray-500">Current Bid</p>
+              <p class="text-xs text-gray-500">{ui("Current Bid")}</p>
               <p class="text-xl font-bold text-[#18372f]">{formatCurrency(lot.currentBid)}</p>
             </div>
           </div>
           <button class="w-full bg-[#18372f] text-white py-2 rounded-lg hover:bg-[#152c26] transition-colors font-semibold text-sm">
-            View & Bid
+            {ui("View & Bid")}
           </button>
         </div>
       </div>
@@ -360,7 +364,7 @@
                 <button
                   onclick={(e) => { e.stopPropagation(); setCurrentIndex(lot.id, (currentIndex - 1 + images.length) % images.length); }}
                   class="absolute left-1 top-1/2 transform -translate-y-1/2 bg-black/30 text-white p-1.5 rounded-sm hover:bg-black/50 transition-colors z-10 opacity-0 group-hover:opacity-100"
-                  aria-label="Previous image"
+                  aria-label={ui("Previous image")}
                 >
                   <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"></path>
@@ -369,7 +373,7 @@
                 <button
                   onclick={(e) => { e.stopPropagation(); setCurrentIndex(lot.id, (currentIndex + 1) % images.length); }}
                   class="absolute right-1 top-1/2 transform -translate-y-1/2 bg-black/30 text-white p-1.5 rounded-sm hover:bg-black/50 transition-colors z-10 opacity-0 group-hover:opacity-100"
-                  aria-label="Next image"
+                  aria-label={ui("Next image")}
                 >
                   <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path>
@@ -392,22 +396,22 @@
         <div class="absolute inset-0 bg-gradient-to-t from-black/70 via-black/40 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex flex-col justify-end p-4 text-white pointer-events-none">
           <div class="transform translate-y-2 opacity-0 group-hover:translate-y-0 group-hover:opacity-100 transition-all duration-300 pointer-events-auto">
             <div class="bg-white/15 backdrop-blur-sm px-2 py-0.5 rounded-sm text-xs font-medium inline-block mb-2">
-              Lot #{lot.lotNumber}
+              {ui("Lot #")}{lot.lotNumber}
             </div>
             <h3 class="text-sm font-medium mb-1">{lot.title}</h3>
             <p class="text-xs text-white/85 line-clamp-2 mb-2">{lot.description}</p>
             <div class="flex items-center justify-between mb-2">
               <div>
-                <p class="text-[10px] text-white/70">Current Bid</p>
+                <p class="text-[10px] text-white/70">{ui("Current Bid")}</p>
                 <p class="text-sm font-medium">{formatCurrency(lot.currentBid)}</p>
               </div>
-              <div class="text-right">
-                <p class="text-[10px] text-white/70">Starting</p>
+              <div class="text-end">
+                <p class="text-[10px] text-white/70">{ui("Starting")}</p>
                 <p class="text-xs font-medium">{formatCurrency(lot.startingBid)}</p>
               </div>
             </div>
             <button class="w-full bg-white/90 text-gray-900 py-1.5 rounded text-xs font-medium hover:bg-white transition-colors">
-              View & Bid
+              {ui("View & Bid")}
             </button>
           </div>
         </div>

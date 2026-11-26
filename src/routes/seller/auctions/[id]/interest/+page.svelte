@@ -1,4 +1,9 @@
 <script>
+  import { page as localePage } from '$app/stores';
+  import { translate as translateUi } from '$lib/i18n.js';
+  const ui = (text, values) => translateUi($localePage.data.locale || 'en', text, values);
+  const uiStatus = value => ui(String(value ?? '').replaceAll('_', ' '));
+
   let { data } = $props();
 
   function formatDuration(ms) {
@@ -15,40 +20,40 @@
 
 <section class="grid gap-4 sm:grid-cols-3">
   <div class="pumbi-panel p-5">
-    <p class="pumbi-eyebrow">Auction page views</p>
+    <p class="pumbi-eyebrow">{ui("Auction page views")}</p>
     <p class="mt-2 font-[family-name:var(--pumbi-serif)] text-3xl font-semibold">{data.auction.viewCount}</p>
-    <p class="mt-1 text-sm text-[var(--pumbi-muted)]">{data.auction.uniqueVisitorCount} unique visitors</p>
+    <p class="mt-1 text-sm text-[var(--pumbi-muted)]">{data.auction.uniqueVisitorCount} {ui("unique visitors")}</p>
   </div>
   <div class="pumbi-panel p-5">
-    <p class="pumbi-eyebrow">Avg time on auction page</p>
+    <p class="pumbi-eyebrow">{ui("Avg time on auction page")}</p>
     <p class="mt-2 font-[family-name:var(--pumbi-serif)] text-3xl font-semibold">{formatDuration(data.auction.avgDwellMs)}</p>
-    <p class="mt-1 text-sm text-[var(--pumbi-muted)]">Across all views</p>
+    <p class="mt-1 text-sm text-[var(--pumbi-muted)]">{ui("Across all views")}</p>
   </div>
   <div class="pumbi-panel p-5">
-    <p class="pumbi-eyebrow">Total attention</p>
+    <p class="pumbi-eyebrow">{ui("Total attention")}</p>
     <p class="mt-2 font-[family-name:var(--pumbi-serif)] text-3xl font-semibold">{formatDuration(data.auction.totalDwellMs)}</p>
-    <p class="mt-1 text-sm text-[var(--pumbi-muted)]">Sum of time on auction page</p>
+    <p class="mt-1 text-sm text-[var(--pumbi-muted)]">{ui("Sum of time on auction page")}</p>
   </div>
 </section>
 
 <section class="pumbi-panel mt-6 overflow-hidden">
   <div class="border-b border-[var(--pumbi-line)] px-5 py-4">
-    <h2 class="font-[family-name:var(--pumbi-serif)] text-xl font-semibold">Lots by interest</h2>
-    <p class="mt-1 text-sm text-[var(--pumbi-ink-soft)]">Sorted by unique visitors, then total views.</p>
+    <h2 class="font-[family-name:var(--pumbi-serif)] text-xl font-semibold">{ui("Lots by interest")}</h2>
+    <p class="mt-1 text-sm text-[var(--pumbi-ink-soft)]">{ui("Sorted by unique visitors, then total views.")}</p>
   </div>
   {#if data.lots.length === 0}
-    <p class="p-8 text-center text-[var(--pumbi-muted)]">No lots in this auction yet.</p>
+    <p class="p-8 text-center text-[var(--pumbi-muted)]">{ui("No lots in this auction yet.")}</p>
   {:else}
     <div class="overflow-x-auto">
       <table class="min-w-full text-sm">
-        <thead class="bg-[var(--pumbi-cream)] text-left text-[10px] font-bold uppercase tracking-wide text-[var(--pumbi-muted)]">
+        <thead class="bg-[var(--pumbi-cream)] text-start text-[10px] font-bold uppercase tracking-wide text-[var(--pumbi-muted)]">
           <tr>
-            <th class="px-5 py-3">Lot</th>
-            <th class="px-5 py-3">Status</th>
-            <th class="px-5 py-3 text-right">Views</th>
-            <th class="px-5 py-3 text-right">Unique</th>
-            <th class="px-5 py-3 text-right">Avg time</th>
-            <th class="px-5 py-3 text-right">Total time</th>
+            <th class="px-5 py-3">{ui("Lot")}</th>
+            <th class="px-5 py-3">{ui("Status")}</th>
+            <th class="px-5 py-3 text-end">{ui("Views")}</th>
+            <th class="px-5 py-3 text-end">{ui("Unique")}</th>
+            <th class="px-5 py-3 text-end">{ui("Avg time")}</th>
+            <th class="px-5 py-3 text-end">{ui("Total time")}</th>
           </tr>
         </thead>
         <tbody class="divide-y divide-[var(--pumbi-line-soft)]">
@@ -59,11 +64,11 @@
                   #{lot.lotNumber} · {lot.title}
                 </a>
               </td>
-              <td class="px-5 py-3 text-[var(--pumbi-muted)]">{lot.status}</td>
-              <td class="px-5 py-3 text-right font-semibold tabular-nums">{lot.viewCount}</td>
-              <td class="px-5 py-3 text-right font-semibold tabular-nums">{lot.uniqueVisitorCount}</td>
-              <td class="px-5 py-3 text-right tabular-nums text-[var(--pumbi-ink-soft)]">{formatDuration(lot.avgDwellMs)}</td>
-              <td class="px-5 py-3 text-right tabular-nums text-[var(--pumbi-ink-soft)]">{formatDuration(lot.totalDwellMs)}</td>
+              <td class="px-5 py-3 text-[var(--pumbi-muted)]">{uiStatus(lot.status)}</td>
+              <td class="px-5 py-3 text-end font-semibold tabular-nums">{lot.viewCount}</td>
+              <td class="px-5 py-3 text-end font-semibold tabular-nums">{lot.uniqueVisitorCount}</td>
+              <td class="px-5 py-3 text-end tabular-nums text-[var(--pumbi-ink-soft)]">{formatDuration(lot.avgDwellMs)}</td>
+              <td class="px-5 py-3 text-end tabular-nums text-[var(--pumbi-ink-soft)]">{formatDuration(lot.totalDwellMs)}</td>
             </tr>
           {/each}
         </tbody>

@@ -1,4 +1,11 @@
 <script>
+  import { page as localePage } from '$app/stores';
+  import { translate as translateUi } from '$lib/i18n.js';
+  import { localeTag as uiLocaleTag } from '$lib/utils/region.js';
+  const uiLocale = () => uiLocaleTag($localePage.data.locale);
+  const ui = (text, values) => translateUi($localePage.data.locale || 'en', text, values);
+  const uiStatus = value => ui(String(value ?? '').replaceAll('_', ' '));
+
   import { onMount } from 'svelte';
   import { goto } from '$app/navigation';
   import { getImageUrl } from '$lib/utils/imageUrl.js';
@@ -41,14 +48,14 @@
 
       const userResponse = await fetch(`/api/users?email=${encodeURIComponent(session.user.email)}`);
       if (!userResponse.ok) {
-        errorMessage = 'User account not found. Please register an auction house first.';
+        errorMessage = ui("User account not found. Please register an auction house first.");
         return;
       }
       currentUser = await userResponse.json();
       currentUser.auctionHouseId = data?.auctionHouse?.id || currentUser.auctionHouseId;
 
       if (!currentUser.auctionHouseId) {
-        errorMessage = 'You need to register an auction house first.';
+        errorMessage = ui("You need to register an auction house first.");
         return;
       }
 
@@ -63,7 +70,7 @@
       await loadAuctions();
     } catch (error) {
       console.error('Error loading user data:', error);
-      errorMessage = 'Error loading your account data. Please try again.';
+      errorMessage = ui("Error loading your account data. Please try again.");
     } finally {
       loading = false;
     }
@@ -120,7 +127,7 @@
   async function createAuction() {
     try {
       if (!currentUser?.auctionHouseId) {
-        errorMessage = 'You must be linked to an auction house to create auctions.';
+        errorMessage = ui("You must be linked to an auction house to create auctions.");
         return;
       }
 
@@ -166,18 +173,18 @@
         await loadAuctions();
       } else {
         const error = await response.json().catch(() => ({}));
-        errorMessage = error.message || 'Failed to create auction. Please try again.';
+        errorMessage = error.message || ui("Failed to create auction. Please try again.");
       }
     } catch (error) {
       console.error('Error creating auction:', error);
-      errorMessage = 'An error occurred while creating the auction. Please try again.';
+      errorMessage = ui("An error occurred while creating the auction. Please try again.");
     } finally {
       creating = false;
     }
   }
 
   function formatDate(dateString) {
-    return new Date(dateString).toLocaleDateString('en-US', {
+    return new Date(dateString).toLocaleDateString(uiLocale(), {
       year: 'numeric',
       month: 'short',
       day: 'numeric',
@@ -204,27 +211,27 @@
 <main class="mx-auto w-full max-w-[1240px] px-4 py-8 sm:px-6 lg:px-8">
   {#if errorMessage}
     <div class="mb-6 border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-800">
-      {errorMessage}
-      {#if errorMessage.includes('register an auction house')}
-        <a href="/auction-houses/signup" class="ml-2 font-bold underline">Register now</a>
+      {ui(errorMessage)}
+      {#if errorMessage === ui('You need to register an auction house first.') || errorMessage === ui('User account not found. Please register an auction house first.')}
+        <a href="/auction-houses/signup" class="ms-2 font-bold underline">{ui("Register now")}</a>
       {/if}
     </div>
   {/if}
 
   <div class="flex flex-wrap items-end justify-between gap-4">
     <div>
-      <p class="pumbi-eyebrow">Seller workspace</p>
+      <p class="pumbi-eyebrow">{ui("Seller workspace")}</p>
       <h1 class="mt-2 font-[family-name:var(--pumbi-serif)] text-3xl font-semibold text-[var(--pumbi-ink)] lg:text-4xl">
-        Auctions
+        {ui("Auctions")}
       </h1>
       <p class="mt-2 max-w-xl text-sm leading-6 text-[var(--pumbi-ink-soft)]">
-        Open an auction to reach its hub — control room, lots, interest, settings, and bidders live there.
+        {ui("Open an auction to reach its hub — control room, lots, interest, settings, and bidders live there.")}
       </p>
     </div>
     {#if currentUser?.auctionHouseId}
       <div class="flex flex-wrap gap-2">
-        <a href="/seller/settings?tab=advanced" class="pumbi-btn-secondary">Unsold lot settings</a>
-        <button type="button" class="pumbi-btn" onclick={() => (showCreateModal = true)}>Create auction</button>
+        <a href="/seller/settings?tab=advanced" class="pumbi-btn-secondary">{ui("Unsold lot settings")}</a>
+        <button type="button" class="pumbi-btn" onclick={() => (showCreateModal = true)}>{ui("Create auction")}</button>
       </div>
     {/if}
   </div>
@@ -236,30 +243,30 @@
   {#if auctionHouse && auctionHouse.onboardingStatus !== 'APPROVED'}
     <section class="pumbi-panel mt-6 flex flex-wrap items-center justify-between gap-4 p-5">
       <div>
-        <p class="pumbi-eyebrow">Onboarding · {formatOnboardingStatus(auctionHouse.onboardingStatus)}</p>
+        <p class="pumbi-eyebrow">{ui("Onboarding ·")} {uiStatus(formatOnboardingStatus(auctionHouse.onboardingStatus))}</p>
         <p class="mt-2 text-sm text-[var(--pumbi-ink-soft)]">
-          Publishing and payouts stay limited until Pumbi approves your house.
+          {ui("Publishing and payouts stay limited until Pumbi approves your house.")}
         </p>
       </div>
-      <a href="/seller/onboarding" class="pumbi-btn">Continue onboarding</a>
+      <a href="/seller/onboarding" class="pumbi-btn">{ui("Continue onboarding")}</a>
     </section>
   {/if}
 
   {#if loading}
     <div class="py-20 text-center">
-      <PumbiLoader size="lg" label="Loading auctions" />
-      <p class="mt-4 text-sm text-[var(--pumbi-muted)]">Loading auctions…</p>
+      <PumbiLoader size="lg" label={ui("Loading auctions")} />
+      <p class="mt-4 text-sm text-[var(--pumbi-muted)]">{ui("Loading auctions…")}</p>
     </div>
   {:else if myAuctions.length === 0}
     <section class="pumbi-panel mt-8 px-6 py-16 text-center">
       {#if auctionHouseLogoUrl}
         <img src={auctionHouseLogoUrl} alt="" class="mx-auto mb-4 h-14 w-14 object-contain" />
       {/if}
-      <h2 class="font-[family-name:var(--pumbi-serif)] text-2xl font-semibold">No auctions yet</h2>
+      <h2 class="font-[family-name:var(--pumbi-serif)] text-2xl font-semibold">{ui("No auctions yet")}</h2>
       <p class="mx-auto mt-2 max-w-md text-sm text-[var(--pumbi-ink-soft)]">
-        Create your first private sale. You’ll manage lots, the live floor, and bidders from its hub.
+        {ui("Create your first private sale. You’ll manage lots, the live floor, and bidders from its hub.")}
       </p>
-      <button type="button" class="pumbi-btn mt-6" onclick={() => (showCreateModal = true)}>Create your first auction</button>
+      <button type="button" class="pumbi-btn mt-6" onclick={() => (showCreateModal = true)}>{ui("Create your first auction")}</button>
     </section>
   {:else}
     <div class="mt-8 grid gap-5 md:grid-cols-2 xl:grid-cols-3">
@@ -271,24 +278,24 @@
                 <img src={auction.imageUrl} alt={auction.title} class="h-full w-full object-cover" />
               {/if}
               <span class="absolute right-3 top-3 px-2.5 py-1 text-[10px] font-bold uppercase tracking-wide {statusTone(auction.status)}">
-                {auction.status || 'Unknown'}
+                {auction.status || ui("Unknown")}
               </span>
             </div>
             <div class="p-5">
               <p class="text-[10px] font-bold uppercase tracking-[0.16em] text-[var(--pumbi-muted)]">
-                {(auction.type || 'PRIVATE').toUpperCase()} · {auction.totalLots || 0} lots
+                {ui((auction.type || 'PRIVATE').toUpperCase())} · {auction.totalLots || 0} {ui("lots")}
               </p>
               <h2 class="mt-2 font-[family-name:var(--pumbi-serif)] text-xl font-semibold text-[var(--pumbi-ink)]">
                 {auction.title}
               </h2>
               <p class="mt-2 line-clamp-2 text-sm leading-6 text-[var(--pumbi-ink-soft)]">
-                {auction.description || 'Open the hub to manage this sale.'}
+                {auction.description || ui("Open the hub to manage this sale.")}
               </p>
               <div class="mt-4 space-y-1 border-t border-[var(--pumbi-line-soft)] pt-4 text-xs text-[var(--pumbi-ink-soft)]">
-                <p><span class="text-[var(--pumbi-muted)]">Starts</span> · {formatDate(auction.startDate)}</p>
-                <p><span class="text-[var(--pumbi-muted)]">Ends</span> · {formatDate(auction.endDate)}</p>
+                <p><span class="text-[var(--pumbi-muted)]">{ui("Starts")}</span> · {formatDate(auction.startDate)}</p>
+                <p><span class="text-[var(--pumbi-muted)]">{ui("Ends")}</span> · {formatDate(auction.endDate)}</p>
               </div>
-              <p class="mt-4 text-xs font-bold uppercase tracking-wide text-[var(--pumbi-forest)]">Open hub →</p>
+              <p class="mt-4 text-xs font-bold uppercase tracking-wide text-[var(--pumbi-forest)]">{ui("Open hub →")}</p>
             </div>
           </a>
         </article>
@@ -302,10 +309,10 @@
     <div class="max-h-[90vh] w-full max-w-xl overflow-y-auto border border-[var(--pumbi-line)] bg-[#f7f4ee] shadow-xl">
       <div class="flex items-center justify-between border-b border-[var(--pumbi-line)] px-5 py-4">
         <div>
-          <p class="pumbi-eyebrow">New sale</p>
-          <h2 class="mt-1 font-[family-name:var(--pumbi-serif)] text-2xl font-semibold">Create auction</h2>
+          <p class="pumbi-eyebrow">{ui("New sale")}</p>
+          <h2 class="mt-1 font-[family-name:var(--pumbi-serif)] text-2xl font-semibold">{ui("Create auction")}</h2>
         </div>
-        <button type="button" class="text-[var(--pumbi-ink-soft)]" onclick={() => (showCreateModal = false)} aria-label="Close">✕</button>
+        <button type="button" class="text-[var(--pumbi-ink-soft)]" onclick={() => (showCreateModal = false)} aria-label={ui("Close")}>✕</button>
       </div>
 
       <form
@@ -316,29 +323,29 @@
         }}
       >
         <p class="border border-[var(--pumbi-line)] bg-white px-4 py-3 text-sm text-[var(--pumbi-ink-soft)]">
-          Private auctions keep lot control, rates, and bidder approval with your house.
+          {ui("Private auctions keep lot control, rates, and bidder approval with your house.")}
         </p>
         <label class="block text-sm">
-          <span class="font-semibold">Title *</span>
+          <span class="font-semibold">{ui("Title *")}</span>
           <input class="mt-1 w-full border border-[var(--pumbi-line)] bg-white px-3 py-2" bind:value={newAuction.title} required />
         </label>
         <label class="block text-sm">
-          <span class="font-semibold">Description</span>
+          <span class="font-semibold">{ui("Description")}</span>
           <textarea class="mt-1 w-full border border-[var(--pumbi-line)] bg-white px-3 py-2" rows="3" bind:value={newAuction.description}></textarea>
         </label>
         <div class="grid gap-4 sm:grid-cols-2">
           <label class="block text-sm">
-            <span class="font-semibold">Start</span>
+            <span class="font-semibold">{ui("Start")}</span>
             <input type="datetime-local" class="mt-1 w-full border border-[var(--pumbi-line)] bg-white px-3 py-2" bind:value={newAuction.startDate} />
           </label>
           <label class="block text-sm">
-            <span class="font-semibold">End</span>
+            <span class="font-semibold">{ui("End")}</span>
             <input type="datetime-local" class="mt-1 w-full border border-[var(--pumbi-line)] bg-white px-3 py-2" bind:value={newAuction.endDate} />
           </label>
         </div>
         <div class="flex flex-wrap justify-end gap-2 pt-2">
-          <button type="button" class="pumbi-btn-secondary" onclick={() => (showCreateModal = false)}>Cancel</button>
-          <button type="submit" class="pumbi-btn" disabled={creating}>{creating ? 'Creating…' : 'Create auction'}</button>
+          <button type="button" class="pumbi-btn-secondary" onclick={() => (showCreateModal = false)}>{ui("Cancel")}</button>
+          <button type="submit" class="pumbi-btn" disabled={creating}>{creating ? ui("Creating…") : ui("Create auction")}</button>
         </div>
       </form>
     </div>

@@ -1,4 +1,8 @@
 <script>
+  import { page as localePage } from '$app/stores';
+  import { translate as translateUi } from '$lib/i18n.js';
+  const ui = (text, values) => translateUi($localePage.data.locale || 'en', text, values);
+
     import { page } from "$app/stores";
     let { fields, containerType, workspaceId, success, message } = $props();
     let site = "impactswipe.com"
@@ -58,13 +62,13 @@
 
 <div class="flex flex-col  w-full">
     {#if message}
-        <p class="mt-4 text-lg text-gray-700">{message}</p>
+        <p class="mt-4 text-lg text-gray-700">{ui(message)}</p>
     {:else}
-        <p class="mt-4 text-lg text-gray-700">Please fill out the {containerType.replace(/_/g, " ")} form below, and a member of our team will reach out to you shortly.</p>
+        <p class="mt-4 text-lg text-gray-700">{ui("Please fill out the")} {containerType.replace(/_/g, " ")} {ui("form below, and a member of our team will reach out to you shortly.")}</p>
     {/if}
     
     {#if success}
-    <p class="text-{site.tertiary_color} text-xl tracking-wider mx-4">Thank you for your submission. A member of our team will reach out to you shortly.</p>
+    <p class="text-{site.tertiary_color} text-xl tracking-wider mx-4">{ui("Thank you for your submission. A member of our team will reach out to you shortly.")}</p>
     {:else}
     <div class="flex flex-col gap-3 pt-4">
         <!-- get all the rows interate over the rows an display the fields for that row -->
@@ -102,7 +106,7 @@
                     {:else if field.type === "checkboxes"}
                         <div class="flex flex-row w-full h-auto">
                             <div class="flex flex-col w-full">
-                                <label class="block text-gray-700 font-bold mb-2" for={field.name}>{field.label}</label>
+                                <label class="block text-gray-700 font-bold mb-2" for={field.name}>{ui(field.label)}</label>
                                 {#each field.options as option}
                                     <!-- <input type="checkbox" id={option} name={option} value={option} bind:checked={newContainer[field.name][option]} /> -->
                                     <label for={option} placeholder={field.label}></label>
@@ -129,7 +133,7 @@
         </div>
         {/each}
         <div class="w-full flex justify-center justify-items-center">
-            <button class="px-8 py-3 bg-indigo-600 text-white rounded-full text-lg font-semibold hover:bg-indigo-700 w-full" on:click={submitForm}>Submit Inquiry</button>
+            <button class="px-8 py-3 bg-indigo-600 text-white rounded-full text-lg font-semibold hover:bg-indigo-700 w-full" on:click={submitForm}>{ui("Submit Inquiry")}</button>
         </div>
     </div>
     {/if}

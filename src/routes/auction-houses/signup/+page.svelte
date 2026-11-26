@@ -1,4 +1,8 @@
 <script>
+  import { page as localePage } from '$app/stores';
+  import { translate as translateUi } from '$lib/i18n.js';
+  const ui = (text, values) => translateUi($localePage.data.locale || 'en', text, values);
+
   import { goto } from '$app/navigation';
   import { page } from '$app/stores';
   import { generateHouseSlug, normalizeHouseSlug, houseSlugProblem } from '$lib/utils/houseSlugs.js';
@@ -73,7 +77,7 @@
       // Add user creation fields if not logged in
       if (!isLoggedIn) {
         if (!formData.userEmail || !formData.userFirstName || !formData.userLastName || !formData.userPassword) {
-          errorMessage = 'First name, last name, email, and password are required to create your account.';
+          errorMessage = ui("First name, last name, email, and password are required to create your account.");
           loading = false;
           return;
         }
@@ -96,7 +100,7 @@
         });
         const registrationData = await registration.json().catch(() => ({}));
         if (!registration.ok) {
-          errorMessage = registrationData.message || registrationData.error || 'Failed to create your account.';
+          errorMessage = registrationData.message || registrationData.error || ui("Failed to create your account.");
           loading = false;
           return;
         }
@@ -127,7 +131,7 @@
         if (data.message || data.error) {
           errorMessage = data.message || data.error;
         } else {
-          errorMessage = 'Failed to create auction house. Please try again.';
+          errorMessage = ui("Failed to create auction house. Please try again.");
         }
         loading = false;
         return;
@@ -143,7 +147,7 @@
       
     } catch (err) {
       console.error('Error submitting form:', err);
-      errorMessage = 'An unexpected error occurred. Please try again.';
+      errorMessage = ui("An unexpected error occurred. Please try again.");
       loading = false;
     }
   }
@@ -155,9 +159,9 @@
   <div class="max-w-2xl mx-auto">
     <!-- Header -->
     <div class="text-center mb-8">
-      <h1 class="text-4xl font-bold text-gray-900 mb-2">Register Your Auction House</h1>
+      <h1 class="text-4xl font-bold text-gray-900 mb-2">{ui("Register Your Auction House")}</h1>
       <p class="text-lg text-gray-600">
-        Join Pumbi and start hosting your own auctions
+        {ui("Join Pumbi and start hosting your own auctions")}
       </p>
     </div>
     
@@ -165,12 +169,12 @@
     {#if success}
       <div class="bg-green-50 border border-green-200 rounded-lg p-6 mb-6">
         <div class="flex items-center">
-          <svg class="w-6 h-6 text-green-600 mr-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <svg class="w-6 h-6 text-green-600 me-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
           </svg>
           <div>
-            <h3 class="text-lg font-semibold text-green-900">Company account created</h3>
-            <p class="text-green-700">{successText}</p>
+            <h3 class="text-lg font-semibold text-green-900">{ui("Company account created")}</h3>
+            <p class="text-green-700">{ui(successText)}</p>
           </div>
         </div>
       </div>
@@ -180,10 +184,10 @@
     {#if errorMessage}
       <div class="bg-red-50 border border-red-200 rounded-lg p-4 mb-6">
         <div class="flex items-center">
-          <svg class="w-5 h-5 text-red-600 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <svg class="w-5 h-5 text-red-600 me-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
           </svg>
-          <p class="text-red-800">{errorMessage}</p>
+          <p class="text-red-800">{ui(errorMessage)}</p>
         </div>
       </div>
     {/if}
@@ -198,7 +202,7 @@
           <!-- Auction House Name -->
           <div>
             <label for="name" class="block text-sm font-medium text-gray-700 mb-2">
-              Company name <span class="text-red-500">*</span>
+              {ui("Company name")} <span class="text-red-500">*</span>
             </label>
             <input
               type="text"
@@ -208,20 +212,20 @@
               minlength="3"
               maxlength="100"
               class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-              placeholder="e.g., Heritage Judaica Auctions"
+              placeholder={ui("e.g., Heritage Judaica Auctions")}
             />
             {#if errors.name}
-              <p class="mt-1 text-sm text-red-600">{errors.name}</p>
+              <p class="mt-1 text-sm text-red-600">{ui(errors.name)}</p>
             {/if}
           </div>
           
           <!-- Slug -->
           <div>
             <label for="slug" class="block text-sm font-medium text-gray-700 mb-2">
-              URL Slug <span class="text-red-500">*</span>
+              {ui("URL Slug")} <span class="text-red-500">*</span>
             </label>
             <div class="flex items-center">
-              <span class="text-gray-500 mr-2">{$page.url.host}/</span>
+              <span class="text-gray-500 me-2">{$page.url.host}/</span>
               <input
                 type="text"
                 id="slug"
@@ -245,17 +249,17 @@
               />
             </div>
             <p class="mt-1 text-sm text-gray-500">
-              Your public address uses lowercase Latin letters, numbers, and hyphens. It becomes available after the house is approved and active.
+              {ui("Your public address uses lowercase Latin letters, numbers, and hyphens. It becomes available after the house is approved and active.")}
             </p>
             {#if errors.slug}
-              <p class="mt-1 text-sm text-red-600">{errors.slug}</p>
+              <p class="mt-1 text-sm text-red-600">{ui(errors.slug)}</p>
             {/if}
           </div>
           
           <!-- Description -->
           <div>
             <label for="description" class="block text-sm font-medium text-gray-700 mb-2">
-              Description
+              {ui("Description")}
             </label>
             <textarea
               id="description"
@@ -263,17 +267,17 @@
               rows="4"
               maxlength="500"
               class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-              placeholder="Tell us about your auction house..."
+              placeholder={ui("Tell us about your auction house...")}
             ></textarea>
             <p class="mt-1 text-sm text-gray-500">
-              {formData.description.length}/500 characters
+              {formData.description.length}{ui('/500 characters')}
             </p>
           </div>
           
           <!-- Custom Domain (Optional) -->
           <div>
             <label for="domain" class="block text-sm font-medium text-gray-700 mb-2">
-              Custom Domain (Optional)
+              {ui("Custom Domain (Optional)")}
             </label>
             <input
               type="text"
@@ -283,14 +287,14 @@
               placeholder="auctions.yourdomain.com"
             />
             <p class="mt-1 text-sm text-gray-500">
-              If you have a custom domain, you can use it for your auction house.
+              {ui("If you have a custom domain, you can use it for your auction house.")}
             </p>
           </div>
           
           <!-- Logo URL (Optional) -->
           <div>
             <label for="logoUrl" class="block text-sm font-medium text-gray-700 mb-2">
-              Logo URL (Optional)
+              {ui("Logo URL (Optional)")}
             </label>
             <input
               type="url"
@@ -300,23 +304,23 @@
               placeholder="https://example.com/logo.png"
             />
             <p class="mt-1 text-sm text-gray-500">
-              URL to your auction house logo image.
+              {ui("URL to your auction house logo image.")}
             </p>
           </div>
           
           <!-- User Account Section (only shown if not logged in) -->
           {#if !isLoggedIn}
             <div class="pt-6 border-t border-gray-200">
-              <h3 class="text-lg font-semibold text-gray-900 mb-4">Create Your Account</h3>
+              <h3 class="text-lg font-semibold text-gray-900 mb-4">{ui("Create Your Account")}</h3>
               <p class="text-sm text-gray-600 mb-4">
-                Create an account to manage your auction house. 
-                <a href="/auth/login" class="text-blue-600 hover:text-blue-800 font-medium">Already have an account? Log in</a>
+                {ui("Create an account to manage your auction house.")}
+                <a href="/auth/login" class="text-blue-600 hover:text-blue-800 font-medium">{ui("Already have an account? Log in")}</a>
               </p>
               
               <!-- Email -->
               <div class="mb-4">
                 <label for="userEmail" class="block text-sm font-medium text-gray-700 mb-2">
-                  Email <span class="text-red-500">*</span>
+                  {ui("Email")} <span class="text-red-500">*</span>
                 </label>
                 <input
                   type="email"
@@ -327,14 +331,14 @@
                   placeholder="your@email.com"
                 />
                 {#if errors.userEmail}
-                  <p class="mt-1 text-sm text-red-600">{errors.userEmail}</p>
+                  <p class="mt-1 text-sm text-red-600">{ui(errors.userEmail)}</p>
                 {/if}
               </div>
               
               <!-- First Name -->
               <div class="mb-4">
                 <label for="userFirstName" class="block text-sm font-medium text-gray-700 mb-2">
-                  First name <span class="text-red-500">*</span>
+                  {ui("First name")} <span class="text-red-500">*</span>
                 </label>
                 <input
                   type="text"
@@ -343,14 +347,14 @@
                   required={!isLoggedIn}
                   autocomplete="given-name"
                   class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                  placeholder="John"
+                  placeholder={ui("John")}
                 />
               </div>
               
               <!-- Last Name -->
               <div class="mb-4">
                 <label for="userLastName" class="block text-sm font-medium text-gray-700 mb-2">
-                  Last name <span class="text-red-500">*</span>
+                  {ui("Last name")} <span class="text-red-500">*</span>
                 </label>
                 <input
                   type="text"
@@ -359,14 +363,14 @@
                   required={!isLoggedIn}
                   autocomplete="family-name"
                   class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                  placeholder="Doe"
+                  placeholder={ui("Doe")}
                 />
               </div>
               
               <!-- Password -->
               <div class="mb-4">
                 <label for="userPassword" class="block text-sm font-medium text-gray-700 mb-2">
-                  Password <span class="text-red-500">*</span>
+                  {ui("Password")} <span class="text-red-500">*</span>
                 </label>
                 <input
                   type="password"
@@ -375,19 +379,19 @@
                   required={!isLoggedIn}
                   minlength="8"
                   class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                  placeholder="At least 8 characters"
+                  placeholder={ui("At least 8 characters")}
                 />
                 <p class="mt-1 text-sm text-gray-500">
-                  Password must be at least 8 characters long.
+                  {ui("Password must be at least 8 characters long.")}
                 </p>
                 {#if errors.userPassword}
-                  <p class="mt-1 text-sm text-red-600">{errors.userPassword}</p>
+                  <p class="mt-1 text-sm text-red-600">{ui(errors.userPassword)}</p>
                 {/if}
               </div>
               
               <div class="bg-yellow-50 border border-yellow-200 rounded-lg p-3 mb-4">
                 <p class="text-sm text-yellow-800">
-                  Your account and company will be linked. Auction creation, payouts, and other seller tools remain limited until onboarding is reviewed and approved.
+                  {ui("Your account and company will be linked. Auction creation, payouts, and other seller tools remain limited until onboarding is reviewed and approved.")}
                 </p>
               </div>
             </div>
@@ -396,10 +400,10 @@
             <div class="pt-6 border-t border-gray-200">
               <div class="bg-blue-50 border border-blue-200 rounded-lg p-4">
                 <p class="text-sm text-blue-800">
-                  <strong>Logged in as:</strong> {session?.user?.email || session?.user?.name}
+                  <strong>{ui("Logged in as:")}</strong> {session?.user?.email || session?.user?.name}
                 </p>
                 <p class="text-xs text-blue-600 mt-1">
-                  Your auction house will be linked to this account.
+                  {ui("Your auction house will be linked to this account.")}
                 </p>
               </div>
             </div>
@@ -414,14 +418,14 @@
             >
               {#if loading}
                 <span class="flex items-center justify-center">
-                  <svg class="animate-spin -ml-1 mr-3 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                  <svg class="animate-spin -ms-1 me-3 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
                     <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
                     <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
                   </svg>
-                  Creating Auction House...
+                  {ui("Creating Auction House...")}
                 </span>
               {:else}
-                Create Auction House
+                {ui("Create Auction House")}
               {/if}
             </button>
           </div>
@@ -429,8 +433,8 @@
           <!-- Help Text -->
           <div class="pt-4 border-t border-gray-200">
             <p class="text-sm text-gray-600 text-center">
-              Already have an auction house? 
-              <a href="/" class="text-blue-600 hover:text-blue-800 font-medium">Go to homepage</a>
+              {ui("Already have an auction house?")}
+              <a href="/" class="text-blue-600 hover:text-blue-800 font-medium">{ui("Go to homepage")}</a>
             </p>
           </div>
         </form>

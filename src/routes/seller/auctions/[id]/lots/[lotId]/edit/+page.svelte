@@ -1,4 +1,10 @@
 <script>
+  import { page as localePage } from '$app/stores';
+  import { translate as translateUi } from '$lib/i18n.js';
+  import { localeTag as uiLocaleTag } from '$lib/utils/region.js';
+  const uiLocale = () => uiLocaleTag($localePage.data.locale);
+  const ui = (text, values) => translateUi($localePage.data.locale || 'en', text, values);
+
   import { onMount } from 'svelte';
   import { page } from '$app/stores';
   import { goto } from '$app/navigation';
@@ -49,10 +55,10 @@
       ]);
       
       if (!lotRes.ok) {
-        throw new Error('Failed to load lot');
+        throw new Error(ui("Failed to load lot"));
       }
       if (!auctionRes.ok) {
-        throw new Error('Failed to load auction');
+        throw new Error(ui("Failed to load auction"));
       }
       
       lot = await lotRes.json();
@@ -115,7 +121,7 @@
       await loadCategoryMetaFieldsConfig();
     } catch (error) {
       console.error('Error loading data:', error);
-      errorMessage = 'Failed to load lot data. Please try again.';
+      errorMessage = ui("Failed to load lot data. Please try again.");
     } finally {
       loading = false;
     }
@@ -176,7 +182,7 @@
       });
       
       if (!response.ok) {
-        throw new Error('Failed to upload images');
+        throw new Error(ui("Failed to upload images"));
       }
       
       const { images } = await response.json();
@@ -198,7 +204,7 @@
       });
       
       if (!imageResponse.ok) {
-        throw new Error('Failed to save image records');
+        throw new Error(ui("Failed to save image records"));
       }
       
       // Reload lot data
@@ -208,7 +214,7 @@
       event.target.value = '';
     } catch (error) {
       console.error('Error uploading images:', error);
-      errorMessage = 'Failed to upload images. Please try again.';
+      errorMessage = ui("Failed to upload images. Please try again.");
     }
   }
   
@@ -241,23 +247,23 @@
       
       if (!response.ok) {
         const error = await response.json();
-        throw new Error(error.error || 'Failed to update lot');
+        throw new Error(error.error || ui("Failed to update lot"));
       }
       
-      successMessage = 'Lot updated successfully!';
+      successMessage = ui("Lot updated successfully!");
       setTimeout(() => {
         goto(`/seller/auctions/${$page.params.id}/lots`);
       }, 1500);
     } catch (error) {
       console.error('Error saving lot:', error);
-      errorMessage = error.message || 'Failed to save lot. Please try again.';
+      errorMessage = error.message || ui("Failed to save lot. Please try again.");
     } finally {
       saving = false;
     }
   }
   
   function formatCurrency(amount) {
-    return new Intl.NumberFormat('en-US', {
+    return new Intl.NumberFormat(uiLocale(), {
       style: 'currency',
       currency: (auction?.currency || 'usd').toUpperCase()
     }).format(amount);
@@ -265,35 +271,35 @@
 </script>
 
 <svelte:head>
-  <title>Edit Lot - {lot?.title || 'Loading...'}</title>
+  <title>{ui("Edit Lot -")} {lot?.title || ui("Loading...")}</title>
 </svelte:head>
 
 <div>
   {#if loading}
       <div class="py-16 text-center">
-        <PumbiLoader size="lg" label="Loading" />
-        <p class="mt-4 text-[var(--pumbi-muted)]">Loading lot…</p>
+        <PumbiLoader size="lg" label={ui("Loading")} />
+        <p class="mt-4 text-[var(--pumbi-muted)]">{ui("Loading lot…")}</p>
       </div>
     {:else if lot}
       <div class="pumbi-panel mb-6 p-6">
         <div class="mb-6 flex items-center justify-between">
           <div>
-            <p class="pumbi-eyebrow">Edit</p>
-            <h2 class="mt-1 font-[family-name:var(--pumbi-serif)] text-2xl font-semibold">Lot #{lot.lotNumber}</h2>
+            <p class="pumbi-eyebrow">{ui("Edit")}</p>
+            <h2 class="mt-1 font-[family-name:var(--pumbi-serif)] text-2xl font-semibold">{ui("Lot #")}{lot.lotNumber}</h2>
             <p class="mt-1 text-sm text-[var(--pumbi-ink-soft)]">{lot.title}</p>
           </div>
-          <a href={`/seller/auctions/${$page.params.id}/lots`} class="pumbi-link text-sm">← Catalog</a>
+          <a href={`/seller/auctions/${$page.params.id}/lots`} class="pumbi-link text-sm">{ui("← Catalog")}</a>
         </div>
         
         {#if errorMessage}
           <div class="mb-4 bg-red-50 border border-red-200 rounded-lg p-4">
-            <p class="text-red-800 text-sm">{errorMessage}</p>
+            <p class="text-red-800 text-sm">{ui(errorMessage)}</p>
           </div>
         {/if}
         
         {#if successMessage}
           <div class="mb-4 bg-green-50 border border-green-200 rounded-lg p-4">
-            <p class="text-green-800 text-sm">{successMessage}</p>
+            <p class="text-green-800 text-sm">{ui(successMessage)}</p>
           </div>
         {/if}
         
@@ -302,7 +308,7 @@
             <!-- Lot Number -->
             <div>
               <label for="lotNumber" class="block text-sm font-medium text-gray-700 mb-2">
-                Lot Number *
+                {ui("Lot Number *")}
               </label>
               <input
                 id="lotNumber"
@@ -317,7 +323,7 @@
             <!-- Title -->
             <div>
               <label for="title" class="block text-sm font-medium text-gray-700 mb-2">
-                Lot Title *
+                {ui("Lot Title *")}
               </label>
               <input
                 id="title"
@@ -325,14 +331,14 @@
                 bind:value={editedLot.title}
                 required
                 class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                placeholder="e.g., Original Oil Painting - Landscape"
+                placeholder={ui("e.g., Original Oil Painting - Landscape")}
               />
             </div>
             
             <!-- Description -->
             <div>
               <label for="description" class="block text-sm font-medium text-gray-700 mb-2">
-                Description *
+                {ui("Description *")}
               </label>
               <textarea
                 id="description"
@@ -340,14 +346,14 @@
                 required
                 rows="4"
                 class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                placeholder="Describe the lot..."
+                placeholder={ui("Describe the lot...")}
               ></textarea>
             </div>
             
             <!-- Category with autocomplete -->
             <div class="relative">
               <label for="category" class="block text-sm font-medium text-gray-700 mb-2">
-                Category
+                {ui("Category")}
               </label>
               <div class="relative">
                 <input
@@ -360,7 +366,7 @@
                   }}
                   onfocus={() => showCategoryDropdown = categoryInput.length > 0}
                   onblur={() => setTimeout(() => showCategoryDropdown = false, 200)}
-                  placeholder="Type to search or create new category"
+                  placeholder={ui("Type to search or create new category")}
                   class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                 />
                 {#if showCategoryDropdown && availableCategories.length > 0}
@@ -373,7 +379,7 @@
                           editedLot.category = cat;
                           showCategoryDropdown = false;
                         }}
-                        class="w-full text-left px-4 py-2 hover:bg-blue-50 text-sm"
+                        class="w-full text-start px-4 py-2 hover:bg-blue-50 text-sm"
                       >
                         {cat}
                       </button>
@@ -385,9 +391,9 @@
                           editedLot.category = categoryInput;
                           showCategoryDropdown = false;
                         }}
-                        class="w-full text-left px-4 py-2 hover:bg-green-50 text-sm text-green-600 font-semibold"
+                        class="w-full text-start px-4 py-2 hover:bg-green-50 text-sm text-green-600 font-semibold"
                       >
-                        + Create "{categoryInput}"
+                        {ui("+ Create \"")}{categoryInput}"
                       </button>
                     {/if}
                   </div>
@@ -398,7 +404,7 @@
             <!-- Tags with autocomplete -->
             <div class="relative">
               <label class="block text-sm font-medium text-gray-700 mb-2">
-                Tags
+                {ui("Tags")}
               </label>
               <div class="flex flex-wrap gap-2 mb-2">
                 {#each editedLot.tags as tag, index}
@@ -409,7 +415,7 @@
                       onclick={() => {
                         editedLot.tags = editedLot.tags.filter((_, i) => i !== index);
                       }}
-                      class="ml-2 text-blue-600 hover:text-blue-800"
+                      class="ms-2 text-blue-600 hover:text-blue-800"
                     >
                       ×
                     </button>
@@ -433,7 +439,7 @@
                       showTagDropdown = false;
                     }
                   }}
-                  placeholder="Type and press Enter to add tag"
+                  placeholder={ui("Type and press Enter to add tag")}
                   class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                 />
                 {#if showTagDropdown && availableTags.length > 0}
@@ -448,7 +454,7 @@
                           tagInput = '';
                           showTagDropdown = false;
                         }}
-                        class="w-full text-left px-4 py-2 hover:bg-blue-50 text-sm"
+                        class="w-full text-start px-4 py-2 hover:bg-blue-50 text-sm"
                       >
                         {tag}
                       </button>
@@ -463,9 +469,9 @@
                           tagInput = '';
                           showTagDropdown = false;
                         }}
-                        class="w-full text-left px-4 py-2 hover:bg-green-50 text-sm text-green-600 font-semibold"
+                        class="w-full text-start px-4 py-2 hover:bg-green-50 text-sm text-green-600 font-semibold"
                       >
-                        + Create "{tagInput}"
+                        {ui("+ Create \"")}{tagInput}"
                       </button>
                     {/if}
                   </div>
@@ -476,7 +482,7 @@
             <!-- Category Meta Fields -->
             {#if editedLot.category && getMetaFieldsForCategory(editedLot.category).length > 0}
               <div class="border-t border-gray-200 pt-4 mt-4">
-                <h3 class="text-lg font-semibold text-gray-900 mb-4">Category-Specific Fields</h3>
+                <h3 class="text-lg font-semibold text-gray-900 mb-4">{ui("Category-Specific Fields")}</h3>
                 <div class="space-y-4">
                   {#each getMetaFieldsForCategory(editedLot.category) as field}
                     <div>
@@ -522,9 +528,9 @@
                             type="checkbox"
                             checked={editedLot.metaFields[field.key] || false}
                             onchange={(e) => editedLot.metaFields[field.key] = e.target.checked}
-                            class="mr-2 h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
+                            class="me-2 h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
                           />
-                          <span class="text-sm text-gray-700">Yes</span>
+                          <span class="text-sm text-gray-700">{ui("Yes")}</span>
                         </label>
                       {:else if field.type === 'select'}
                         <select
@@ -534,7 +540,7 @@
                           required={field.required}
                           class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                         >
-                          <option value="">Select {field.label}</option>
+                          <option value="">{ui("Select")} {field.label}</option>
                           {#each field.options || [] as option}
                             <option value={option}>{option}</option>
                           {/each}
@@ -553,7 +559,7 @@
             <div class="grid grid-cols-2 gap-4">
               <div>
                 <label for="startingBid" class="block text-sm font-medium text-gray-700 mb-2">
-                  Starting Bid ($) *
+                  {ui("Starting Bid ($) *")}
                 </label>
                 <input
                   id="startingBid"
@@ -568,7 +574,7 @@
               
               <div>
                 <label for="bidIncrement" class="block text-sm font-medium text-gray-700 mb-2">
-                  Fixed increment (fallback when no schedule) *
+                  {ui("Fixed increment (fallback when no schedule) *")}
                 </label>
                 <input
                   id="bidIncrement"
@@ -586,7 +592,7 @@
             <div class="grid grid-cols-2 gap-4">
               <div>
                 <label for="status" class="block text-sm font-medium text-gray-700 mb-2">
-                  Status *
+                  {ui("Status *")}
                 </label>
                 <select
                   id="status"
@@ -594,16 +600,16 @@
                   required
                   class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                 >
-                  <option value="active">Active</option>
-                  <option value="sold">Sold</option>
-                  <option value="unsold">Unsold</option>
-                  <option value="withdrawn">Withdrawn</option>
+                  <option value="active">{ui("Active")}</option>
+                  <option value="sold">{ui("Sold")}</option>
+                  <option value="unsold">{ui("Unsold")}</option>
+                  <option value="withdrawn">{ui("Withdrawn")}</option>
                 </select>
               </div>
               
               <div>
                 <label for="endTime" class="block text-sm font-medium text-gray-700 mb-2">
-                  End Time
+                  {ui("End Time")}
                 </label>
                 <input
                   id="endTime"
@@ -613,19 +619,19 @@
                 />
               </div>
               <div>
-                <label for="initialTimerSeconds" class="block text-sm font-medium text-gray-700 mb-2">Time on block (seconds)</label>
-                <input id="initialTimerSeconds" type="number" min="1" bind:value={editedLot.initialTimerSeconds} placeholder="Inherit from auction" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent" />
+                <label for="initialTimerSeconds" class="block text-sm font-medium text-gray-700 mb-2">{ui("Time on block (seconds)")}</label>
+                <input id="initialTimerSeconds" type="number" min="1" bind:value={editedLot.initialTimerSeconds} placeholder={ui("Inherit from auction")} class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent" />
               </div>
               <div>
-                <label for="bidExtensionSeconds" class="block text-sm font-medium text-gray-700 mb-2">Bid refresh threshold (seconds)</label>
-                <input id="bidExtensionSeconds" type="number" min="1" bind:value={editedLot.bidExtensionSeconds} placeholder="Inherit from auction" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent" />
+                <label for="bidExtensionSeconds" class="block text-sm font-medium text-gray-700 mb-2">{ui("Bid refresh threshold (seconds)")}</label>
+                <input id="bidExtensionSeconds" type="number" min="1" bind:value={editedLot.bidExtensionSeconds} placeholder={ui("Inherit from auction")} class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent" />
               </div>
             </div>
             
             <!-- Images -->
             <div>
               <label class="block text-sm font-medium text-gray-700 mb-2">
-                Images
+                {ui("Images")}
               </label>
               {#if lot.images && lot.images.length > 0}
                 <div class="grid grid-cols-4 gap-4 mb-4">
@@ -633,7 +639,7 @@
                     <div class="relative">
                       <img
                         src={image.url}
-                        alt="Lot image"
+                        alt={ui("Lot image")}
                         class="w-full h-24 object-cover rounded border border-gray-300"
                       />
                       <button
@@ -665,9 +671,9 @@
                     bind:checked={removeBackground}
                     class="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
                   />
-                  <span class="text-sm text-gray-700">Remove background automatically</span>
+                  <span class="text-sm text-gray-700">{ui("Remove background automatically")}</span>
                 </label>
-                <p class="text-xs text-gray-500 ml-6">Uses AI to remove background from images</p>
+                <p class="text-xs text-gray-500 ms-6">{ui("Uses AI to remove background from images")}</p>
               </div>
               <input
                 type="file"
@@ -676,7 +682,7 @@
                 onchange={handleImageUpload}
                 class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
               />
-              <p class="mt-1 text-xs text-gray-500">Select multiple images to upload</p>
+              <p class="mt-1 text-xs text-gray-500">{ui("Select multiple images to upload")}</p>
             </div>
           </div>
           
@@ -686,22 +692,22 @@
               onclick={() => goto(`/seller/auctions/${$page.params.id}/lots`)}
               class="flex-1 bg-gray-200 text-gray-700 py-3 rounded-lg hover:bg-gray-300 transition-colors font-semibold"
             >
-              Cancel
+              {ui("Cancel")}
             </button>
             <button
               type="submit"
               disabled={saving}
               class="flex-1 bg-blue-600 text-white py-3 rounded-lg hover:bg-blue-700 transition-colors font-semibold disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              {saving ? 'Saving...' : 'Save Changes'}
+              {saving ? ui("Saving...") : ui("Save Changes")}
             </button>
           </div>
         </form>
       </div>
     {:else}
       <div class="pumbi-panel p-12 text-center">
-        <p class="mb-4 text-lg text-[var(--pumbi-muted)]">Lot not found</p>
-        <a href={`/seller/auctions/${$page.params.id}/lots`} class="pumbi-btn">Back to catalog</a>
+        <p class="mb-4 text-lg text-[var(--pumbi-muted)]">{ui("Lot not found")}</p>
+        <a href={`/seller/auctions/${$page.params.id}/lots`} class="pumbi-btn">{ui("Back to catalog")}</a>
       </div>
     {/if}
 </div>

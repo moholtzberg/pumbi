@@ -1,4 +1,8 @@
 <script>
+  import { page as localePage } from '$app/stores';
+  import { translate as translateUi } from '$lib/i18n.js';
+  const ui = (text, values) => translateUi($localePage.data.locale || 'en', text, values);
+
   import { onMount, onDestroy } from 'svelte';
   
   let {
@@ -43,15 +47,15 @@
   function formatTime() {
     const parts = [];
     if (timeRemaining.days > 0) {
-      parts.push(`${timeRemaining.days}d`);
+      parts.push(ui('{count}d', { count: timeRemaining.days }));
     }
     if (timeRemaining.hours > 0 || timeRemaining.days > 0) {
-      parts.push(`${timeRemaining.hours}h`);
+      parts.push(ui('{count}h', { count: timeRemaining.hours }));
     }
     if (timeRemaining.minutes > 0 || timeRemaining.hours > 0 || timeRemaining.days > 0) {
-      parts.push(`${timeRemaining.minutes}m`);
+      parts.push(ui('{count}m', { count: timeRemaining.minutes }));
     }
-    parts.push(`${timeRemaining.seconds}s`);
+    parts.push(ui('{count}s', { count: timeRemaining.seconds }));
     return parts.join(' ');
   }
 </script>
@@ -59,7 +63,7 @@
 {#if targetDate}
   {#if label}
     <div class="text-sm">
-      <p class="text-gray-500">{label}</p>
+      <p class="text-gray-500">{ui(label)}</p>
       <p class="font-semibold text-blue-600">{formatTime()}</p>
     </div>
   {:else}

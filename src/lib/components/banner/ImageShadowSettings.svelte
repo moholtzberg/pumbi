@@ -1,4 +1,8 @@
 <script>
+  import { page as localePage } from '$app/stores';
+  import { translate as translateUi } from '$lib/i18n.js';
+  const ui = (text, values) => translateUi($localePage.data.locale || 'en', text, values);
+
   import CollapsibleSection from './CollapsibleSection.svelte';
   
   let {
@@ -8,7 +12,7 @@
 </script>
 
 <CollapsibleSection
-  title="Image Shadows"
+  title={ui("Image Shadows")}
   bind:isCollapsed
   bgColor="bg-gray-50"
   borderColor="border-gray-200"
@@ -22,15 +26,15 @@
         bind:checked={bannerSettings.imageShadowEnabled}
         class="h-4 w-4 text-purple-600 border-gray-300 rounded focus:ring-purple-500"
       />
-      <label for="image-shadow-enabled" class="ml-2 block text-xs font-medium text-gray-700">
-        Enable Image Shadows
+      <label for="image-shadow-enabled" class="ms-2 block text-xs font-medium text-gray-700">
+        {ui("Enable Image Shadows")}
       </label>
     </div>
 
     {#if bannerSettings.imageShadowEnabled}
       <div class="mb-3">
         <label for="image-shadow-color" class="block text-xs font-medium text-gray-700 mb-1">
-          Shadow Color
+          {ui("Shadow Color")}
         </label>
         <div class="flex gap-2">
           <input
@@ -50,7 +54,7 @@
 
       <div class="mb-3">
         <label for="image-shadow-blur" class="block text-xs font-medium text-gray-700 mb-1">
-          Shadow Blur: {bannerSettings.imageShadowBlur}px
+          {ui("Shadow Blur:")} {bannerSettings.imageShadowBlur}px
         </label>
         <input
           id="image-shadow-blur"
@@ -64,7 +68,7 @@
 
       <div class="mb-3">
         <label for="image-shadow-offset-x" class="block text-xs font-medium text-gray-700 mb-1">
-          Shadow Offset X: {bannerSettings.imageShadowOffsetX}px
+          {ui("Shadow Offset X:")} {bannerSettings.imageShadowOffsetX}px
         </label>
         <input
           id="image-shadow-offset-x"
@@ -78,7 +82,7 @@
 
       <div class="mb-3">
         <label for="image-shadow-offset-y" class="block text-xs font-medium text-gray-700 mb-1">
-          Shadow Offset Y: {bannerSettings.imageShadowOffsetY}px
+          {ui("Shadow Offset Y:")} {bannerSettings.imageShadowOffsetY}px
         </label>
         <input
           id="image-shadow-offset-y"

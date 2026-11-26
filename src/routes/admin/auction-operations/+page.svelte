@@ -1,4 +1,11 @@
 <script>
+  import { page as localePage } from '$app/stores';
+  import { translate as translateUi } from '$lib/i18n.js';
+  import { localeTag as uiLocaleTag } from '$lib/utils/region.js';
+  const uiLocale = () => uiLocaleTag($localePage.data.locale);
+  const ui = (text, values) => translateUi($localePage.data.locale || 'en', text, values);
+  const uiStatus = value => ui(String(value ?? '').replaceAll('_', ' '));
+
   import { onMount } from 'svelte';
   import { page } from '$app/stores';
 
@@ -66,7 +73,7 @@
       throw new Error(
         payload.message ||
           payload.error ||
-          `Request failed (${response.status})`,
+          ui("Request failed ({value0})", { value0: response.status }),
       );
     return payload;
   }
@@ -237,7 +244,7 @@
   }
 
   function formatDate(value) {
-    return value ? new Date(value).toLocaleString() : 'Not scheduled';
+    return value ? new Date(value).toLocaleString(uiLocale()) : ui("Not scheduled");
   }
 
   function submissionCondition(item) {
@@ -277,7 +284,7 @@
   }
 </script>
 
-<svelte:head><title>Auction operations | Pumbi Admin</title></svelte:head>
+<svelte:head><title>{ui("Auction operations | Pumbi Admin")}</title></svelte:head>
 
 <div class="text-slate-900">
   <div class="mx-auto max-w-7xl space-y-8">
@@ -286,11 +293,11 @@
         <p
           class="text-xs font-semibold uppercase tracking-widest text-indigo-600"
         >
-          Catalog operations
+          {ui("Catalog operations")}
         </p>
-        <h1 class="text-3xl font-bold">Auction operations</h1>
+        <h1 class="text-3xl font-bold">{ui("Auction operations")}</h1>
         <p class="mt-1 text-sm text-slate-500">
-          Manage public auction policy, schedules, and submitted lots.
+          {ui("Manage public auction policy, schedules, and submitted lots.")}
         </p>
       </div>
       <div class="flex flex-wrap gap-2">
@@ -298,19 +305,19 @@
           href="/admin/auctions"
           class="rounded-md border bg-white px-3 py-2 text-sm font-medium text-indigo-700"
         >
-          Browse all auctions
+          {ui("Browse all auctions")}
         </a>
         <button
           class="rounded-md bg-indigo-600 px-3 py-2 text-sm font-semibold text-white hover:bg-indigo-700"
           onclick={() => (showManualAuctionForm = !showManualAuctionForm)}
         >
-          {showManualAuctionForm ? 'Close form' : '+ Create auction'}
+          {showManualAuctionForm ? ui("Close form") : ui("+ Create auction")}
         </button>
         <button
           class="rounded-md border bg-white px-3 py-2 text-sm font-medium hover:bg-slate-100"
           onclick={loadAll}
         >
-          Refresh
+          {ui("Refresh")}
         </button>
       </div>
     </header>
@@ -318,15 +325,15 @@
     {#if notice}<div
         class="rounded-md bg-emerald-50 p-3 text-sm text-emerald-800"
       >
-        {notice}
+        {ui(notice)}
       </div>{/if}
     {#if failure}<div class="rounded-md bg-red-50 p-3 text-sm text-red-800">
-        {failure}
+        {ui(failure)}
       </div>{/if}
 
     {#if loading}
       <p class="py-12 text-center text-slate-500">
-        Loading platform operations…
+        {ui("Loading platform operations…")}
       </p>
     {:else}
       {#if showManualAuctionForm}
@@ -337,21 +344,19 @@
             <p
               class="text-xs font-bold uppercase tracking-widest text-indigo-600"
             >
-              Standalone public auction
+              {ui("Standalone public auction")}
             </p>
-            <h2 class="mt-1 text-xl font-bold">Create an auction now</h2>
+            <h2 class="mt-1 text-xl font-bold">{ui("Create an auction now")}</h2>
             <p class="mt-1 text-sm text-slate-600">
-              Owned by Pumbi and governed by the active platform policy. This
-              does not create or change a recurring series.
+              {ui("Owned by Pumbi and governed by the active platform policy. This does not create or change a recurring series.")}
             </p>
             {#if activePolicy()}
               <p class="mt-2 text-xs font-semibold text-emerald-700">
-                Active policy: version {activePolicy().version}
+                {ui("Active policy: version")} {activePolicy().version}
               </p>
             {:else}
               <p class="mt-2 text-xs font-semibold text-amber-800">
-                Create and activate a platform policy below before publishing an
-                auction.
+                {ui("Create and activate a platform policy below before publishing an auction.")}
               </p>
             {/if}
           </div>
@@ -363,7 +368,7 @@
             }}
           >
             <label class="text-sm font-medium md:col-span-2">
-              Title<input
+              {ui("Title")}<input
                 class="mt-1 w-full rounded-md border-slate-300 text-sm"
                 maxlength="200"
                 bind:value={manualAuctionForm.title}
@@ -371,14 +376,14 @@
               />
             </label>
             <label class="text-sm font-medium md:col-span-2">
-              Description<textarea
+              {ui("Description")}<textarea
                 class="mt-1 w-full rounded-md border-slate-300 text-sm"
                 maxlength="5000"
                 rows="3"
                 bind:value={manualAuctionForm.description}></textarea>
             </label>
             <label class="text-sm font-medium">
-              Starts<input
+              {ui("Starts")}<input
                 class="mt-1 w-full rounded-md border-slate-300 text-sm"
                 type="datetime-local"
                 bind:value={manualAuctionForm.startDate}
@@ -386,7 +391,7 @@
               />
             </label>
             <label class="text-sm font-medium">
-              Ends<input
+              {ui("Ends")}<input
                 class="mt-1 w-full rounded-md border-slate-300 text-sm"
                 type="datetime-local"
                 bind:value={manualAuctionForm.endDate}
@@ -394,8 +399,8 @@
               />
             </label>
             <label class="text-sm font-medium md:col-span-2">
-              Cover image URL <span class="font-normal text-slate-400">
-                (optional)
+              {ui("Cover image URL")} <span class="font-normal text-slate-400">
+                {ui("(optional)")}
               </span><input
                 class="mt-1 w-full rounded-md border-slate-300 text-sm"
                 type="url"
@@ -408,8 +413,7 @@
               class="flex flex-wrap items-center justify-between gap-3 border-t pt-4 md:col-span-2"
             >
               <p class="text-xs text-slate-500">
-                A future start creates an UPCOMING auction; an earlier start
-                creates a LIVE auction.
+                {ui("A future start creates an UPCOMING auction; an earlier start creates a LIVE auction.")}
               </p>
               <div class="flex gap-2">
                 <button
@@ -420,15 +424,15 @@
                     showManualAuctionForm = false;
                   }}
                 >
-                  Cancel
+                  {ui("Cancel")}
                 </button>
                 <button
                   class="rounded-md bg-indigo-600 px-4 py-2 text-sm font-semibold text-white disabled:opacity-50"
                   disabled={busy !== '' || !activePolicy()}
                 >
                   {busy === 'auction-new'
-                    ? 'Creating…'
-                    : 'Create public auction'}
+                    ? ui("Creating…")
+                    : ui("Create public auction")}
                 </button>
               </div>
             </div>
@@ -441,22 +445,22 @@
           class="flex flex-wrap items-center justify-between gap-3 border-b px-5 py-4"
         >
           <div>
-            <h2 class="text-lg font-bold">Public auctions</h2>
+            <h2 class="text-lg font-bold">{ui("Public auctions")}</h2>
             <p class="text-xs text-slate-500">
-              Standalone and recurring auction occurrences
+              {ui("Standalone and recurring auction occurrences")}
             </p>
           </div>
-          <span class="text-xs text-slate-500">{auctions.length} shown</span>
+          <span class="text-xs text-slate-500">{auctions.length} {ui("shown")}</span>
         </div>
         <div class="overflow-x-auto">
-          <table class="w-full min-w-[760px] text-left text-sm">
+          <table class="w-full min-w-[760px] text-start text-sm">
             <thead class="bg-slate-50 text-xs uppercase text-slate-500">
               <tr>
-                <th class="px-5 py-3">Auction</th><th class="px-5 py-3">
-                  Source
-                </th><th class="px-5 py-3">Status</th><th class="px-5 py-3">
-                  Schedule
-                </th><th class="px-5 py-3">Activity</th><th class="px-5 py-3"
+                <th class="px-5 py-3">{ui("Auction")}</th><th class="px-5 py-3">
+                  {ui("Source")}
+                </th><th class="px-5 py-3">{ui("Status")}</th><th class="px-5 py-3">
+                  {ui("Schedule")}
+                </th><th class="px-5 py-3">{ui("Activity")}</th><th class="px-5 py-3"
                 ></th>
               </tr>
             </thead>
@@ -466,38 +470,38 @@
                   <td class="px-5 py-4 font-semibold">
                     {auction.title}
                     <div class="text-xs font-normal text-slate-500">
-                      Policy v{auction.policyVersionSnapshot || '—'}
+                      {ui("Policy v")}{auction.policyVersionSnapshot || '—'}
                     </div>
                   </td>
                   <td class="px-5 py-4">
                     <span
                       class="rounded-full bg-slate-100 px-2 py-1 text-xs font-bold"
                     >
-                      {auction.seriesId ? 'Recurring' : 'Manual'}
+                      {auction.seriesId ? ui("Recurring") : ui("Manual")}
                     </span>
                   </td>
-                  <td class="px-5 py-4">{auction.status}</td>
+                  <td class="px-5 py-4">{uiStatus(auction.status)}</td>
                   <td class="px-5 py-4 text-xs text-slate-600">
-                    {formatDate(auction.startDate)}<br />to {formatDate(
+                    {formatDate(auction.startDate)}<br />{ui("to")} {formatDate(
                       auction.endDate,
                     )}
                   </td>
                   <td class="px-5 py-4 text-slate-600">
-                    {auction._count.lots} lots · {auction._count.registrations} bidders
+                    {auction._count.lots} {ui("lots ·")} {auction._count.registrations} {ui("bidders")}
                   </td>
-                  <td class="px-5 py-4 text-right">
+                  <td class="px-5 py-4 text-end">
                     <a
                       href={`/auctions/${auction.id}`}
                       class="font-semibold text-indigo-600"
                     >
-                      Open →
+                      {ui("Open →")}
                     </a>
                   </td>
                 </tr>
               {/each}
               {#if auctions.length === 0}<tr>
                   <td colspan="6" class="px-5 py-10 text-center text-slate-500">
-                    No public auctions yet. Create the first one above.
+                    {ui("No public auctions yet. Create the first one above.")}
                   </td>
                 </tr>{/if}
             </tbody>
@@ -510,21 +514,21 @@
       >
         <div class="rounded-xl border bg-white p-5 shadow-sm">
           <div class="mb-4 flex items-center justify-between">
-            <h2 class="text-lg font-bold">Policy versions</h2>
-            <span class="text-xs text-slate-500">{policies.length} total</span>
+            <h2 class="text-lg font-bold">{ui("Policy versions")}</h2>
+            <span class="text-xs text-slate-500">{policies.length} {ui("total")}</span>
           </div>
           <div class="max-h-80 space-y-2 overflow-auto">
             {#each policies as policy}
               <article class="rounded-lg border p-3">
                 <div class="flex items-center justify-between gap-2">
                   <div>
-                    <span class="font-semibold">Version {policy.version}</span>
+                    <span class="font-semibold">{ui("Version")} {policy.version}</span>
                     <span
-                      class="ml-2 rounded-full px-2 py-0.5 text-xs {policy.isActive
+                      class="ms-2 rounded-full px-2 py-0.5 text-xs {policy.isActive
                         ? 'bg-emerald-100 text-emerald-800'
                         : 'bg-slate-100 text-slate-600'}"
                     >
-                      {policy.isActive ? 'Active' : 'Inactive'}
+                      {policy.isActive ? ui("Active") : ui("Inactive")}
                     </span>
                   </div>
                   {#if !policy.isActive}
@@ -533,13 +537,12 @@
                       disabled={busy !== ''}
                       onclick={() => activatePolicy(policy.id)}
                     >
-                      Activate
+                      {ui("Activate")}
                     </button>
                   {/if}
                 </div>
                 <p class="mt-2 text-xs text-slate-500">
-                  Buyer premium {Number(policy.buyerPremiumRate) * 100}% ·
-                  Seller commission {Number(policy.sellerCommissionRate) * 100}%
+                  {ui("Buyer premium")} {Number(policy.buyerPremiumRate) * 100}{ui("% · Seller commission")} {Number(policy.sellerCommissionRate) * 100}%
                   · {formatDate(policy.effectiveFrom)}
                 </p>
               </article>
@@ -554,24 +557,24 @@
             createPolicy();
           }}
         >
-          <h2 class="mb-4 text-lg font-bold">Create next policy</h2>
+          <h2 class="mb-4 text-lg font-bold">{ui("Create next policy")}</h2>
           <div class="grid gap-3">
             <label class="text-sm font-medium">
-              Buyer terms<textarea
+              {ui("Buyer terms")}<textarea
                 class="mt-1 w-full rounded-md border-slate-300 text-sm"
                 rows="3"
                 bind:value={policyForm.buyerTerms}
                 required></textarea>
             </label>
             <label class="text-sm font-medium">
-              Seller terms<textarea
+              {ui("Seller terms")}<textarea
                 class="mt-1 w-full rounded-md border-slate-300 text-sm"
                 rows="3"
                 bind:value={policyForm.sellerTerms}
                 required></textarea>
             </label>
             <label class="text-sm font-medium">
-              Auction house onboarding terms<textarea
+              {ui("Auction house onboarding terms")}<textarea
                 class="mt-1 w-full rounded-md border-slate-300 text-sm"
                 rows="3"
                 bind:value={policyForm.auctionHouseTerms}
@@ -579,7 +582,7 @@
             </label>
             <div class="grid grid-cols-2 gap-3">
               <label class="text-sm font-medium">
-                Buyer rate<input
+                {ui("Buyer rate")}<input
                   class="mt-1 w-full rounded-md border-slate-300 text-sm"
                   type="number"
                   min="0"
@@ -590,7 +593,7 @@
                 />
               </label>
               <label class="text-sm font-medium">
-                Seller rate<input
+                {ui("Seller rate")}<input
                   class="mt-1 w-full rounded-md border-slate-300 text-sm"
                   type="number"
                   min="0"
@@ -602,7 +605,7 @@
               </label>
             </div>
             <label class="text-sm font-medium">
-              Rate config JSON (optional)<textarea
+              {ui("Rate config JSON (optional)")}<textarea
                 class="mt-1 w-full rounded-md border-slate-300 font-mono text-xs"
                 rows="2"
                 bind:value={policyForm.rateConfig}></textarea>
@@ -611,7 +614,7 @@
               class="rounded-md bg-indigo-600 px-3 py-2 text-sm font-semibold text-white disabled:opacity-50"
               disabled={busy !== ''}
             >
-              Create version
+              {ui("Create version")}
             </button>
           </div>
         </form>
@@ -619,8 +622,8 @@
 
       <section class="rounded-xl border bg-white p-5 shadow-sm">
         <div class="mb-4 flex items-center justify-between">
-          <h2 class="text-lg font-bold">Monthly auction series</h2>
-          <span class="text-xs text-slate-500">{series.length} configured</span>
+          <h2 class="text-lg font-bold">{ui("Monthly auction series")}</h2>
+          <span class="text-xs text-slate-500">{series.length} {ui("configured")}</span>
         </div>
         <form
           id="series-form"
@@ -631,35 +634,35 @@
           }}
         >
           <label class="text-sm font-medium md:col-span-2">
-            Name<input
+            {ui("Name")}<input
               class="mt-1 w-full rounded-md border-slate-300 text-sm"
               bind:value={seriesForm.name}
               required
             />
           </label>
           <label class="text-sm font-medium">
-            Auction house<input
+            {ui("Auction house")}<input
               class="mt-1 w-full rounded-md border-slate-300 bg-slate-100 text-sm"
               value="Pumbi"
               disabled
             />
           </label>
           <label class="text-sm font-medium">
-            Type<input
+            {ui("Type")}<input
               class="mt-1 w-full rounded-md border-slate-300 bg-slate-100 text-sm"
               value="PUBLIC"
               disabled
             />
           </label>
           <label class="text-sm font-medium">
-            Timezone<input
+            {ui("Timezone")}<input
               class="mt-1 w-full rounded-md border-slate-300 text-sm"
               bind:value={seriesForm.timezone}
               required
             />
           </label>
           <label class="text-sm font-medium">
-            Day of month<input
+            {ui("Day of month")}<input
               class="mt-1 w-full rounded-md border-slate-300 text-sm"
               type="number"
               min="1"
@@ -669,7 +672,7 @@
             />
           </label>
           <label class="text-sm font-medium">
-            Local time<input
+            {ui("Local time")}<input
               class="mt-1 w-full rounded-md border-slate-300 text-sm"
               type="time"
               bind:value={seriesForm.recurrenceLocalTime}
@@ -677,14 +680,14 @@
             />
           </label>
           <label class="text-sm font-medium">
-            Next generation run<input
+            {ui("Next generation run")}<input
               class="mt-1 w-full rounded-md border-slate-300 text-sm"
               type="datetime-local"
               bind:value={seriesForm.nextRunAt}
             />
           </label>
           <label class="text-sm font-medium">
-            Submission cutoff (days)<input
+            {ui("Submission cutoff (days)")}<input
               class="mt-1 w-full rounded-md border-slate-300 text-sm"
               type="number"
               min="0"
@@ -692,7 +695,7 @@
             />
           </label>
           <label class="text-sm font-medium">
-            Auction starts after generation (minutes)<input
+            {ui("Auction starts after generation (minutes)")}<input
               class="mt-1 w-full rounded-md border-slate-300 text-sm"
               type="number"
               min="1"
@@ -700,7 +703,7 @@
             />
           </label>
           <label class="text-sm font-medium">
-            Duration (minutes)<input
+            {ui("Duration (minutes)")}<input
               class="mt-1 w-full rounded-md border-slate-300 text-sm"
               type="number"
               min="1"
@@ -708,7 +711,7 @@
             />
           </label>
           <label class="text-sm font-medium">
-            Registration opens (days)<input
+            {ui("Registration opens (days)")}<input
               class="mt-1 w-full rounded-md border-slate-300 text-sm"
               type="number"
               min="0"
@@ -716,7 +719,7 @@
             />
           </label>
           <label class="text-sm font-medium">
-            Registration closes before start (minutes; negative is after)<input
+            {ui("Registration closes before start (minutes; negative is after)")}<input
               class="mt-1 w-full rounded-md border-slate-300 text-sm"
               type="number"
               bind:value={seriesForm.registrationCloseOffsetMinutes}
@@ -725,14 +728,14 @@
           <label
             class="flex items-center gap-2 self-end pb-2 text-sm font-medium"
           >
-            <input type="checkbox" bind:checked={seriesForm.isActive} /> Active
+            <input type="checkbox" bind:checked={seriesForm.isActive} /> {ui("Active")}
           </label>
           <div class="flex items-end gap-2 md:col-span-2">
             <button
               class="rounded-md bg-indigo-600 px-3 py-2 text-sm font-semibold text-white disabled:opacity-50"
               disabled={busy !== ''}
             >
-              {editingSeriesId ? 'Update series' : 'Create series'}
+              {editingSeriesId ? ui("Update series") : ui("Create series")}
             </button>
             {#if editingSeriesId}<button
                 type="button"
@@ -742,18 +745,18 @@
                   seriesForm = blankSeries();
                 }}
               >
-                Cancel
+                {ui("Cancel")}
               </button>{/if}
           </div>
         </form>
         <div class="overflow-x-auto">
-          <table class="w-full text-left text-sm">
+          <table class="w-full text-start text-sm">
             <thead class="border-b text-xs uppercase text-slate-500">
               <tr>
-                <th class="p-2">Series</th><th class="p-2">Schedule</th><th
+                <th class="p-2">{ui("Series")}</th><th class="p-2">{ui("Schedule")}</th><th
                   class="p-2"
                 >
-                  Activity
+                  {ui("Activity")}
                 </th><th class="p-2"></th>
               </tr>
             </thead>
@@ -767,28 +770,28 @@
                     </div>
                   </td>
                   <td class="p-2">
-                    Day {item.recurrenceDayOfMonth} at {item.recurrenceLocalTime}
+                    {ui("Day")} {item.recurrenceDayOfMonth} {ui("at")} {item.recurrenceLocalTime}
                     <div class="text-xs text-slate-500">
-                      {item.timezone} · next {formatDate(item.nextRunAt)}
+                      {item.timezone} {ui("· next")} {formatDate(item.nextRunAt)}
                     </div>
                   </td>
                   <td class="p-2">
-                    {item._count.auctions} auctions · {item._count
-                      .lotSubmissions} submissions
+                    {item._count.auctions} {ui("auctions ·")} {item._count
+                      .lotSubmissions} {ui("submissions")}
                     <div
                       class="text-xs {item.isActive
                         ? 'text-emerald-700'
                         : 'text-slate-500'}"
                     >
-                      {item.isActive ? 'Active' : 'Paused'}
+                      {item.isActive ? ui("Active") : ui("Paused")}
                     </div>
                   </td>
-                  <td class="p-2 text-right">
+                  <td class="p-2 text-end">
                     <button
                       class="rounded border px-2 py-1 text-xs hover:bg-slate-50"
                       onclick={() => editSeries(item)}
                     >
-                      Edit
+                      {ui("Edit")}
                     </button>
                   </td>
                 </tr>
@@ -803,10 +806,9 @@
         class="rounded-xl border bg-white p-5 shadow-sm"
       >
         <div class="mb-4 flex items-center justify-between">
-          <h2 class="text-lg font-bold">Lot submissions</h2>
+          <h2 class="text-lg font-bold">{ui("Lot submissions")}</h2>
           <span class="text-xs text-slate-500">
-            {submissions.filter((item) => item.status === 'SUBMITTED').length} awaiting
-            review
+            {submissions.filter((item) => item.status === 'SUBMITTED').length} {ui("awaiting review")}
           </span>
         </div>
         <div class="space-y-3">
@@ -817,44 +819,44 @@
               <div class="flex gap-3">
                 {#if item.images?.[0]}<img
                     src={item.images[0].previewUrl}
-                    alt={item.title || 'Lot submission'}
+                    alt={item.title || ui("Lot submission")}
                     class="h-20 w-20 shrink-0 rounded-lg object-cover"
                   />{/if}
                 <div class="min-w-0">
                   <div class="flex flex-wrap items-center gap-2">
                     <h3 class="font-semibold">
-                      {item.title || 'Untitled submission'}
+                      {item.title || ui("Untitled submission")}
                     </h3>
                     <span class="rounded-full bg-slate-100 px-2 py-0.5 text-xs">
-                      {item.status}
+                      {uiStatus(item.status)}
                     </span>
                   </div>
                   <p class="mt-1 line-clamp-2 text-sm text-slate-600">
-                    {item.description || 'No description'}
+                    {item.description || ui("No description")}
                   </p>
                   {#if submissionCondition(item)}<p
                       class="mt-2 text-xs text-slate-600"
                     >
-                      <strong>Condition:</strong>
+                      <strong>{ui("Condition:")}</strong>
                       {submissionCondition(item)}
                     </p>{/if}
                   <p class="mt-2 text-xs text-slate-500">
                     {item.sellerProfile.displayName ||
                       item.sellerProfile.user.name ||
                       item.sellerProfile.user.email}
-                    · Start {item.requestedStartingBid ?? '—'} · Increment {item.requestedBidIncrement ??
+                    {ui("· Start")} {item.requestedStartingBid ?? '—'} {ui("· Increment")} {item.requestedBidIncrement ??
                       '—'}
                     {#if item.auctionSeries}· {item.auctionSeries.name}{/if}
                   </p>
                   {#if item.rejectionReason}<p
                       class="mt-2 text-xs text-red-700"
                     >
-                      Reason: {item.rejectionReason}
+                      {ui("Reason:")} {item.rejectionReason}
                     </p>{/if}
                   {#if item.approvedLot}<p
                       class="mt-2 text-xs text-emerald-700"
                     >
-                      Created lot #{item.approvedLot.lotNumber}
+                      {ui("Created lot #")}{item.approvedLot.lotNumber}
                     </p>{/if}
                 </div>
               </div>
@@ -865,7 +867,7 @@
                     bind:value={selectedAuctions[item.id]}
                   >
                     <option value="">
-                      Use the next generated series auction
+                      {ui("Use the next generated series auction")}
                     </option>
                     {#each publicAuctions as auction}<option value={auction.id}>
                         {auction.title} — {formatDate(auction.startDate)}
@@ -877,11 +879,11 @@
                       disabled={busy !== ''}
                       onclick={() => approveSubmission(item)}
                     >
-                      Approve
+                      {ui("Approve")}
                     </button>
                     <input
                       class="min-w-0 flex-1 rounded-md border-slate-300 text-sm"
-                      placeholder="Rejection reason"
+                      placeholder={ui("Rejection reason")}
                       bind:value={rejectionReasons[item.id]}
                     />
                     <button
@@ -889,7 +891,7 @@
                       disabled={busy !== ''}
                       onclick={() => rejectSubmission(item)}
                     >
-                      Reject
+                      {ui("Reject")}
                     </button>
                   </div>
                 </div>
@@ -899,7 +901,7 @@
           {#if submissions.length === 0}<p
               class="py-8 text-center text-sm text-slate-500"
             >
-              No lot submissions.
+              {ui("No lot submissions.")}
             </p>{/if}
         </div>
       </section>

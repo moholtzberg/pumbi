@@ -1,4 +1,8 @@
 <script>
+  import { page as localePage } from '$app/stores';
+  import { translate as translateUi } from '$lib/i18n.js';
+  const ui = (text, values) => translateUi($localePage.data.locale || 'en', text, values);
+
   import { browser } from '$app/environment';
   import { VisibleViewSession } from '$lib/utils/viewSession.js';
 
@@ -23,7 +27,7 @@
           keepalive: action === 'end',
           body: JSON.stringify({ action, entityType: type, entityId: id, anonId, path: window.location.pathname, referrer: document.referrer || null, ...payload })
         });
-        if (!response.ok) throw new Error('Unable to record view');
+        if (!response.ok) throw new Error(ui("Unable to record view"));
         return response.json();
       }
     });

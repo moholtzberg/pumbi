@@ -1,10 +1,14 @@
 <script>
+  import { page as localePage } from '$app/stores';
+  import { translate as translateUi } from '$lib/i18n.js';
+  const ui = (text, values) => translateUi($localePage.data.locale || 'en', text, values);
+
     let { videos } = $props();
 </script>
   
 <section id="videos" class="py-20 bg-gray-50">
     <div class="container mx-auto px-4">
-      <h2 class="text-4xl font-bold text-center mb-12 text-gray-800">🎥 Videos</h2>
+      <h2 class="text-4xl font-bold text-center mb-12 text-gray-800">{ui("🎥 Videos")}</h2>
       <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8">
         {#each videos as video}
           <div class="bg-white rounded-lg overflow-hidden shadow-md hover:shadow-lg transition-shadow duration-300">

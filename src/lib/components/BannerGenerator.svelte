@@ -1,4 +1,10 @@
 <script>
+  import { page as localePage } from '$app/stores';
+  import { translate as translateUi } from '$lib/i18n.js';
+  import { localeTag as uiLocaleTag } from '$lib/utils/region.js';
+  const uiLocale = () => uiLocaleTag($localePage.data.locale);
+  const ui = (text, values) => translateUi($localePage.data.locale || 'en', text, values);
+
   import ImageSelection from './banner/ImageSelection.svelte';
   import ImageSettings from './banner/ImageSettings.svelte';
   import LayoutSettings from './banner/LayoutSettings.svelte';
@@ -35,7 +41,7 @@
     textElements: [
       {
         id: 'text1',
-        label: 'Text Element 1',
+        label: ui("Text Element 1"),
         content: '',
         mappedField: 'title', // Maps to lot.title, lot.hebrewTitle, etc.
         enabled: true,
@@ -62,7 +68,7 @@
       },
       {
         id: 'text2',
-        label: 'Text Element 2',
+        label: ui("Text Element 2"),
         content: '',
         mappedField: 'titleHebrew',
         enabled: true,
@@ -86,7 +92,7 @@
       },
       {
         id: 'text3',
-        label: 'Text Element 3',
+        label: ui("Text Element 3"),
         content: '',
         mappedField: 'subtitle',
         enabled: true,
@@ -110,7 +116,7 @@
       },
       {
         id: 'text4',
-        label: 'Text Element 4',
+        label: ui("Text Element 4"),
         content: '',
         mappedField: 'subtitleHebrew',
         enabled: true,
@@ -443,12 +449,12 @@
   }
 
   const imageLayouts = [
-    { value: 'right', label: 'Image Right (Text Left)' },
-    { value: 'left', label: 'Image Left (Text Right)' },
-    { value: 'center', label: 'Image Center (Text Overlay)' },
-    { value: 'full', label: 'Full Background Image' },
-    { value: 'collage', label: 'Image Collage' },
-    { value: 'split', label: 'Split Screen' }
+    { value: 'right', label: ui("Image Right (Text Left)") },
+    { value: 'left', label: ui("Image Left (Text Right)") },
+    { value: 'center', label: ui("Image Center (Text Overlay)") },
+    { value: 'full', label: ui("Full Background Image") },
+    { value: 'collage', label: ui("Image Collage") },
+    { value: 'split', label: ui("Split Screen") }
   ];
 
   // Preset layout templates
@@ -456,7 +462,7 @@
     {
       id: 'classic-right',
       name: 'Classic Right',
-      description: 'Image on right, text on left',
+      description: ui("Image on right, text on left"),
       preview: 'right',
       settings: {
         imageLayout: 'right',
@@ -471,7 +477,7 @@
     {
       id: 'classic-left',
       name: 'Classic Left',
-      description: 'Image on left, text on right',
+      description: ui("Image on left, text on right"),
       preview: 'left',
       settings: {
         imageLayout: 'left',
@@ -486,7 +492,7 @@
     {
       id: 'full-background',
       name: 'Full Background',
-      description: 'Image as full background with text overlay',
+      description: ui("Image as full background with text overlay"),
       preview: 'full',
       settings: {
         imageLayout: 'full',
@@ -500,7 +506,7 @@
     {
       id: 'centered-overlay',
       name: 'Centered Overlay',
-      description: 'Centered image with text overlay',
+      description: ui("Centered image with text overlay"),
       preview: 'center',
       settings: {
         imageLayout: 'center',
@@ -519,7 +525,7 @@
     {
       id: 'collage-grid',
       name: 'Collage Grid',
-      description: 'Multiple images in a grid layout',
+      description: ui("Multiple images in a grid layout"),
       preview: 'collage',
       settings: {
         imageLayout: 'collage',
@@ -534,7 +540,7 @@
     {
       id: 'split-screen',
       name: 'Split Screen',
-      description: 'Split screen with image and text',
+      description: ui("Split screen with image and text"),
       preview: 'split',
       settings: {
         imageLayout: 'split',
@@ -548,7 +554,7 @@
     {
       id: 'elegant-gradient',
       name: 'Elegant Gradient',
-      description: 'Gradient background with image on right',
+      description: ui("Gradient background with image on right"),
       preview: 'right',
       settings: {
         imageLayout: 'right',
@@ -571,7 +577,7 @@
     {
       id: 'minimal-pattern',
       name: 'Minimal Pattern',
-      description: 'Pattern background with image on left',
+      description: ui("Pattern background with image on left"),
       preview: 'left',
       settings: {
         imageLayout: 'left',
@@ -734,7 +740,7 @@
     event.stopPropagation();
     const previewUrl = presetPreviews[preset.id];
     if (!previewUrl) {
-      alert('Preview not ready yet. Please wait a moment.');
+      alert(ui("Preview not ready yet. Please wait a moment."));
       return;
     }
     
@@ -748,10 +754,10 @@
   // This prevents the page from hanging when the banner tool is opened
 
   const backgroundTypes = [
-    { value: 'solid', label: 'Solid Color' },
-    { value: 'gradient', label: 'Gradient' },
-    { value: 'image', label: 'Background Image' },
-    { value: 'pattern', label: 'Pattern' }
+    { value: 'solid', label: ui("Solid Color") },
+    { value: 'gradient', label: ui("Gradient") },
+    { value: 'image', label: ui("Background Image") },
+    { value: 'pattern', label: ui("Pattern") }
   ];
 
   // Background design presets
@@ -759,7 +765,7 @@
     {
       id: 'antique-paper',
       name: 'Antique Paper',
-      description: 'Warm beige with subtle texture',
+      description: ui("Warm beige with subtle texture"),
       settings: {
         backgroundType: 'pattern',
         backgroundColor: '#F5F1E8',
@@ -769,7 +775,7 @@
     {
       id: 'elegant-cream',
       name: 'Elegant Cream',
-      description: 'Soft cream gradient',
+      description: ui("Soft cream gradient"),
       settings: {
         backgroundType: 'gradient',
         backgroundGradient: {
@@ -783,7 +789,7 @@
     {
       id: 'royal-purple',
       name: 'Royal Purple',
-      description: 'Rich purple gradient',
+      description: ui("Rich purple gradient"),
       settings: {
         backgroundType: 'gradient',
         backgroundColor: '#4A148C',
@@ -801,7 +807,7 @@
     {
       id: 'golden-sunset',
       name: 'Golden Sunset',
-      description: 'Warm gold to orange gradient',
+      description: ui("Warm gold to orange gradient"),
       settings: {
         backgroundType: 'gradient',
         backgroundGradient: {
@@ -818,7 +824,7 @@
     {
       id: 'ocean-blue',
       name: 'Ocean Blue',
-      description: 'Calming blue gradient',
+      description: ui("Calming blue gradient"),
       settings: {
         backgroundType: 'gradient',
         backgroundGradient: {
@@ -835,7 +841,7 @@
     {
       id: 'forest-green',
       name: 'Forest Green',
-      description: 'Deep green gradient',
+      description: ui("Deep green gradient"),
       settings: {
         backgroundType: 'gradient',
         backgroundGradient: {
@@ -852,7 +858,7 @@
     {
       id: 'vintage-dots',
       name: 'Vintage Dots',
-      description: 'Beige with dot pattern',
+      description: ui("Beige with dot pattern"),
       settings: {
         backgroundType: 'pattern',
         backgroundColor: '#F5F1E8',
@@ -862,7 +868,7 @@
     {
       id: 'geometric-grid',
       name: 'Geometric Grid',
-      description: 'Clean grid pattern',
+      description: ui("Clean grid pattern"),
       settings: {
         backgroundType: 'pattern',
         backgroundColor: '#FFFFFF',
@@ -872,7 +878,7 @@
     {
       id: 'wave-texture',
       name: 'Wave Texture',
-      description: 'Subtle wave pattern',
+      description: ui("Subtle wave pattern"),
       settings: {
         backgroundType: 'pattern',
         backgroundColor: '#F0F0F0',
@@ -882,7 +888,7 @@
     {
       id: 'hexagon-modern',
       name: 'Hexagon Modern',
-      description: 'Modern hexagon pattern',
+      description: ui("Modern hexagon pattern"),
       settings: {
         backgroundType: 'pattern',
         backgroundColor: '#FAFAFA',
@@ -892,7 +898,7 @@
     {
       id: 'herringbone-classic',
       name: 'Herringbone Classic',
-      description: 'Classic herringbone pattern',
+      description: ui("Classic herringbone pattern"),
       settings: {
         backgroundType: 'pattern',
         backgroundColor: '#F5F1E8',
@@ -902,7 +908,7 @@
     {
       id: 'starry-night',
       name: 'Starry Night',
-      description: 'Dark with star pattern',
+      description: ui("Dark with star pattern"),
       settings: {
         backgroundType: 'pattern',
         backgroundColor: '#1A1A2E',
@@ -915,7 +921,7 @@
     {
       id: 'elegant-lines',
       name: 'Elegant Lines',
-      description: 'Subtle horizontal lines',
+      description: ui("Subtle horizontal lines"),
       settings: {
         backgroundType: 'pattern',
         backgroundColor: '#F8F8F8',
@@ -925,7 +931,7 @@
     {
       id: 'crosshatch-texture',
       name: 'Crosshatch Texture',
-      description: 'Diagonal crosshatch pattern',
+      description: ui("Diagonal crosshatch pattern"),
       settings: {
         backgroundType: 'pattern',
         backgroundColor: '#F5F1E8',
@@ -935,7 +941,7 @@
     {
       id: 'circle-mosaic',
       name: 'Circle Mosaic',
-      description: 'Overlapping circles pattern',
+      description: ui("Overlapping circles pattern"),
       settings: {
         backgroundType: 'pattern',
         backgroundColor: '#FFFFFF',
@@ -945,7 +951,7 @@
     {
       id: 'warm-terracotta',
       name: 'Warm Terracotta',
-      description: 'Terracotta solid color',
+      description: ui("Terracotta solid color"),
       settings: {
         backgroundType: 'solid',
         backgroundColor: '#E07A5F',
@@ -957,7 +963,7 @@
     {
       id: 'deep-navy',
       name: 'Deep Navy',
-      description: 'Rich navy blue',
+      description: ui("Rich navy blue"),
       settings: {
         backgroundType: 'solid',
         backgroundColor: '#1E3A5F',
@@ -969,7 +975,7 @@
     {
       id: 'ivory-white',
       name: 'Ivory White',
-      description: 'Clean ivory background',
+      description: ui("Clean ivory background"),
       settings: {
         backgroundType: 'solid',
         backgroundColor: '#FFFFF0'
@@ -978,7 +984,7 @@
     {
       id: 'charcoal-dark',
       name: 'Charcoal Dark',
-      description: 'Dark charcoal background',
+      description: ui("Dark charcoal background"),
       settings: {
         backgroundType: 'solid',
         backgroundColor: '#36454F',
@@ -990,7 +996,7 @@
     {
       id: 'sunset-gradient',
       name: 'Sunset Gradient',
-      description: 'Pink to orange gradient',
+      description: ui("Pink to orange gradient"),
       settings: {
         backgroundType: 'gradient',
         backgroundGradient: {
@@ -1053,7 +1059,7 @@
   // Save current settings as a template
   function saveAsTemplate() {
     if (!templateName.trim()) {
-      alert('Please enter a template name');
+      alert(ui("Please enter a template name"));
       return;
     }
 
@@ -1073,7 +1079,7 @@
   // Delete a template
   function deleteTemplate(templateId, event) {
     event.stopPropagation();
-    if (confirm('Are you sure you want to delete this template?')) {
+    if (confirm(ui("Are you sure you want to delete this template?"))) {
       savedTemplates = savedTemplates.filter(t => t.id !== templateId);
       saveTemplatesToStorage();
       if (selectedTemplateId === templateId) {
@@ -1756,7 +1762,7 @@
       }
     } catch (error) {
       console.error('Error generating banner:', error);
-      alert('Failed to generate banner. Please try again.');
+      alert(ui("Failed to generate banner. Please try again."));
     } finally {
       generatingBanner = false;
     }
@@ -4099,7 +4105,7 @@
       if (auction && auction.startDate) {
         if (borderText) borderText += ' • ';
         const date = new Date(auction.startDate);
-        const formattedDate = date.toLocaleDateString('en-US', {
+        const formattedDate = date.toLocaleDateString(uiLocale(), {
           year: 'numeric',
           month: 'short',
           day: 'numeric'
@@ -4185,7 +4191,7 @@
 
   async function saveBannerToLot() {
     if (!generatedBannerUrl || !selectedBannerLotId) {
-      alert('Please generate a banner and select a lot first.');
+      alert(ui("Please generate a banner and select a lot first."));
       return;
     }
 
@@ -4215,13 +4221,13 @@
       });
 
       if (!uploadResponse.ok) {
-        throw new Error('Failed to upload banner image');
+        throw new Error(ui("Failed to upload banner image"));
       }
 
       const { images: uploadedImages } = await uploadResponse.json();
       
       if (!uploadedImages || uploadedImages.length === 0) {
-        throw new Error('No images returned from upload');
+        throw new Error(ui("No images returned from upload"));
       }
 
       // Create image record in database (API will handle unsetting existing primary if needed)
@@ -4241,10 +4247,10 @@
       });
 
       if (!imageResponse.ok) {
-        throw new Error('Failed to save image record');
+        throw new Error(ui("Failed to save image record"));
       }
 
-      alert('Banner saved to lot successfully!');
+      alert(ui("Banner saved to lot successfully!"));
       
       // Call onSave callback if provided
       if (onSave) {
@@ -4252,7 +4258,7 @@
       }
     } catch (error) {
       console.error('Error saving banner to lot:', error);
-      alert(`Failed to save banner to lot: ${error.message}`);
+      alert(ui("Failed to save banner to lot: {value0}", { value0: error.message }));
     } finally {
       savingToLot = false;
     }
@@ -4303,15 +4309,15 @@
 <div class="bg-white rounded-lg shadow-lg p-4 border-2 border-purple-200">
   <div class="flex items-center justify-between mb-3">
     <h2 class="text-xl font-bold text-gray-900">
-      Banner Generator - {type === 'lot' ? 'Lot' : type === 'auction' ? 'Auction' : 'Auction House'}
+      {ui("Banner Generator -")} {type === 'lot' ? ui("Lot") : type === 'auction' ? ui("Auction") : ui("Auction House")}
     </h2>
     {#if !showTemplateSelector}
       <button
         onclick={() => showSaveTemplateDialog = true}
         class="text-xs text-purple-600 hover:text-purple-800 px-3 py-1.5 border border-purple-300 rounded hover:bg-purple-50"
-        title="Save current settings as template"
+        title={ui("Save current settings as template")}
       >
-        💾 Save Template
+        {ui("💾 Save Template")}
       </button>
     {/if}
   </div>
@@ -4319,16 +4325,16 @@
   <!-- Template Selector -->
   {#if showTemplateSelector}
     <div class="mb-4 p-4 bg-gray-50 rounded-lg border border-gray-200">
-      <h3 class="text-lg font-semibold text-gray-900 mb-4">Choose a Template</h3>
+      <h3 class="text-lg font-semibold text-gray-900 mb-4">{ui("Choose a Template")}</h3>
       
       <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mb-4">
         <!-- Blank Template -->
         <button
           onclick={startBlank}
-          class="p-4 bg-white border-2 border-gray-300 rounded-lg hover:border-purple-500 hover:bg-purple-50 transition-all text-left"
+          class="p-4 bg-white border-2 border-gray-300 rounded-lg hover:border-purple-500 hover:bg-purple-50 transition-all text-start"
         >
-          <div class="font-semibold text-gray-900 mb-1">Blank Template</div>
-          <div class="text-xs text-gray-600">Start with default settings</div>
+          <div class="font-semibold text-gray-900 mb-1">{ui("Blank Template")}</div>
+          <div class="text-xs text-gray-600">{ui("Start with default settings")}</div>
         </button>
         
         <!-- Saved Templates -->
@@ -4336,17 +4342,17 @@
           <div class="relative group">
             <button
               onclick={() => loadTemplate(template)}
-              class="w-full p-4 bg-white border-2 border-gray-300 rounded-lg hover:border-purple-500 hover:bg-purple-50 transition-all text-left"
+              class="w-full p-4 bg-white border-2 border-gray-300 rounded-lg hover:border-purple-500 hover:bg-purple-50 transition-all text-start"
             >
               <div class="font-semibold text-gray-900 mb-1">{template.name}</div>
               <div class="text-xs text-gray-600">
-                {new Date(template.createdAt).toLocaleDateString()}
+                {new Date(template.createdAt).toLocaleDateString(uiLocale())}
               </div>
             </button>
             <button
               onclick={(e) => deleteTemplate(template.id, e)}
               class="absolute top-2 right-2 opacity-0 group-hover:opacity-100 p-1 bg-red-500 text-white rounded hover:bg-red-600 transition-opacity"
-              title="Delete template"
+              title={ui("Delete template")}
             >
               ✕
             </button>
@@ -4355,7 +4361,7 @@
       </div>
       
       {#if savedTemplates.length === 0}
-        <p class="text-sm text-gray-500 text-center py-4">No saved templates yet. Start with blank or save your first template!</p>
+        <p class="text-sm text-gray-500 text-center py-4">{ui("No saved templates yet. Start with blank or save your first template!")}</p>
       {/if}
     </div>
   {/if}
@@ -4384,16 +4390,16 @@
         aria-modal="true"
         aria-labelledby="save-template-title"
       >
-        <h3 id="save-template-title" class="text-lg font-semibold text-gray-900 mb-4">Save Template</h3>
+        <h3 id="save-template-title" class="text-lg font-semibold text-gray-900 mb-4">{ui("Save Template")}</h3>
         <div class="mb-4">
           <label for="template-name" class="block text-sm font-medium text-gray-700 mb-2">
-            Template Name
+            {ui("Template Name")}
           </label>
           <input
             id="template-name"
             type="text"
             bind:value={templateName}
-            placeholder="e.g., Classic Auction Banner"
+            placeholder={ui("e.g., Classic Auction Banner")}
             class="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
             onkeydown={(e) => {
               if (e.key === 'Enter') {
@@ -4412,13 +4418,13 @@
             }}
             class="px-4 py-2 text-sm border border-gray-300 rounded-lg hover:bg-gray-50"
           >
-            Cancel
+            {ui("Cancel")}
           </button>
           <button
             onclick={saveAsTemplate}
             class="px-4 py-2 text-sm bg-purple-600 text-white rounded-lg hover:bg-purple-700"
           >
-            Save
+            {ui("Save")}
           </button>
         </div>
       </div>
@@ -4428,12 +4434,12 @@
   {#if !showTemplateSelector}
   <div class="grid grid-cols-1 lg:grid-cols-2 gap-4">
     <!-- Left: Settings -->
-    <div class="space-y-1 max-h-[calc(100vh-200px)] overflow-y-auto pr-2">
+    <div class="space-y-1 max-h-[calc(100vh-200px)] overflow-y-auto pe-2">
       <!-- Lot Selection (only for lot type) -->
       {#if type === 'lot' && lots && lots.length > 0}
         <div>
           <label for="lot-select" class="block text-sm font-medium text-gray-700 mb-2">
-            Select Lot (Optional)
+            {ui("Select Lot (Optional)")}
           </label>
           <select
             id="lot-select"
@@ -4441,10 +4447,10 @@
             onchange={(e) => loadLotImages(e.target.value)}
             class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent bg-white"
           >
-            <option value="">-- Use Auction Defaults --</option>
+            <option value="">{ui("-- Use Auction Defaults --")}</option>
             {#each lots as lot}
               <option value={lot.id}>
-                Lot #{lot.lotNumber}: {lot.title}
+                {ui("Lot #")}{lot.lotNumber}: {lot.title}
               </option>
             {/each}
           </select>
@@ -4518,7 +4524,7 @@
       
       <!-- Separator Settings -->
       <CollapsibleSection
-        title="Separator Design"
+        title={ui("Separator Design")}
         bind:isCollapsed={collapsedSections.separator}
         bgColor="bg-indigo-50"
         borderColor="border-indigo-200"
@@ -4527,40 +4533,40 @@
         <div class="space-y-3">
           <div>
             <label for="separator-style" class="block text-xs font-medium text-gray-700 mb-1">
-              Separator Style
+              {ui("Separator Style")}
             </label>
             <select
               id="separator-style"
               bind:value={bannerSettings.separatorStyle}
               class="w-full px-2 py-1.5 text-sm border border-gray-300 rounded focus:ring-2 focus:ring-purple-500 focus:border-transparent"
             >
-              <option value="line">Line</option>
-              <option value="dotted">Dotted</option>
-              <option value="double">Double Line</option>
-              <option value="diamond">Diamond</option>
-              <option value="circle">Circle</option>
-              <option value="square">Square</option>
+              <option value="line">{ui("Line")}</option>
+              <option value="dotted">{ui("Dotted")}</option>
+              <option value="double">{ui("Double Line")}</option>
+              <option value="diamond">{ui("Diamond")}</option>
+              <option value="circle">{ui("Circle")}</option>
+              <option value="square">{ui("Square")}</option>
             </select>
           </div>
           
           <div>
             <label for="separator-alignment" class="block text-xs font-medium text-gray-700 mb-1">
-              Alignment
+              {ui("Alignment")}
             </label>
             <select
               id="separator-alignment"
               bind:value={bannerSettings.separatorAlignment}
               class="w-full px-2 py-1.5 text-sm border border-gray-300 rounded focus:ring-2 focus:ring-purple-500 focus:border-transparent"
             >
-              <option value="left">Left</option>
-              <option value="center">Center</option>
-              <option value="right">Right</option>
+              <option value="left">{ui("Left")}</option>
+              <option value="center">{ui("Center")}</option>
+              <option value="right">{ui("Right")}</option>
             </select>
           </div>
           
           <div>
             <label for="separator-width" class="block text-xs font-medium text-gray-700 mb-1">
-              Width: {bannerSettings.separatorWidth || 60}%
+              {ui("Width:")} {bannerSettings.separatorWidth || 60}%
             </label>
             <input
               id="separator-width"
@@ -4575,7 +4581,7 @@
           
           <div>
             <label for="separator-thickness" class="block text-xs font-medium text-gray-700 mb-1">
-              Thickness: {bannerSettings.separatorThickness || 2}px
+              {ui("Thickness:")} {bannerSettings.separatorThickness || 2}px
             </label>
             <input
               id="separator-thickness"
@@ -4590,7 +4596,7 @@
           
           <div>
             <label for="separator-color" class="block text-xs font-medium text-gray-700 mb-1">
-              Color (leave empty to use text color)
+              {ui("Color (leave empty to use text color)")}
             </label>
             <div class="flex gap-2">
               <input
@@ -4603,7 +4609,7 @@
               <input
                 type="text"
                 bind:value={bannerSettings.separatorColor}
-                placeholder="Uses text color if empty"
+                placeholder={ui("Uses text color if empty")}
                 class="flex-1 px-2 py-1.5 text-sm border border-gray-300 rounded focus:ring-2 focus:ring-purple-500 focus:border-transparent"
               />
               <button
@@ -4611,7 +4617,7 @@
                 onclick={() => bannerSettings.separatorColor = ''}
                 class="px-2 py-1.5 text-xs bg-gray-200 text-gray-700 rounded hover:bg-gray-300"
               >
-                Reset
+                {ui("Reset")}
               </button>
             </div>
           </div>
@@ -4619,7 +4625,7 @@
           <div class="grid grid-cols-2 gap-3">
             <div>
               <label for="separator-margin-top" class="block text-xs font-medium text-gray-700 mb-1">
-                Margin Above: {bannerSettings.separatorMarginTop || 15}px
+                {ui("Margin Above:")} {bannerSettings.separatorMarginTop || 15}px
               </label>
               <input
                 id="separator-margin-top"
@@ -4634,7 +4640,7 @@
             
             <div>
               <label for="separator-margin-bottom" class="block text-xs font-medium text-gray-700 mb-1">
-                Margin Below: {bannerSettings.separatorMarginBottom || 15}px
+                {ui("Margin Below:")} {bannerSettings.separatorMarginBottom || 15}px
               </label>
               <input
                 id="separator-margin-bottom"
@@ -4652,7 +4658,7 @@
       
       <!-- Overlay Stamp Settings -->
       <CollapsibleSection
-        title="Overlay Stamp"
+        title={ui("Overlay Stamp")}
         bind:isCollapsed={collapsedSections.overlayStamp}
         bgColor="bg-yellow-50"
         borderColor="border-yellow-200"
@@ -4663,29 +4669,29 @@
             <input
               type="checkbox"
               bind:checked={bannerSettings.showOverlayStamp}
-              class="mr-2 h-4 w-4 text-yellow-600 focus:ring-yellow-500 border-gray-300 rounded"
+              class="me-2 h-4 w-4 text-yellow-600 focus:ring-yellow-500 border-gray-300 rounded"
             />
-            <span class="text-xs font-medium text-gray-700">Show Overlay Stamp</span>
+            <span class="text-xs font-medium text-gray-700">{ui("Show Overlay Stamp")}</span>
           </label>
           
           {#if bannerSettings.showOverlayStamp}
             {#if type === 'lot' && selectedLotImages.length > 0}
               <div class="mb-2">
-                <div class="block text-xs font-medium text-gray-700 mb-2">Image Source</div>
+                <div class="block text-xs font-medium text-gray-700 mb-2">{ui("Image Source")}</div>
                 <div class="flex gap-2 mb-2">
                   <button
                     type="button"
                     onclick={() => overlayStampSource = 'library'}
                     class="flex-1 px-3 py-1.5 text-xs rounded border transition-colors {overlayStampSource === 'library' ? 'bg-yellow-600 text-white border-yellow-600' : 'bg-white text-gray-700 border-gray-300 hover:bg-gray-50'}"
                   >
-                    From Library
+                    {ui("From Library")}
                   </button>
                   <button
                     type="button"
                     onclick={() => overlayStampSource = 'url'}
                     class="flex-1 px-3 py-1.5 text-xs rounded border transition-colors {overlayStampSource === 'url' ? 'bg-yellow-600 text-white border-yellow-600' : 'bg-white text-gray-700 border-gray-300 hover:bg-gray-50'}"
                   >
-                    Custom URL
+                    {ui("Custom URL")}
                   </button>
                 </div>
               </div>
@@ -4693,7 +4699,7 @@
             
             {#if overlayStampSource === 'library' && type === 'lot' && selectedLotImages.length > 0}
               <div>
-                <div class="block text-xs font-medium text-gray-700 mb-2">Select from Library</div>
+                <div class="block text-xs font-medium text-gray-700 mb-2">{ui("Select from Library")}</div>
                 <div class="grid grid-cols-3 gap-2 max-h-32 overflow-y-auto">
                   {#each selectedLotImages as image}
                     {@const isSelected = bannerSettings.overlayStampUrl === (image.displayUrl || image.url)}
@@ -4728,7 +4734,7 @@
             {:else}
               <div>
                 <label for="overlay-stamp-url" class="block text-xs font-medium text-gray-700 mb-1">
-                  Stamp Image URL
+                  {ui("Stamp Image URL")}
                 </label>
                 <input
                   id="overlay-stamp-url"
@@ -4742,21 +4748,21 @@
             
             <div>
               <label for="overlay-stamp-position" class="block text-xs font-medium text-gray-700 mb-1">
-                Position
+                {ui("Position")}
               </label>
               <select
                 id="overlay-stamp-position"
                 bind:value={bannerSettings.overlayStampPosition}
                 class="w-full px-2 py-1.5 text-sm border border-gray-300 rounded focus:ring-2 focus:ring-purple-500 focus:border-transparent"
               >
-                <option value="top-left">Top Left</option>
-                <option value="top-center">Top Center</option>
-                <option value="top-right">Top Right</option>
-                <option value="center">Center</option>
-                <option value="bottom-left">Bottom Left</option>
-                <option value="bottom-center">Bottom Center</option>
-                <option value="bottom-right">Bottom Right</option>
-                <option value="custom">Custom</option>
+                <option value="top-left">{ui("Top Left")}</option>
+                <option value="top-center">{ui("Top Center")}</option>
+                <option value="top-right">{ui("Top Right")}</option>
+                <option value="center">{ui("Center")}</option>
+                <option value="bottom-left">{ui("Bottom Left")}</option>
+                <option value="bottom-center">{ui("Bottom Center")}</option>
+                <option value="bottom-right">{ui("Bottom Right")}</option>
+                <option value="custom">{ui("Custom")}</option>
               </select>
             </div>
             
@@ -4795,7 +4801,7 @@
             
             <div>
               <label for="overlay-stamp-size" class="block text-xs font-medium text-gray-700 mb-1">
-                Size: {bannerSettings.overlayStampSize || 200}px
+                {ui("Size:")} {bannerSettings.overlayStampSize || 200}px
               </label>
               <input
                 id="overlay-stamp-size"
@@ -4810,7 +4816,7 @@
             
             <div>
               <label for="overlay-stamp-rotation" class="block text-xs font-medium text-gray-700 mb-1">
-                Rotation: {bannerSettings.overlayStampRotation || 0}°
+                {ui("Rotation:")} {bannerSettings.overlayStampRotation || 0}°
               </label>
               <input
                 id="overlay-stamp-rotation"
@@ -4825,7 +4831,7 @@
             
             <div>
               <label for="overlay-stamp-opacity" class="block text-xs font-medium text-gray-700 mb-1">
-                Opacity: {Math.round((bannerSettings.overlayStampOpacity || 0.5) * 100)}%
+                {ui("Opacity:")} {Math.round((bannerSettings.overlayStampOpacity || 0.5) * 100)}%
               </label>
               <input
                 id="overlay-stamp-opacity"
@@ -4840,20 +4846,20 @@
             
             <div>
               <label for="overlay-stamp-alignment" class="block text-xs font-medium text-gray-700 mb-1">
-                Alignment
+                {ui("Alignment")}
               </label>
               <select
                 id="overlay-stamp-alignment"
                 bind:value={bannerSettings.overlayStampAlignment}
                 class="w-full px-2 py-1.5 text-sm border border-gray-300 rounded focus:ring-2 focus:ring-purple-500 focus:border-transparent"
               >
-                <option value="top-left">Top Left</option>
-                <option value="top-center">Top Center</option>
-                <option value="top-right">Top Right</option>
-                <option value="center">Center</option>
-                <option value="bottom-left">Bottom Left</option>
-                <option value="bottom-center">Bottom Center</option>
-                <option value="bottom-right">Bottom Right</option>
+                <option value="top-left">{ui("Top Left")}</option>
+                <option value="top-center">{ui("Top Center")}</option>
+                <option value="top-right">{ui("Top Right")}</option>
+                <option value="center">{ui("Center")}</option>
+                <option value="bottom-left">{ui("Bottom Left")}</option>
+                <option value="bottom-center">{ui("Bottom Center")}</option>
+                <option value="bottom-right">{ui("Bottom Right")}</option>
               </select>
             </div>
           {/if}
@@ -4868,7 +4874,7 @@
       
       <!-- Logo Settings -->
       <CollapsibleSection
-        title="Logo"
+        title={ui("Logo")}
         bind:isCollapsed={collapsedSections.logo}
         bgColor="bg-gray-50"
         borderColor="border-gray-200"
@@ -4882,7 +4888,7 @@
                 bind:checked={bannerSettings.showLogo}
                 class="w-4 h-4 text-purple-600 border-gray-300 rounded focus:ring-purple-500"
               />
-              <span class="text-xs font-medium text-gray-700">Show Logo</span>
+              <span class="text-xs font-medium text-gray-700">{ui("Show Logo")}</span>
             </label>
           </div>
           
@@ -4890,13 +4896,13 @@
             {#if auctionHouse?.logoUrl && !bannerSettings.useCustomLogo}
               <div class="p-3 bg-blue-50 border border-blue-200 rounded">
                 <p class="text-xs font-medium text-gray-700 mb-2">
-                  Using Auction House Logo
+                  {ui("Using Auction House Logo")}
                 </p>
                 <div class="flex items-center gap-3 mb-3">
                   <div class="flex-shrink-0">
                     <img 
                       src={auctionHouse.logoUrl} 
-                      alt="Auction House Logo" 
+                      alt={ui("Auction House Logo")}
                       class="h-16 w-16 object-contain border border-gray-200 rounded bg-white p-2"
                       onerror={async (e) => {
                         // If image fails to load (e.g., S3 key), try to get presigned URL
@@ -4930,7 +4936,7 @@
                     bind:checked={bannerSettings.useCustomLogo}
                     class="w-4 h-4 text-purple-600 border-gray-300 rounded focus:ring-purple-500"
                   />
-                  <span class="text-xs font-medium text-gray-700">Use Custom Logo URL Instead</span>
+                  <span class="text-xs font-medium text-gray-700">{ui("Use Custom Logo URL Instead")}</span>
                 </label>
               </div>
             {/if}
@@ -4938,21 +4944,21 @@
             {#if bannerSettings.useCustomLogo || !auctionHouse?.logoUrl}
               <div>
                 <label for="logo-url" class="block text-xs font-medium text-gray-700 mb-1">
-                  Custom Logo URL
+                  {ui("Custom Logo URL")}
                 </label>
                 <input
                   id="logo-url"
                   type="text"
                   bind:value={bannerSettings.logoUrl}
-                  placeholder="Enter logo URL"
+                  placeholder={ui("Enter logo URL")}
                   class="w-full px-2 py-1.5 text-sm border border-gray-300 rounded focus:ring-2 focus:ring-purple-500 focus:border-transparent"
                 />
                 {#if bannerSettings.logoUrl}
                   <div class="mt-2 p-2 bg-gray-50 border border-gray-200 rounded">
-                    <p class="text-xs font-medium text-gray-700 mb-2">Preview:</p>
+                    <p class="text-xs font-medium text-gray-700 mb-2">{ui("Preview:")}</p>
                     <img 
                       src={bannerSettings.logoUrl} 
-                      alt="Custom Logo Preview" 
+                      alt={ui("Custom Logo Preview")}
                       class="h-16 w-16 object-contain border border-gray-200 rounded bg-white p-2"
                       onerror={async (e) => {
                         // If image fails to load (e.g., S3 key), try to get presigned URL
@@ -4982,7 +4988,7 @@
             {#if auctionHouse?.id}
               <div>
                 <label for="logo-upload" class="block text-xs font-medium text-gray-700 mb-1">
-                  Upload Logo for Auction House
+                  {ui("Upload Logo for Auction House")}
                 </label>
                 <input
                   id="logo-upload"
@@ -5037,32 +5043,32 @@
                   }}
                 />
                 <p class="mt-1 text-xs text-gray-500">
-                  Upload a logo to save it to your auction house
+                  {ui("Upload a logo to save it to your auction house")}
                 </p>
               </div>
             {/if}
             
             <div>
               <label for="logo-position" class="block text-xs font-medium text-gray-700 mb-1">
-                Position
+                {ui("Position")}
               </label>
               <select
                 id="logo-position"
                 bind:value={bannerSettings.logoPosition}
                 class="w-full px-2 py-1.5 text-sm border border-gray-300 rounded focus:ring-2 focus:ring-purple-500 focus:border-transparent"
               >
-                <option value="top-left">Top Left</option>
-                <option value="top-center">Top Center</option>
-                <option value="top-right">Top Right</option>
-                <option value="bottom-left">Bottom Left</option>
-                <option value="bottom-center">Bottom Center</option>
-                <option value="bottom-right">Bottom Right</option>
+                <option value="top-left">{ui("Top Left")}</option>
+                <option value="top-center">{ui("Top Center")}</option>
+                <option value="top-right">{ui("Top Right")}</option>
+                <option value="bottom-left">{ui("Bottom Left")}</option>
+                <option value="bottom-center">{ui("Bottom Center")}</option>
+                <option value="bottom-right">{ui("Bottom Right")}</option>
               </select>
             </div>
             
             <div>
               <label for="logo-size" class="block text-xs text-gray-600 mb-1">
-                Size: {bannerSettings.logoSize}px
+                {ui("Size:")} {bannerSettings.logoSize}px
               </label>
               <input
                 id="logo-size"
@@ -5077,7 +5083,7 @@
             
             <div>
               <label for="logo-opacity" class="block text-xs text-gray-600 mb-1">
-                Opacity: {(bannerSettings.logoOpacity * 100).toFixed(0)}%
+                {ui("Opacity:")} {(bannerSettings.logoOpacity * 100).toFixed(0)}%
               </label>
               <input
                 id="logo-opacity"
@@ -5092,7 +5098,7 @@
             
             <div>
               <label for="logo-margin" class="block text-xs text-gray-600 mb-1">
-                Margin: {bannerSettings.logoMargin}px
+                {ui("Margin:")} {bannerSettings.logoMargin}px
               </label>
               <input
                 id="logo-margin"
@@ -5110,7 +5116,7 @@
       
       <!-- Watermark Settings -->
       <CollapsibleSection
-        title="Watermark"
+        title={ui("Watermark")}
         bind:isCollapsed={collapsedSections.watermark}
         bgColor="bg-cyan-50"
         borderColor="border-cyan-200"
@@ -5124,9 +5130,9 @@
                 bind:checked={bannerSettings.showWatermark}
                 class="w-4 h-4 text-purple-600 border-gray-300 rounded focus:ring-purple-500"
               />
-              <span class="text-xs font-medium text-gray-700">Show Watermark</span>
+              <span class="text-xs font-medium text-gray-700">{ui("Show Watermark")}</span>
             </label>
-            <p class="text-xs text-gray-500 mt-1 ml-6">Add a subtle watermark to the background</p>
+            <p class="text-xs text-gray-500 mt-1 ms-6">{ui("Add a subtle watermark to the background")}</p>
           </div>
           
           {#if bannerSettings.showWatermark}
@@ -5137,20 +5143,20 @@
                   bind:checked={bannerSettings.watermarkUseLogo}
                   class="w-4 h-4 text-purple-600 border-gray-300 rounded focus:ring-purple-500"
                 />
-                <span class="text-xs font-medium text-gray-700">Use Logo as Watermark</span>
+                <span class="text-xs font-medium text-gray-700">{ui("Use Logo as Watermark")}</span>
               </label>
             </div>
             
             {#if !bannerSettings.watermarkUseLogo}
               <div>
                 <label for="watermark-url" class="block text-xs font-medium text-gray-700 mb-1">
-                  Custom Watermark URL
+                  {ui("Custom Watermark URL")}
                 </label>
                 <input
                   id="watermark-url"
                   type="text"
                   bind:value={bannerSettings.watermarkUrl}
-                  placeholder="Enter watermark image URL"
+                  placeholder={ui("Enter watermark image URL")}
                   class="w-full px-2 py-1.5 text-sm border border-gray-300 rounded focus:ring-2 focus:ring-purple-500 focus:border-transparent"
                 />
               </div>
@@ -5158,26 +5164,26 @@
             
             <div>
               <label for="watermark-position" class="block text-xs font-medium text-gray-700 mb-1">
-                Position
+                {ui("Position")}
               </label>
               <select
                 id="watermark-position"
                 bind:value={bannerSettings.watermarkPosition}
                 class="w-full px-2 py-1.5 text-sm border border-gray-300 rounded focus:ring-2 focus:ring-purple-500 focus:border-transparent"
               >
-                <option value="center">Center</option>
-                <option value="top-left">Top Left</option>
-                <option value="top-right">Top Right</option>
-                <option value="bottom-left">Bottom Left</option>
-                <option value="bottom-right">Bottom Right</option>
-                <option value="tile">Tile (Repeat)</option>
+                <option value="center">{ui("Center")}</option>
+                <option value="top-left">{ui("Top Left")}</option>
+                <option value="top-right">{ui("Top Right")}</option>
+                <option value="bottom-left">{ui("Bottom Left")}</option>
+                <option value="bottom-right">{ui("Bottom Right")}</option>
+                <option value="tile">{ui("Tile (Repeat)")}</option>
               </select>
             </div>
             
             <div class="grid grid-cols-2 gap-3">
               <div>
                 <label for="watermark-size" class="block text-xs font-medium text-gray-700 mb-1">
-                  Size: {bannerSettings.watermarkSize || 300}px
+                  {ui("Size:")} {bannerSettings.watermarkSize || 300}px
                 </label>
                 <input
                   id="watermark-size"
@@ -5192,7 +5198,7 @@
               
               <div>
                 <label for="watermark-opacity" class="block text-xs font-medium text-gray-700 mb-1">
-                  Opacity: {Math.round((bannerSettings.watermarkOpacity || 0.1) * 100)}%
+                  {ui("Opacity:")} {Math.round((bannerSettings.watermarkOpacity || 0.1) * 100)}%
                 </label>
                 <input
                   id="watermark-opacity"
@@ -5209,7 +5215,7 @@
             
             <div>
               <label for="watermark-rotation" class="block text-xs font-medium text-gray-700 mb-1">
-                Rotation: {bannerSettings.watermarkRotation || 0}°
+                {ui("Rotation:")} {bannerSettings.watermarkRotation || 0}°
               </label>
               <input
                 id="watermark-rotation"
@@ -5242,10 +5248,10 @@
               type="checkbox"
               id="set-as-primary"
               bind:checked={setAsPrimaryImage}
-              class="mr-2 h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
+              class="me-2 h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
             />
             <label for="set-as-primary" class="text-sm font-medium text-gray-700 cursor-pointer">
-              Set as primary/default image
+              {ui("Set as primary/default image")}
             </label>
           </div>
           <button
@@ -5253,7 +5259,7 @@
             disabled={savingToLot}
             class="w-full bg-blue-600 text-white py-2 text-sm rounded hover:bg-blue-700 transition-colors font-semibold disabled:bg-gray-400 disabled:cursor-not-allowed"
           >
-            {savingToLot ? 'Saving...' : '💾 Save Banner to Lot'}
+            {savingToLot ? ui("Saving...") : ui("💾 Save Banner to Lot")}
           </button>
         </div>
       {/if}

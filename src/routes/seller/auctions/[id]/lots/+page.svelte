@@ -1,4 +1,10 @@
 <script>
+  import { page as localePage } from '$app/stores';
+  import { translate as translateUi } from '$lib/i18n.js';
+  import { localeTag as uiLocaleTag } from '$lib/utils/region.js';
+  const uiLocale = () => uiLocaleTag($localePage.data.locale);
+  const ui = (text, values) => translateUi($localePage.data.locale || 'en', text, values);
+
   import { onMount } from 'svelte';
   import { page } from '$app/stores';
   import { goto } from '$app/navigation';
@@ -188,14 +194,14 @@
       });
       
       if (!response.ok) {
-        throw new Error('Failed to reorder lots');
+        throw new Error(ui("Failed to reorder lots"));
       }
       
       // Reload data to get updated positions
       await loadData();
     } catch (error) {
       console.error('Error reordering lots:', error);
-      alert('Failed to reorder lots. Please try again.');
+      alert(ui("Failed to reorder lots. Please try again."));
     } finally {
       reordering = false;
     }
@@ -309,7 +315,7 @@
       });
 
       if (!uploadResponse.ok) {
-        throw new Error('Failed to upload images');
+        throw new Error(ui("Failed to upload images"));
       }
 
       const { images: uploadedImages } = await uploadResponse.json();
@@ -319,7 +325,7 @@
       event.target.value = '';
     } catch (error) {
       console.error('Error uploading images:', error);
-      alert('Failed to upload images. Please try again.');
+      alert(ui("Failed to upload images. Please try again."));
     }
   }
 
@@ -433,14 +439,14 @@
   }
   
   function formatCurrency(amount) {
-    return new Intl.NumberFormat('en-US', {
+    return new Intl.NumberFormat(uiLocale(), {
       style: 'currency',
       currency: (auction?.currency || 'usd').toUpperCase()
     }).format(amount);
   }
   
   function formatDate(dateString) {
-    return new Date(dateString).toLocaleDateString('en-US', {
+    return new Date(dateString).toLocaleDateString(uiLocale(), {
       year: 'numeric',
       month: 'short',
       day: 'numeric',
@@ -452,26 +458,26 @@
 
 {#if loading}
   <div class="py-20 text-center">
-    <PumbiLoader size="lg" label="Loading" />
-    <p class="mt-4 text-sm text-[var(--pumbi-muted)]">Loading lots…</p>
+    <PumbiLoader size="lg" label={ui("Loading")} />
+    <p class="mt-4 text-sm text-[var(--pumbi-muted)]">{ui("Loading lots…")}</p>
   </div>
 {:else if auction}
   <div>
       <div class="mb-6 flex flex-wrap items-end justify-between gap-4">
         <div>
-          <p class="pumbi-eyebrow">Catalog</p>
-          <h2 class="mt-1 font-[family-name:var(--pumbi-serif)] text-2xl font-semibold">Lots</h2>
-          <p class="mt-1 text-sm text-[var(--pumbi-ink-soft)]">Drag to reorder. Secondary tools are in the tabs above.</p>
+          <p class="pumbi-eyebrow">{ui("Catalog")}</p>
+          <h2 class="mt-1 font-[family-name:var(--pumbi-serif)] text-2xl font-semibold">{ui("Lots")}</h2>
+          <p class="mt-1 text-sm text-[var(--pumbi-ink-soft)]">{ui("Drag to reorder. Secondary tools are in the tabs above.")}</p>
         </div>
-        <button type="button" class="pumbi-btn" onclick={() => (showCreateModal = true)}>Add lot</button>
+        <button type="button" class="pumbi-btn" onclick={() => (showCreateModal = true)}>{ui("Add lot")}</button>
       </div>
       
 
       {#if lots.length === 0}
         <div class="pumbi-panel p-12 text-center">
-          <p class="mb-4 text-lg text-[var(--pumbi-muted)]">No lots added yet.</p>
+          <p class="mb-4 text-lg text-[var(--pumbi-muted)]">{ui("No lots added yet.")}</p>
           <button type="button" onclick={() => (showCreateModal = true)} class="pumbi-btn">
-            Add your first lot
+            {ui("Add your first lot")}
           </button>
         </div>
       {:else}
@@ -503,16 +509,16 @@
                     />
                   {:else}
                     <div class="flex h-48 w-full items-center justify-center bg-[var(--pumbi-cream-deep)]">
-                      <span class="text-[var(--pumbi-muted)]">No image</span>
+                      <span class="text-[var(--pumbi-muted)]">{ui("No image")}</span>
                     </div>
                   {/if}
                 {:else}
                   <div class="flex h-48 w-full items-center justify-center bg-[var(--pumbi-cream-deep)]">
-                    <span class="text-[var(--pumbi-muted)]">No image</span>
+                    <span class="text-[var(--pumbi-muted)]">{ui("No image")}</span>
                   </div>
                 {/if}
                 <div class="absolute left-3 top-3 bg-white px-3 py-1 text-sm font-bold">
-                  Lot #{lot.lotNumber}
+                  {ui("Lot #")}{lot.lotNumber}
                 </div>
                 <div class="absolute right-3 top-3 bg-[var(--pumbi-forest)] px-3 py-1 text-sm font-bold text-white">
                   #{lot.position || index + 1}
@@ -523,17 +529,17 @@
                 <p class="mb-4 line-clamp-2 text-sm text-[var(--pumbi-ink-soft)]">{lot.description}</p>
                 <div class="mb-4 space-y-2 text-sm">
                   <div class="flex justify-between">
-                    <span class="text-[var(--pumbi-muted)]">Starting</span>
+                    <span class="text-[var(--pumbi-muted)]">{ui("Starting")}</span>
                     <span class="font-semibold">{formatCurrency(lot.startingBid)}</span>
                   </div>
                   <div class="flex justify-between">
-                    <span class="text-[var(--pumbi-muted)]">Current</span>
+                    <span class="text-[var(--pumbi-muted)]">{ui("Current")}</span>
                     <span class="font-semibold text-[var(--pumbi-terracotta)]">{formatCurrency(lot.currentBid)}</span>
                   </div>
                 </div>
                 <div class="mb-2 flex gap-2">
-                  <a href={`/lots/${lot.id}`} class="pumbi-btn-secondary flex-1 text-center text-sm">View</a>
-                  <a href={`/seller/auctions/${$page.params.id}/lots/${lot.id}/edit`} class="pumbi-btn flex-1 text-center text-sm">Edit</a>
+                  <a href={`/lots/${lot.id}`} class="pumbi-btn-secondary flex-1 text-center text-sm">{ui("View")}</a>
+                  <a href={`/seller/auctions/${$page.params.id}/lots/${lot.id}/edit`} class="pumbi-btn flex-1 text-center text-sm">{ui("Edit")}</a>
                 </div>
                 <div class="flex gap-1">
                   <button
@@ -541,7 +547,7 @@
                     onclick={() => moveLotUp(index)}
                     disabled={index === 0 || reordering}
                     class="flex-1 bg-[var(--pumbi-cream-deep)] py-1 text-xs font-semibold disabled:opacity-50"
-                    title="Move up"
+                    title={ui("Move up")}
                   >
                     ↑
                   </button>
@@ -550,7 +556,7 @@
                     onclick={() => moveLotDown(index)}
                     disabled={index === lots.length - 1 || reordering}
                     class="flex-1 bg-[var(--pumbi-cream-deep)] py-1 text-xs font-semibold disabled:opacity-50"
-                    title="Move down"
+                    title={ui("Move down")}
                   >
                     ↓
                   </button>
@@ -569,11 +575,11 @@
     <div class="bg-white rounded-lg shadow-xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
       <div class="p-6">
         <div class="flex items-center justify-between mb-6">
-          <h2 class="text-2xl font-bold text-gray-900">Add New Lot</h2>
+          <h2 class="text-2xl font-bold text-gray-900">{ui("Add New Lot")}</h2>
           <button
             onclick={() => { showCreateModal = false; createError = ''; }}
             class="text-gray-500 hover:text-gray-700"
-            aria-label="Close modal"
+            aria-label={ui("Close modal")}
           >
             <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
@@ -584,10 +590,10 @@
         {#if createError}
           <div class="mb-4 bg-red-50 border border-red-200 rounded-lg p-4">
             <div class="flex items-center">
-              <svg class="w-5 h-5 text-red-600 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <svg class="w-5 h-5 text-red-600 me-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
               </svg>
-              <p class="text-red-800 text-sm">{createError}</p>
+              <p class="text-red-800 text-sm">{ui(createError)}</p>
             </div>
           </div>
         {/if}
@@ -596,7 +602,7 @@
           <div class="space-y-4">
             <div>
               <label for="lotNumber" class="block text-sm font-medium text-gray-700 mb-2">
-                Lot Number *
+                {ui("Lot Number *")}
               </label>
               <input
                 id="lotNumber"
@@ -610,7 +616,7 @@
 
             <div>
               <label for="title" class="block text-sm font-medium text-gray-700 mb-2">
-                Lot Title *
+                {ui("Lot Title *")}
               </label>
               <input
                 id="title"
@@ -618,13 +624,13 @@
                 bind:value={newLot.title}
                 required
                 class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                placeholder="e.g., Original Oil Painting - Landscape"
+                placeholder={ui("e.g., Original Oil Painting - Landscape")}
               />
             </div>
 
             <div>
               <label for="description" class="block text-sm font-medium text-gray-700 mb-2">
-                Description *
+                {ui("Description *")}
               </label>
               <textarea
                 id="description"
@@ -632,14 +638,14 @@
                 required
                 rows="4"
                 class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                placeholder="Describe the lot..."
+                placeholder={ui("Describe the lot...")}
               ></textarea>
             </div>
 
             <!-- Category with autocomplete -->
             <div class="relative">
               <label for="category" class="block text-sm font-medium text-gray-700 mb-2">
-                Category
+                {ui("Category")}
               </label>
               <div class="relative">
                 <input
@@ -652,7 +658,7 @@
                   }}
                   onfocus={() => showCategoryDropdown = categoryInput.length > 0}
                   onblur={() => setTimeout(() => showCategoryDropdown = false, 200)}
-                  placeholder="Type to search or create new category"
+                  placeholder={ui("Type to search or create new category")}
                   class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                 />
                 {#if showCategoryDropdown && availableCategories.length > 0}
@@ -665,7 +671,7 @@
                           newLot.category = cat;
                           showCategoryDropdown = false;
                         }}
-                        class="w-full text-left px-4 py-2 hover:bg-blue-50 text-sm"
+                        class="w-full text-start px-4 py-2 hover:bg-blue-50 text-sm"
                       >
                         {cat}
                       </button>
@@ -677,9 +683,9 @@
                           newLot.category = categoryInput;
                           showCategoryDropdown = false;
                         }}
-                        class="w-full text-left px-4 py-2 hover:bg-green-50 text-sm text-green-600 font-semibold"
+                        class="w-full text-start px-4 py-2 hover:bg-green-50 text-sm text-green-600 font-semibold"
                       >
-                        + Create "{categoryInput}"
+                        {ui("+ Create \"")}{categoryInput}"
                       </button>
                     {/if}
                   </div>
@@ -690,7 +696,7 @@
             <!-- Tags with autocomplete -->
             <div class="relative">
               <label class="block text-sm font-medium text-gray-700 mb-2">
-                Tags
+                {ui("Tags")}
               </label>
               <div class="flex flex-wrap gap-2 mb-2">
                 {#each newLot.tags as tag, index}
@@ -701,7 +707,7 @@
                       onclick={() => {
                         newLot.tags = newLot.tags.filter((_, i) => i !== index);
                       }}
-                      class="ml-2 text-blue-600 hover:text-blue-800"
+                      class="ms-2 text-blue-600 hover:text-blue-800"
                     >
                       ×
                     </button>
@@ -725,7 +731,7 @@
                       showTagDropdown = false;
                     }
                   }}
-                  placeholder="Type and press Enter to add tag"
+                  placeholder={ui("Type and press Enter to add tag")}
                   class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                 />
                 {#if showTagDropdown && availableTags.length > 0}
@@ -740,7 +746,7 @@
                           tagInput = '';
                           showTagDropdown = false;
                         }}
-                        class="w-full text-left px-4 py-2 hover:bg-blue-50 text-sm"
+                        class="w-full text-start px-4 py-2 hover:bg-blue-50 text-sm"
                       >
                         {tag}
                       </button>
@@ -755,9 +761,9 @@
                           tagInput = '';
                           showTagDropdown = false;
                         }}
-                        class="w-full text-left px-4 py-2 hover:bg-green-50 text-sm text-green-600 font-semibold"
+                        class="w-full text-start px-4 py-2 hover:bg-green-50 text-sm text-green-600 font-semibold"
                       >
-                        + Create "{tagInput}"
+                        {ui("+ Create \"")}{tagInput}"
                       </button>
                     {/if}
                   </div>
@@ -768,7 +774,7 @@
             <!-- Category Meta Fields -->
             {#if newLot.category && getMetaFieldsForCategory(newLot.category).length > 0}
               <div class="border-t border-gray-200 pt-4 mt-4">
-                <h3 class="text-lg font-semibold text-gray-900 mb-4">Category-Specific Fields</h3>
+                <h3 class="text-lg font-semibold text-gray-900 mb-4">{ui("Category-Specific Fields")}</h3>
                 <div class="space-y-4">
                   {#each getMetaFieldsForCategory(newLot.category) as field}
                     <div>
@@ -810,9 +816,9 @@
                             id="meta_{field.key}"
                             type="checkbox"
                             bind:checked={newLot.metaFields[field.key]}
-                            class="mr-2 h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
+                            class="me-2 h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
                           />
-                          <span class="text-sm text-gray-700">Yes</span>
+                          <span class="text-sm text-gray-700">{ui("Yes")}</span>
                         </label>
                       {:else if field.type === 'select'}
                         <select
@@ -821,7 +827,7 @@
                           required={field.required}
                           class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                         >
-                          <option value="">Select {field.label}</option>
+                          <option value="">{ui("Select")} {field.label}</option>
                           {#each field.options || [] as option}
                             <option value={option}>{option}</option>
                           {/each}
@@ -839,7 +845,7 @@
             <div class="grid grid-cols-2 gap-4">
               <div>
                 <label for="startingBid" class="block text-sm font-medium text-gray-700 mb-2">
-                  Starting Bid ($) *
+                  {ui("Starting Bid ($) *")}
                 </label>
                 <input
                   id="startingBid"
@@ -854,7 +860,7 @@
 
               <div>
                 <label for="bidIncrement" class="block text-sm font-medium text-gray-700 mb-2">
-                  Fixed increment (fallback when no schedule) *
+                  {ui("Fixed increment (fallback when no schedule) *")}
                 </label>
                 <input
                   id="bidIncrement"
@@ -870,7 +876,7 @@
 
             <div>
               <label for="imageUrl" class="block text-sm font-medium text-gray-700 mb-2">
-                Image URL
+                {ui("Image URL")}
               </label>
               <input
                 id="imageUrl"
@@ -879,9 +885,9 @@
                 class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent mb-2"
                 placeholder="https://example.com/image.jpg"
               />
-              <p class="text-xs text-gray-500 mb-2">OR</p>
+              <p class="text-xs text-gray-500 mb-2">{ui("OR")}</p>
               <label for="imageFiles" class="block text-sm font-medium text-gray-700 mb-2">
-                Upload Images
+                {ui("Upload Images")}
               </label>
               <input
                 id="imageFiles"
@@ -895,7 +901,7 @@
                 <div class="mt-2 flex flex-wrap gap-2">
                   {#each newLot.uploadedImages as image}
                     <div class="relative">
-                      <img src={image.url || image} alt="Uploaded" class="w-20 h-20 object-cover rounded border border-gray-300" />
+                      <img src={image.url || image} alt={ui("Uploaded")} class="w-20 h-20 object-cover rounded border border-gray-300" />
                     </div>
                   {/each}
                 </div>
@@ -904,7 +910,7 @@
 
             <div>
               <label for="endTime" class="block text-sm font-medium text-gray-700 mb-2">
-                End Time *
+                {ui("End Time *")}
               </label>
               <input
                 id="endTime"
@@ -916,12 +922,12 @@
             </div>
             <div class="grid grid-cols-1 gap-4 sm:grid-cols-2">
               <div>
-                <label for="initialTimerSeconds" class="block text-sm font-medium text-gray-700 mb-2">Time on block (seconds)</label>
-                <input id="initialTimerSeconds" type="number" min="1" bind:value={newLot.initialTimerSeconds} placeholder="Inherit from auction" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent" />
+                <label for="initialTimerSeconds" class="block text-sm font-medium text-gray-700 mb-2">{ui("Time on block (seconds)")}</label>
+                <input id="initialTimerSeconds" type="number" min="1" bind:value={newLot.initialTimerSeconds} placeholder={ui("Inherit from auction")} class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent" />
               </div>
               <div>
-                <label for="bidExtensionSeconds" class="block text-sm font-medium text-gray-700 mb-2">Bid refresh threshold (seconds)</label>
-                <input id="bidExtensionSeconds" type="number" min="1" bind:value={newLot.bidExtensionSeconds} placeholder="Inherit from auction" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent" />
+                <label for="bidExtensionSeconds" class="block text-sm font-medium text-gray-700 mb-2">{ui("Bid refresh threshold (seconds)")}</label>
+                <input id="bidExtensionSeconds" type="number" min="1" bind:value={newLot.bidExtensionSeconds} placeholder={ui("Inherit from auction")} class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent" />
               </div>
             </div>
           </div>
@@ -932,13 +938,13 @@
               onclick={() => showCreateModal = false}
               class="flex-1 bg-gray-200 text-gray-700 py-3 rounded-lg hover:bg-gray-300 transition-colors font-semibold"
             >
-              Cancel
+              {ui("Cancel")}
             </button>
             <button
               type="submit"
               class="flex-1 bg-blue-600 text-white py-3 rounded-lg hover:bg-blue-700 transition-colors font-semibold"
             >
-              Add Lot
+              {ui("Add Lot")}
             </button>
           </div>
         </form>

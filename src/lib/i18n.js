@@ -1,4 +1,6 @@
 import additionalHebrew from './locales/he.js';
+import interfaceHebrew from './locales/he-ui.js';
+import adminHebrew from './locales/he-admin.js';
 import { normalizeLocale } from './utils/region.js';
 const he = {
   'Auctions': 'מכירות פומביות', 'Most watched': 'הנצפים ביותר', 'Popular auctions': 'מכירות פופולריות', 'Active lots': 'פריטים פעילים',
@@ -14,9 +16,12 @@ const he = {
   'Use your actual country and local identity or business details. The payment provider determines the documents and bank details required for that country.': 'יש לבחור את המדינה האמיתית ולהשתמש בפרטי הזיהוי או העסק המקומיים. ספק התשלומים קובע אילו מסמכים ופרטי בנק נדרשים למדינה זו.',
   'Street': 'רחוב ומספר בית', 'City': 'עיר', 'State / province': 'מדינה / מחוז (לא חובה בישראל)', 'Postal code': 'מיקוד', 'Apartment / suite': 'דירה / יחידה', 'Recipient name': 'שם הנמען',
 };
-const hebrew = { ...additionalHebrew, ...he };
-const caseInsensitiveHebrew = Object.fromEntries(Object.entries(hebrew).map(([key, value]) => [key.toLowerCase(), value]));
+const hebrew = { ...adminHebrew, ...interfaceHebrew, ...additionalHebrew, ...he };
+const lookupKey = text => String(text).trim().replace(/\s+/g, ' ').toLowerCase();
+const caseInsensitiveHebrew = new Map(Object.entries(hebrew).map(([key, value]) => [lookupKey(key), value]));
+export const hasHebrewTranslation = text => caseInsensitiveHebrew.has(lookupKey(text));
 export function translate(locale, text, values = {}) {
-  const template = normalizeLocale(locale) === 'he' ? hebrew[text] || caseInsensitiveHebrew[String(text).toLowerCase()] || text : text;
-  return template.replace(/\{(\w+)\}/g, (match, key) => values[key] == null ? match : String(values[key]));
+  if (typeof text !== 'string') return text;
+  const template = normalizeLocale(locale) === 'he' ? (Object.hasOwn(hebrew, text) ? hebrew[text] : caseInsensitiveHebrew.get(lookupKey(text))) || text : text;
+  return template.replace(/\{(\w+)\}/g, (match, key) => values?.[key] == null ? match : String(values[key]));
 }

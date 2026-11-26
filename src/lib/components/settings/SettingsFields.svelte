@@ -1,4 +1,8 @@
 <script>
+  import { page as localePage } from '$app/stores';
+  import { translate as translateUi } from '$lib/i18n.js';
+  const ui = (text, values) => translateUi($localePage.data.locale || 'en', text, values);
+
   let { values = $bindable({}), fields = [] } = $props();
 </script>
 
@@ -15,16 +19,16 @@
           disabled={field.disabled}
         />
         <span>
-          <strong>{field.label}</strong>{#if field.help}<small>
-              {field.help}
+          <strong>{ui(field.label)}</strong>{#if field.help}<small>
+              {ui(field.help)}
             </small>{/if}
         </span>
       {:else}
-        <span>{field.label}</span>
+        <span>{ui(field.label)}</span>
         {#if field.type === 'textarea'}<textarea
             rows={field.rows || 4}
             bind:value={values[field.key]}
-            placeholder={field.placeholder || ''}
+            placeholder={ui(field.placeholder || '')}
             disabled={field.disabled}></textarea>
         {:else if field.type === 'number'}<input
             type="number"
@@ -32,7 +36,7 @@
             min={field.min ?? 0}
             max={field.max}
             step={field.step ?? 'any'}
-            placeholder={field.placeholder || ''}
+            placeholder={ui(field.placeholder || '')}
             disabled={field.disabled}
           />
         {:else if field.type === 'select'}<select
@@ -40,16 +44,16 @@
             disabled={field.disabled}
           >
             {#each field.options as option}<option value={option.value}>
-                {option.label}
+                {ui(option.label)}
               </option>{/each}
           </select>
         {:else}<input
             type="text"
             bind:value={values[field.key]}
-            placeholder={field.placeholder || ''}
+            placeholder={ui(field.placeholder || '')}
             disabled={field.disabled}
           />{/if}
-        {#if field.help}<small>{field.help}</small>{/if}
+        {#if field.help}<small>{ui(field.help)}</small>{/if}
       {/if}
     </label>
   {/each}

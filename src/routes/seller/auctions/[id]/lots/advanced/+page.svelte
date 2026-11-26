@@ -1,4 +1,11 @@
 <script>
+  import { page as localePage } from '$app/stores';
+  import { translate as translateUi } from '$lib/i18n.js';
+  import { localeTag as uiLocaleTag } from '$lib/utils/region.js';
+  const uiLocale = () => uiLocaleTag($localePage.data.locale);
+  const ui = (text, values) => translateUi($localePage.data.locale || 'en', text, values);
+  const uiStatus = value => ui(String(value ?? '').replaceAll('_', ' '));
+
   // import { onMount } from 'svelte';
   import { page } from '$app/stores';
   import { goto } from '$app/navigation';
@@ -44,25 +51,25 @@
 
   // Column visibility and views
   const columnDefinitions = [
-    { key: 'checkbox', label: 'Checkbox', alwaysVisible: true },
-    { key: 'dragHandle', label: 'Drag', alwaysVisible: false },
-    { key: 'position', label: 'Position', alwaysVisible: false },
-    { key: 'lotNumber', label: 'Lot Number', alwaysVisible: false },
-    { key: 'images', label: 'Images', alwaysVisible: false },
-    { key: 'title', label: 'Title', alwaysVisible: false },
-    { key: 'description', label: 'Description', alwaysVisible: false },
-    { key: 'hebrewTitle', label: 'Hebrew Title', alwaysVisible: false },
-    { key: 'hebrewDescription', label: 'Hebrew Description', alwaysVisible: false },
-    { key: 'yearEnglish', label: 'Year (English)', alwaysVisible: false },
-    { key: 'yearHebrew', label: 'Year (Hebrew)', alwaysVisible: false },
-    { key: 'category', label: 'Category', alwaysVisible: false },
-    { key: 'bids', label: 'Bids', alwaysVisible: false },
-    { key: 'increment', label: 'Increment', alwaysVisible: false },
-    { key: 'status', label: 'Status', alwaysVisible: false },
-    { key: 'watchers', label: 'Watchers', alwaysVisible: false },
-    { key: 'ready', label: 'Ready', alwaysVisible: false },
-    { key: 'endTime', label: 'End Time', alwaysVisible: false },
-    { key: 'actions', label: 'Actions', alwaysVisible: false }
+    { key: 'checkbox', label: ui("Checkbox"), alwaysVisible: true },
+    { key: 'dragHandle', label: ui("Drag"), alwaysVisible: false },
+    { key: 'position', label: ui("Position"), alwaysVisible: false },
+    { key: 'lotNumber', label: ui("Lot Number"), alwaysVisible: false },
+    { key: 'images', label: ui("Images"), alwaysVisible: false },
+    { key: 'title', label: ui("Title"), alwaysVisible: false },
+    { key: 'description', label: ui("Description"), alwaysVisible: false },
+    { key: 'hebrewTitle', label: ui("Hebrew Title"), alwaysVisible: false },
+    { key: 'hebrewDescription', label: ui("Hebrew Description"), alwaysVisible: false },
+    { key: 'yearEnglish', label: ui("Year (English)"), alwaysVisible: false },
+    { key: 'yearHebrew', label: ui("Year (Hebrew)"), alwaysVisible: false },
+    { key: 'category', label: ui("Category"), alwaysVisible: false },
+    { key: 'bids', label: ui("Bids"), alwaysVisible: false },
+    { key: 'increment', label: ui("Increment"), alwaysVisible: false },
+    { key: 'status', label: ui("Status"), alwaysVisible: false },
+    { key: 'watchers', label: ui("Watchers"), alwaysVisible: false },
+    { key: 'ready', label: ui("Ready"), alwaysVisible: false },
+    { key: 'endTime', label: ui("End Time"), alwaysVisible: false },
+    { key: 'actions', label: ui("Actions"), alwaysVisible: false }
   ];
 
   // Default column visibility
@@ -131,7 +138,7 @@
   // Save current view
   function saveCurrentView() {
     if (!newViewName.trim()) {
-      alert('Please enter a view name');
+      alert(ui("Please enter a view name"));
       return;
     }
     
@@ -236,21 +243,21 @@
 
   // Importer state
   const importFields = [
-    { key: 'lotNumber', label: 'Lot Number', required: true },
-    { key: 'title', label: 'Title', required: true },
-    { key: 'description', label: 'Description' },
-    { key: 'hebrewTitle', label: 'Hebrew Title' },
-    { key: 'hebrewDescription', label: 'Hebrew Description' },
-    { key: 'category', label: 'Category' },
-    { key: 'tags', label: 'Tags (comma / semicolon separated)' },
-    { key: 'startingBid', label: 'Starting Bid' },
-    { key: 'currentBid', label: 'Current Bid' },
-    { key: 'bidIncrement', label: 'Bid Increment' },
-    { key: 'endTime', label: 'End Time' },
-    { key: 'status', label: 'Status' },
-    { key: 'imageUrl', label: 'Primary Image URL' },
-    { key: 'imageUrls', label: 'Additional Image URLs' },
-    { key: 'position', label: 'Position' }
+    { key: 'lotNumber', label: ui("Lot Number"), required: true },
+    { key: 'title', label: ui("Title"), required: true },
+    { key: 'description', label: ui("Description") },
+    { key: 'hebrewTitle', label: ui("Hebrew Title") },
+    { key: 'hebrewDescription', label: ui("Hebrew Description") },
+    { key: 'category', label: ui("Category") },
+    { key: 'tags', label: ui("Tags (comma / semicolon separated)") },
+    { key: 'startingBid', label: ui("Starting Bid") },
+    { key: 'currentBid', label: ui("Current Bid") },
+    { key: 'bidIncrement', label: ui("Bid Increment") },
+    { key: 'endTime', label: ui("End Time") },
+    { key: 'status', label: ui("Status") },
+    { key: 'imageUrl', label: ui("Primary Image URL") },
+    { key: 'imageUrls', label: ui("Additional Image URLs") },
+    { key: 'position', label: ui("Position") }
   ];
   let showImportModal = $state(false);
   let importFile = $state(null);
@@ -367,10 +374,10 @@
       ]);
       
       if (!auctionRes.ok) {
-        throw new Error('Failed to load auction');
+        throw new Error(ui("Failed to load auction"));
       }
       if (!lotsRes.ok) {
-        throw new Error('Failed to load lots');
+        throw new Error(ui("Failed to load lots"));
       }
       
       auction = await auctionRes.json();
@@ -415,7 +422,7 @@
       console.log('Processed lots:', lots);
     } catch (error) {
       console.error('Error loading data:', error);
-      alert('Failed to load lots. Please refresh the page.');
+      alert(ui("Failed to load lots. Please refresh the page."));
     } finally {
       loading = false;
     }
@@ -492,7 +499,7 @@
 
     if (!response.ok) {
       const errData = await response.json().catch(() => ({}));
-      throw new Error(errData.error || 'Failed to preview file');
+      throw new Error(errData.error || ui("Failed to preview file"));
     }
 
     const preview = await response.json();
@@ -549,7 +556,7 @@
 
       if (!response.ok) {
         const errData = await response.json().catch(() => ({}));
-        throw new Error(errData.error || 'Import failed');
+        throw new Error(errData.error || ui("Import failed"));
       }
 
       const result = await response.json();
@@ -609,14 +616,14 @@
       });
       
       if (!response.ok) {
-        throw new Error('Failed to reorder lots');
+        throw new Error(ui("Failed to reorder lots"));
       }
       
       // Reload data to get updated positions
       await loadData();
     } catch (error) {
       console.error('Error reordering lots:', error);
-      alert('Failed to reorder lots. Please try again.');
+      alert(ui("Failed to reorder lots. Please try again."));
     } finally {
       reordering = false;
     }
@@ -779,7 +786,7 @@
 
         if (!response.ok) {
           const error = await response.json();
-          throw new Error(error.error || 'Failed to create lot');
+          throw new Error(error.error || ui("Failed to create lot"));
         }
 
         // Update local lot with server response (which has the real ID)
@@ -808,7 +815,7 @@
         });
 
         if (!response.ok) {
-          throw new Error('Failed to save');
+          throw new Error(ui("Failed to save"));
         }
 
         // Update local lot with server response
@@ -842,7 +849,7 @@
       }
     } catch (error) {
       console.error('Error saving cell:', error);
-      alert(`Failed to save: ${error.message || 'Please try again.'}`);
+      alert(ui("Failed to save: {value0}", { value0: error.message || 'Please try again.' }));
     } finally {
       saving[lotId] = false;
     }
@@ -877,7 +884,7 @@
 
       if (!response.ok) {
         const error = await response.json().catch(() => ({ error: 'Failed to clean up' }));
-        throw new Error(error.error || 'Failed to clean up');
+        throw new Error(error.error || ui("Failed to clean up"));
       }
 
       const cleaned = await response.json();
@@ -915,10 +922,10 @@
       // Reload data to get updated lot from server
       await loadData();
       
-      alert('Lot information cleaned up successfully!');
+      alert(ui("Lot information cleaned up successfully!"));
     } catch (error) {
       console.error('Error cleaning up lot:', error);
-      alert(`Failed to clean up: ${error.message || 'Please try again.'}`);
+      alert(ui("Failed to clean up: {value0}", { value0: error.message || 'Please try again.' }));
     } finally {
       cleaningUp[lotId] = false;
     }
@@ -981,7 +988,7 @@
 
         if (!createResponse.ok) {
           const error = await createResponse.json();
-          throw new Error(error.error || 'Failed to create lot');
+          throw new Error(error.error || ui("Failed to create lot"));
         }
 
         const created = await createResponse.json();
@@ -1006,7 +1013,7 @@
       });
 
       if (!uploadResponse.ok) {
-        throw new Error('Failed to upload images');
+        throw new Error(ui("Failed to upload images"));
       }
 
       const { images: uploadedImages } = await uploadResponse.json();
@@ -1028,7 +1035,7 @@
       });
 
       if (!imageResponse.ok) {
-        throw new Error('Failed to save image records');
+        throw new Error(ui("Failed to save image records"));
       }
 
       // Reload lot data to get updated images
@@ -1038,7 +1045,7 @@
       event.target.value = '';
     } catch (error) {
       console.error('Error uploading images:', error);
-      alert('Failed to upload images. Please try again.');
+      alert(ui("Failed to upload images. Please try again."));
     }
   }
 
@@ -1049,14 +1056,14 @@
       });
 
       if (!response.ok) {
-        throw new Error('Failed to delete image');
+        throw new Error(ui("Failed to delete image"));
       }
 
       // Reload lot data to get updated images
       await loadData();
     } catch (error) {
       console.error('Error deleting image:', error);
-      alert('Failed to delete image. Please try again.');
+      alert(ui("Failed to delete image. Please try again."));
     }
   }
 
@@ -1067,7 +1074,7 @@
     }
 
     const imageCount = lot.images.length;
-    if (!confirm(`Are you sure you want to delete all ${imageCount} image(s) for Lot #${lot.lotNumber}? This action cannot be undone.`)) {
+    if (!confirm(ui("Are you sure you want to delete all {value0} image(s) for Lot #{value1}? This action cannot be undone.", { value0: imageCount, value1: lot.lotNumber }))) {
       return;
     }
 
@@ -1084,10 +1091,10 @@
       // Reload lot data to get updated images
       await loadData();
       
-      alert(`Successfully deleted ${imageCount} image(s).`);
+      alert(ui("Successfully deleted {value0} image(s).", { value0: imageCount }));
     } catch (error) {
       console.error('Error deleting all images:', error);
-      alert('Failed to delete all images. Please try again.');
+      alert(ui("Failed to delete all images. Please try again."));
     }
   }
 
@@ -1099,7 +1106,7 @@
       // Get the lot to access image data
       const lot = lots.find(l => l.id === lotId);
       if (!lot) {
-        throw new Error('Lot not found');
+        throw new Error(ui("Lot not found"));
       }
 
       // If imageUrl is an S3 key (not a full URL), get presigned URL
@@ -1132,13 +1139,13 @@
 
       if (!response.ok) {
         const error = await response.json();
-        throw new Error(error.error || 'Failed to remove background');
+        throw new Error(error.error || ui("Failed to remove background"));
       }
 
       const result = await response.json();
       
       if (!result.success || !result.image) {
-        throw new Error('Background removal failed: No image returned');
+        throw new Error(ui("Background removal failed: No image returned"));
       }
 
       // Convert base64 to Blob
@@ -1170,7 +1177,7 @@
       });
 
       if (!uploadResponse.ok) {
-        throw new Error('Failed to upload processed image');
+        throw new Error(ui("Failed to upload processed image"));
       }
 
       const { images: uploadedImages } = await uploadResponse.json();
@@ -1192,16 +1199,16 @@
       });
 
       if (!imageResponse.ok) {
-        throw new Error('Failed to save image record');
+        throw new Error(ui("Failed to save image record"));
       }
 
       // Reload lot data to show the new image
       await loadData();
       
-      alert('Background removed successfully! New image added to lot.');
+      alert(ui("Background removed successfully! New image added to lot."));
     } catch (error) {
       console.error('Error removing background:', error);
-      alert(`Failed to remove background: ${error.message}`);
+      alert(ui("Failed to remove background: {value0}", { value0: error.message }));
     } finally {
       removingBackground[imageId] = false;
       removingBackground = { ...removingBackground };
@@ -1211,11 +1218,11 @@
   async function removeBackgroundFromAllImages(lotId) {
     const lot = lots.find(l => l.id === lotId);
     if (!lot || !lot.images || lot.images.length === 0) {
-      alert('No images found for this lot');
+      alert(ui("No images found for this lot"));
       return;
     }
 
-    const confirmed = confirm(`This will process ${lot.images.length} image(s) and may take a few minutes. Continue?`);
+    const confirmed = confirm(ui("This will process {value0} image(s) and may take a few minutes. Continue?", { value0: lot.images.length }));
     if (!confirmed) return;
 
     try {
@@ -1257,13 +1264,13 @@
           });
 
           if (!response.ok) {
-            throw new Error('Failed to remove background');
+            throw new Error(ui("Failed to remove background"));
           }
 
           const result = await response.json();
           
           if (!result.success || !result.image) {
-            throw new Error('Background removal failed: No image returned');
+            throw new Error(ui("Background removal failed: No image returned"));
           }
 
           // Convert base64 to Blob
@@ -1291,7 +1298,7 @@
           });
 
           if (!uploadResponse.ok) {
-            throw new Error('Failed to upload processed image');
+            throw new Error(ui("Failed to upload processed image"));
           }
 
           const { images: newImages } = await uploadResponse.json();
@@ -1325,17 +1332,17 @@
         });
 
         if (!imageResponse.ok) {
-          throw new Error('Failed to save image records');
+          throw new Error(ui("Failed to save image records"));
         }
       }
 
       // Reload data to show all new images
       await loadData();
 
-      alert(`Background removal complete!\nSuccess: ${successCount}\nFailed: ${failCount}`);
+      alert(ui("Background removal complete!\nSuccess: {value0}\nFailed: {value1}", { value0: successCount, value1: failCount }));
     } catch (error) {
       console.error('Error removing backgrounds from all images:', error);
-      alert(`Failed to process all images: ${error.message}`);
+      alert(ui("Failed to process all images: {value0}", { value0: error.message }));
     } finally {
       removingBackgroundFromAll[lotId] = false;
       removingBackgroundFromAll = { ...removingBackgroundFromAll };
@@ -1360,7 +1367,7 @@
   // Open template selector for bulk banner generation
   function openBannerTemplateSelector() {
     if (selectedLots.size === 0) {
-      alert('Please select at least one lot');
+      alert(ui("Please select at least one lot"));
       return;
     }
     loadBannerTemplates();
@@ -1370,12 +1377,12 @@
   // Generate banners for all selected lots using a template
   async function generateBannersForSelectedLots(template) {
     if (selectedLots.size === 0) {
-      alert('Please select at least one lot');
+      alert(ui("Please select at least one lot"));
       return;
     }
 
     const templateName = template ? template.name : 'Default Settings';
-    const confirmed = confirm(`This will generate banners for ${selectedLots.size} lot(s) using ${templateName}. Continue?`);
+    const confirmed = confirm(ui("This will generate banners for {value0} lot(s) using {value1}. Continue?", { value0: selectedLots.size, value1: templateName }));
     if (!confirmed) return;
 
     try {
@@ -1474,10 +1481,10 @@
       // Reload data to show new banners
       await loadData();
 
-      alert(`Banner generation complete!\nSuccess: ${successCount}\nFailed: ${failCount}`);
+      alert(ui("Banner generation complete!\nSuccess: {value0}\nFailed: {value1}", { value0: successCount, value1: failCount }));
     } catch (error) {
       console.error('Error generating banners:', error);
-      alert(`Failed to generate banners: ${error.message}`);
+      alert(ui("Failed to generate banners: {value0}", { value0: error.message }));
     } finally {
       generatingBanners = false;
     }
@@ -1566,7 +1573,7 @@
         if (!response.ok) {
           const errorText = await response.text();
           console.error('Proxy response error:', response.status, errorText);
-          throw new Error(`Failed to load image: ${response.status}`);
+          throw new Error(ui("Failed to load image: {value0}", { value0: response.status }));
         }
         
         const blob = await response.blob();
@@ -1612,7 +1619,7 @@
           img.onerror = (error) => {
             console.error('Image load error:', error);
             URL.revokeObjectURL(blobUrl);
-            reject(new Error('Failed to load image'));
+            reject(new Error(ui("Failed to load image")));
           };
           img.src = blobUrl;
         });
@@ -1716,7 +1723,7 @@
       // Convert base64 to Blob
       const base64Data = bannerDataUrl.split(',')[1];
       if (!base64Data) {
-        throw new Error('Invalid banner data URL');
+        throw new Error(ui("Invalid banner data URL"));
       }
       
       const binaryString = atob(base64Data);
@@ -1742,7 +1749,7 @@
       if (!uploadResponse.ok) {
         const errorText = await uploadResponse.text();
         console.error('Upload response error:', errorText);
-        throw new Error(`Failed to upload banner image: ${uploadResponse.status} ${errorText}`);
+        throw new Error(ui("Failed to upload banner image: {value0} {value1}", { value0: uploadResponse.status, value1: errorText }));
       }
 
       const uploadResult = await uploadResponse.json();
@@ -1750,7 +1757,7 @@
       
       const uploadedImages = uploadResult.images;
       if (!uploadedImages || uploadedImages.length === 0) {
-        throw new Error('No images returned from upload');
+        throw new Error(ui("No images returned from upload"));
       }
 
       console.log(`Uploaded ${uploadedImages.length} image(s), saving to database...`);
@@ -1774,7 +1781,7 @@
       if (!imageResponse.ok) {
         const errorText = await imageResponse.text();
         console.error('Image save response error:', errorText);
-        throw new Error(`Failed to save image record: ${imageResponse.status} ${errorText}`);
+        throw new Error(ui("Failed to save image record: {value0} {value1}", { value0: imageResponse.status, value1: errorText }));
       }
 
       const saveResult = await imageResponse.json();
@@ -1865,14 +1872,14 @@
       });
       
       if (!response.ok) {
-        throw new Error('Failed to reorder images');
+        throw new Error(ui("Failed to reorder images"));
       }
       
       // Reload data to get updated order
       await loadData();
     } catch (error) {
       console.error('Error reordering images:', error);
-      alert('Failed to reorder images. Please try again.');
+      alert(ui("Failed to reorder images. Please try again."));
     }
   }
   
@@ -1908,14 +1915,14 @@
       });
       
       if (!response.ok) {
-        throw new Error('Failed to move image');
+        throw new Error(ui("Failed to move image"));
       }
       
       // Reload data
       await loadData();
     } catch (error) {
       console.error('Error moving image up:', error);
-      alert('Failed to move image. Please try again.');
+      alert(ui("Failed to move image. Please try again."));
     }
   }
   
@@ -1951,14 +1958,14 @@
       });
       
       if (!response.ok) {
-        throw new Error('Failed to move image');
+        throw new Error(ui("Failed to move image"));
       }
       
       // Reload data
       await loadData();
     } catch (error) {
       console.error('Error moving image down:', error);
-      alert('Failed to move image. Please try again.');
+      alert(ui("Failed to move image. Please try again."));
     }
   }
   
@@ -1982,14 +1989,14 @@
       });
 
       if (!response.ok) {
-        throw new Error('Failed to update image');
+        throw new Error(ui("Failed to update image"));
       }
 
       // Reload lot data to get updated images
       await loadData();
     } catch (error) {
       console.error('Error toggling image hidden state:', error);
-      alert('Failed to update image. Please try again.');
+      alert(ui("Failed to update image. Please try again."));
     }
   }
   
@@ -2018,14 +2025,14 @@
       });
       
       if (!response.ok) {
-        throw new Error('Failed to set featured image');
+        throw new Error(ui("Failed to set featured image"));
       }
       
       // Reload data
       await loadData();
     } catch (error) {
       console.error('Error setting featured image:', error);
-      alert('Failed to set featured image. Please try again.');
+      alert(ui("Failed to set featured image. Please try again."));
     }
   }
 
@@ -2092,7 +2099,7 @@
         console.log(`Found images for ${lotNumbers.length} lots:`, lotNumbers);
         
         if (lotNumbers.length === 0) {
-          alert('No valid files found. Please use the format: lotNumber-imageNumber.ext (e.g., 4-1.jpg)');
+          alert(ui("No valid files found. Please use the format: lotNumber-imageNumber.ext (e.g., 4-1.jpg)"));
           uploadingImages = false;
           return;
         }
@@ -2145,7 +2152,7 @@
             if (!uploadResponse.ok) {
               const errorText = await uploadResponse.text();
               console.error(`[Upload] Upload failed for lot ${lotNumber}:`, errorText);
-              throw new Error(`Failed to upload images for lot ${lotNumber}: ${errorText}`);
+              throw new Error(ui("Failed to upload images for lot {value0}: {value1}", { value0: lotNumber, value1: errorText }));
             }
 
             const uploadResult = await uploadResponse.json();
@@ -2154,7 +2161,7 @@
             console.log(`[Upload] Received ${uploadedImages.length} uploaded images for lot ${lotNumber}`);
 
             if (uploadedImages.length === 0) {
-              throw new Error(`No images were uploaded for lot ${lotNumber}`);
+              throw new Error(ui("No images were uploaded for lot {value0}", { value0: lotNumber }));
             }
 
             if (uploadedImages.length !== lotImages.length) {
@@ -2184,14 +2191,14 @@
             if (!imageResponse.ok) {
               const errorText = await imageResponse.text();
               console.error(`[Upload] Failed to associate images with lot ${lotNumber}:`, errorText);
-              throw new Error(`Failed to associate images with lot ${lotNumber}: ${errorText}`);
+              throw new Error(ui("Failed to associate images with lot {value0}: {value1}", { value0: lotNumber, value1: errorText }));
             }
 
             const associatedResult = await imageResponse.json();
             console.log(`[Upload] Successfully associated ${associatedResult.length || imagesToAssociate.length} images with lot ${lotNumber}`);
 
             if (!imageResponse.ok) {
-              throw new Error(`Failed to associate images with lot ${lotNumber}`);
+              throw new Error(ui("Failed to associate images with lot {value0}", { value0: lotNumber }));
             }
 
             uploadedCount += uploadedImages.length;
@@ -2208,13 +2215,13 @@
         await loadData();
 
         if (errorCount > 0) {
-          alert(`Upload complete: ${uploadedCount} images uploaded, ${errorCount} failed.\n\nErrors:\n${errors.join('\n')}`);
+          alert(ui("Upload complete: {value0} images uploaded, {value1} failed.\n\nErrors:\n{value2}", { value0: uploadedCount, value1: errorCount, value2: errors.join('\n') }));
         } else {
-          alert(`Successfully uploaded ${uploadedCount} images to ${lotNumbers.length} lots!`);
+          alert(ui("Successfully uploaded {value0} images to {value1} lots!", { value0: uploadedCount, value1: lotNumbers.length }));
         }
       } catch (error) {
         console.error('Error in bulk image upload:', error);
-        alert(`Failed to upload images: ${error.message}`);
+        alert(ui("Failed to upload images: {value0}", { value0: error.message }));
       } finally {
         uploadingImages = false;
       }
@@ -2235,14 +2242,14 @@
       if (!response.ok) {
         const errorText = await response.text();
         console.error('Export error:', errorText);
-        throw new Error(errorText || 'Failed to export to BidSpirit');
+        throw new Error(errorText || ui("Failed to export to BidSpirit"));
       }
 
       // Get the zip file as blob
       const blob = await response.blob();
       
       if (blob.size === 0) {
-        throw new Error('Export returned empty file');
+        throw new Error(ui("Export returned empty file"));
       }
       
       const url = URL.createObjectURL(blob);
@@ -2266,7 +2273,7 @@
       URL.revokeObjectURL(url);
     } catch (err) {
       console.error('Error exporting to BidSpirit:', err);
-      alert(`Failed to export to BidSpirit: ${err.message || 'Please try again.'}`);
+      alert(ui("Failed to export to BidSpirit: {value0}", { value0: err.message || 'Please try again.' }));
     } finally {
       exportingBidSpirit = false;
     }
@@ -2274,7 +2281,7 @@
 
   async function deleteLots() {
     if (selectedLots.size === 0) return;
-    if (!confirm(`Delete ${selectedLots.size} lot(s)?`)) return;
+    if (!confirm(ui("Delete {value0} lot(s)?", { value0: selectedLots.size }))) return;
 
     try {
       const deletePromises = Array.from(selectedLots).map(lotId =>
@@ -2285,7 +2292,7 @@
       await loadData();
     } catch (error) {
       console.error('Error deleting lots:', error);
-      alert('Failed to delete lots');
+      alert(ui("Failed to delete lots"));
     }
   }
 
@@ -2315,62 +2322,62 @@
 </script>
 
 <svelte:head>
-  <title>Advanced Lot Management - {auction?.title || 'Loading...'}</title>
+  <title>{ui("Advanced Lot Management -")} {auction?.title || ui("Loading...")}</title>
 </svelte:head>
 
 <div class="print:bg-white">
     {#if loading}
       <div class="py-16 text-center">
-        <PumbiLoader size="lg" label="Loading" />
-        <p class="mt-4 text-[var(--pumbi-muted)]">Loading lots…</p>
+        <PumbiLoader size="lg" label={ui("Loading")} />
+        <p class="mt-4 text-[var(--pumbi-muted)]">{ui("Loading lots…")}</p>
       </div>
     {:else if auction}
       <!-- Header -->
       <div class="pumbi-panel mb-6 p-6 print:hidden">
         <div class="mb-4 flex flex-wrap items-center justify-between gap-3">
           <div>
-            <p class="pumbi-eyebrow">Spreadsheet</p>
-            <h2 class="mt-1 font-[family-name:var(--pumbi-serif)] text-2xl font-semibold">Advanced lot grid</h2>
+            <p class="pumbi-eyebrow">{ui("Spreadsheet")}</p>
+            <h2 class="mt-1 font-[family-name:var(--pumbi-serif)] text-2xl font-semibold">{ui("Advanced lot grid")}</h2>
             <p class="mt-1 text-sm text-[var(--pumbi-ink-soft)]">{auction.title}</p>
           </div>
           <div class="flex flex-wrap items-center gap-2">
-            <button type="button" onclick={addNewLot} class="pumbi-btn">Add lot</button>
-            <button type="button" onclick={openImportModal} class="pumbi-btn-secondary">Import</button>
-            <a href="/seller/auctions/{auction.id}/lots/bulk" class="pumbi-btn-secondary">Bulk CSV</a>
+            <button type="button" onclick={addNewLot} class="pumbi-btn">{ui("Add lot")}</button>
+            <button type="button" onclick={openImportModal} class="pumbi-btn-secondary">{ui("Import")}</button>
+            <a href="/seller/auctions/{auction.id}/lots/bulk" class="pumbi-btn-secondary">{ui("Bulk CSV")}</a>
             <button
               onclick={handleBulkImageUpload}
               disabled={lots.length === 0 || uploadingImages}
               class="px-4 py-2 text-sm font-medium text-white bg-green-600 rounded-lg hover:bg-green-700 disabled:bg-gray-400 disabled:cursor-not-allowed flex items-center gap-2"
-              title="Upload images named like '4-1.jpg' (lot 4, image 1)"
+              title={ui("Upload images named like '4-1.jpg' (lot 4, image 1)")}
             >
               {#if uploadingImages}
                 <svg class="w-4 h-4 animate-spin" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
                 </svg>
-                Uploading...
+                {ui("Uploading...")}
               {:else}
                 <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
                 </svg>
-                Upload Images to Lots
+                {ui("Upload Images to Lots")}
               {/if}
             </button>
             <button
               onclick={exportToBidSpirit}
               disabled={lots.length === 0 || exportingBidSpirit}
               class="px-4 py-2 text-sm font-medium text-white bg-green-600 rounded-lg hover:bg-green-700 disabled:bg-gray-400 disabled:cursor-not-allowed flex items-center gap-2"
-              title="Export all lots and images to BidSpirit format"
+              title={ui("Export all lots and images to BidSpirit format")}
             >
               {#if exportingBidSpirit}
                 <svg class="w-4 h-4 animate-spin" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
                 </svg>
-                Exporting...
+                {ui("Exporting...")}
               {:else}
                 <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
                 </svg>
-                Export to BidSpirit
+                {ui("Export to BidSpirit")}
               {/if}
             </button>
             {#if selectedLots.size > 0}
@@ -2378,15 +2385,15 @@
                 onclick={openBannerTemplateSelector}
                 disabled={generatingBanners}
                 class="px-4 py-2 text-sm font-medium text-white bg-purple-600 rounded-lg hover:bg-purple-700 disabled:opacity-50 disabled:cursor-not-allowed"
-                title="Generate banners for selected lots using a template"
+                title={ui("Generate banners for selected lots using a template")}
               >
-                {generatingBanners ? '⏳ Generating...' : '🎨 Generate Banners (' + selectedLots.size + ')'}
+                {generatingBanners ? ui("⏳ Generating...") : '🎨 Generate Banners (' + selectedLots.size + ')'}
               </button>
               <button
                 onclick={deleteLots}
                 class="px-4 py-2 text-sm font-medium text-white bg-red-600 rounded-lg hover:bg-red-700"
               >
-                Delete Selected ({selectedLots.size})
+                {ui("Delete Selected (")}{selectedLots.size})
               </button>
             {/if}
           </div>
@@ -2396,19 +2403,19 @@
         <div class="flex items-center gap-4 text-xs">
           <div class="flex items-center gap-2">
             <div class="w-4 h-4 bg-red-50 border border-red-200"></div>
-            <span>Missing Images</span>
+            <span>{ui("Missing Images")}</span>
           </div>
           <div class="flex items-center gap-2">
             <div class="w-4 h-4 bg-yellow-50 border border-yellow-200"></div>
-            <span>Invalid Price/Increment</span>
+            <span>{ui("Invalid Price/Increment")}</span>
           </div>
           <div class="flex items-center gap-2">
             <div class="w-4 h-4 bg-orange-50 border border-orange-200"></div>
-            <span>Missing Title</span>
+            <span>{ui("Missing Title")}</span>
           </div>
           <div class="flex items-center gap-2">
             <div class="w-4 h-4 bg-white border border-gray-200"></div>
-            <span>Valid</span>
+            <span>{ui("Valid")}</span>
           </div>
         </div>
 
@@ -2423,11 +2430,11 @@
               <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"></path>
               </svg>
-              Columns
+              {ui("Columns")}
             </button>
             {#if showColumnSettings}
               <div class="absolute left-0 mt-2 w-64 bg-white border border-gray-300 rounded-lg shadow-lg z-50 p-3" onclick={(e) => e.stopPropagation()}>
-                <div class="text-xs font-semibold text-gray-700 mb-2">Show/Hide Columns</div>
+                <div class="text-xs font-semibold text-gray-700 mb-2">{ui("Show/Hide Columns")}</div>
                 <div class="space-y-1 max-h-64 overflow-y-auto">
                   {#each columnDefinitions as col}
                     <label class="flex items-center gap-2 p-1 hover:bg-gray-50 rounded cursor-pointer {col.alwaysVisible ? 'opacity-50' : ''}">
@@ -2459,7 +2466,7 @@
             </button>
             {#if showViewManager}
               <div class="absolute left-0 mt-2 w-72 bg-white border border-gray-300 rounded-lg shadow-lg z-50 p-3" onclick={(e) => e.stopPropagation()}>
-                <div class="text-xs font-semibold text-gray-700 mb-2">Saved Views</div>
+                <div class="text-xs font-semibold text-gray-700 mb-2">{ui("Saved Views")}</div>
                 <div class="space-y-2 mb-3 max-h-48 overflow-y-auto">
                   {#each savedViews as view}
                     <div class="flex items-center justify-between p-2 bg-gray-50 rounded hover:bg-gray-100">
@@ -2469,7 +2476,7 @@
                         {/if}
                         <button
                           onclick={() => loadView(view)}
-                          class="text-xs text-gray-700 hover:text-blue-600 flex-1 text-left"
+                          class="text-xs text-gray-700 hover:text-blue-600 flex-1 text-start"
                         >
                           {view.name}
                         </button>
@@ -2479,7 +2486,7 @@
                           <button
                             onclick={() => setDefaultView(view.id)}
                             class="text-xs text-gray-500 hover:text-blue-600"
-                            title="Set as default"
+                            title={ui("Set as default")}
                           >
                             ⭐
                           </button>
@@ -2487,7 +2494,7 @@
                         <button
                           onclick={() => deleteView(view.id)}
                           class="text-xs text-red-500 hover:text-red-700"
-                          title="Delete view"
+                          title={ui("Delete view")}
                         >
                           ✕
                         </button>
@@ -2496,12 +2503,12 @@
                   {/each}
                 </div>
                 <div class="border-t border-gray-200 pt-3">
-                  <div class="text-xs font-semibold text-gray-700 mb-2">Save Current View</div>
+                  <div class="text-xs font-semibold text-gray-700 mb-2">{ui("Save Current View")}</div>
                   <div class="flex gap-2">
                     <input
                       type="text"
                       bind:value={newViewName}
-                      placeholder="View name..."
+                      placeholder={ui("View name...")}
                       class="flex-1 px-2 py-1 text-xs border border-gray-300 rounded focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                       onkeydown={(e) => {
                         if (e.key === 'Enter') {
@@ -2513,7 +2520,7 @@
                       onclick={saveCurrentView}
                       class="px-3 py-1 text-xs font-medium text-white bg-blue-600 rounded hover:bg-blue-700"
                     >
-                      Save
+                      {ui("Save")}
                     </button>
                   </div>
                 </div>
@@ -2527,12 +2534,12 @@
       <div class="bg-white rounded-lg shadow-lg overflow-hidden print:hidden">
         {#if lots.length === 0}
           <div class="p-12 text-center">
-            <p class="text-gray-600 text-lg mb-4">No lots found for this auction.</p>
+            <p class="text-gray-600 text-lg mb-4">{ui("No lots found for this auction.")}</p>
             <button
               onclick={addNewLot}
               class="px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-lg hover:bg-blue-700"
             >
-              Add First Lot
+              {ui("Add First Lot")}
             </button>
           </div>
         {:else}
@@ -2540,7 +2547,7 @@
             <table class="min-w-full divide-y divide-gray-200">
             <thead class="bg-gray-50 sticky top-0 z-10">
               <tr>
-                <th class="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-12 {columnVisibility.checkbox ? '' : 'hidden'}">
+                <th class="px-3 py-2 text-start text-xs font-medium text-gray-500 uppercase tracking-wider w-12 {columnVisibility.checkbox ? '' : 'hidden'}">
                   <input
                     type="checkbox"
                     checked={selectedLots.size === lots.length && lots.length > 0}
@@ -2548,24 +2555,24 @@
                     class="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
                   />
                 </th>
-                <th class="px-1 py-1 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-8 {columnVisibility.dragHandle ? '' : 'hidden'}"></th>
-                <th class="px-1 py-1 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-8 {columnVisibility.position ? '' : 'hidden'}">Pos</th>
-                <th class="px-1 py-1 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-8 {columnVisibility.lotNumber ? '' : 'hidden'}">Lot</th>
-                <th class="px-2 py-1 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-20 {columnVisibility.images ? '' : 'hidden'}">Images</th>
-                <th class="px-2 py-1 text-left text-xs font-medium text-gray-500 uppercase tracking-wider min-w-[200px] {columnVisibility.title ? '' : 'hidden'}">Title</th>
-                <th class="px-2 py-1 text-left text-xs font-medium text-gray-500 uppercase tracking-wider min-w-[200px] {columnVisibility.description ? '' : 'hidden'}">Description</th>
-                <th class="px-2 py-1 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-40 {columnVisibility.hebrewTitle ? '' : 'hidden'}">Hebrew Title</th>
-                <th class="px-2 py-1 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-40 {columnVisibility.hebrewDescription ? '' : 'hidden'}">Hebrew Description</th>
-                <th class="px-2 py-1 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-24 {columnVisibility.yearEnglish ? '' : 'hidden'}">Year (EN)</th>
-                <th class="px-2 py-1 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-24 {columnVisibility.yearHebrew ? '' : 'hidden'}">Year (HE)</th>
-                <th class="px-2 py-1 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-40 {columnVisibility.category ? '' : 'hidden'}">Category</th>
-                <th class="px-2 py-1 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-28 {columnVisibility.bids ? '' : 'hidden'}">Bids</th>
-                <th class="px-2 py-1 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-28 {columnVisibility.increment && (editingCell && (editingCell.field === 'startingBid' || editingCell.field === 'currentBid' || editingCell.field === 'bidIncrement')) ? '' : 'hidden'}">Increment</th>
-                <th class="px-2 py-1 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-16 {columnVisibility.status ? '' : 'hidden'}">Status</th>
-                <th class="px-2 py-1 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-20 {columnVisibility.watchers ? '' : 'hidden'}">Watchers</th>
-                <th class="px-2 py-1 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-16 {columnVisibility.ready ? '' : 'hidden'}">Ready</th>
-                <th class="px-2 py-1 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-32 {columnVisibility.endTime ? '' : 'hidden'}">End Time</th>
-                <th class="px-2 py-1 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-24 {columnVisibility.actions ? '' : 'hidden'}">Actions</th>
+                <th class="px-1 py-1 text-start text-xs font-medium text-gray-500 uppercase tracking-wider w-8 {columnVisibility.dragHandle ? '' : 'hidden'}"></th>
+                <th class="px-1 py-1 text-start text-xs font-medium text-gray-500 uppercase tracking-wider w-8 {columnVisibility.position ? '' : 'hidden'}">{ui("Pos")}</th>
+                <th class="px-1 py-1 text-start text-xs font-medium text-gray-500 uppercase tracking-wider w-8 {columnVisibility.lotNumber ? '' : 'hidden'}">{ui("Lot")}</th>
+                <th class="px-2 py-1 text-start text-xs font-medium text-gray-500 uppercase tracking-wider w-20 {columnVisibility.images ? '' : 'hidden'}">{ui("Images")}</th>
+                <th class="px-2 py-1 text-start text-xs font-medium text-gray-500 uppercase tracking-wider min-w-[200px] {columnVisibility.title ? '' : 'hidden'}">{ui("Title")}</th>
+                <th class="px-2 py-1 text-start text-xs font-medium text-gray-500 uppercase tracking-wider min-w-[200px] {columnVisibility.description ? '' : 'hidden'}">{ui("Description")}</th>
+                <th class="px-2 py-1 text-start text-xs font-medium text-gray-500 uppercase tracking-wider w-40 {columnVisibility.hebrewTitle ? '' : 'hidden'}">{ui("Hebrew Title")}</th>
+                <th class="px-2 py-1 text-start text-xs font-medium text-gray-500 uppercase tracking-wider w-40 {columnVisibility.hebrewDescription ? '' : 'hidden'}">{ui("Hebrew Description")}</th>
+                <th class="px-2 py-1 text-start text-xs font-medium text-gray-500 uppercase tracking-wider w-24 {columnVisibility.yearEnglish ? '' : 'hidden'}">{ui("Year (EN)")}</th>
+                <th class="px-2 py-1 text-start text-xs font-medium text-gray-500 uppercase tracking-wider w-24 {columnVisibility.yearHebrew ? '' : 'hidden'}">{ui("Year (HE)")}</th>
+                <th class="px-2 py-1 text-start text-xs font-medium text-gray-500 uppercase tracking-wider w-40 {columnVisibility.category ? '' : 'hidden'}">{ui("Category")}</th>
+                <th class="px-2 py-1 text-start text-xs font-medium text-gray-500 uppercase tracking-wider w-28 {columnVisibility.bids ? '' : 'hidden'}">{ui("Bids")}</th>
+                <th class="px-2 py-1 text-start text-xs font-medium text-gray-500 uppercase tracking-wider w-28 {columnVisibility.increment && (editingCell && (editingCell.field === 'startingBid' || editingCell.field === 'currentBid' || editingCell.field === 'bidIncrement')) ? '' : 'hidden'}">{ui("Increment")}</th>
+                <th class="px-2 py-1 text-start text-xs font-medium text-gray-500 uppercase tracking-wider w-16 {columnVisibility.status ? '' : 'hidden'}">{ui("Status")}</th>
+                <th class="px-2 py-1 text-start text-xs font-medium text-gray-500 uppercase tracking-wider w-20 {columnVisibility.watchers ? '' : 'hidden'}">{ui("Watchers")}</th>
+                <th class="px-2 py-1 text-start text-xs font-medium text-gray-500 uppercase tracking-wider w-16 {columnVisibility.ready ? '' : 'hidden'}">{ui("Ready")}</th>
+                <th class="px-2 py-1 text-start text-xs font-medium text-gray-500 uppercase tracking-wider w-32 {columnVisibility.endTime ? '' : 'hidden'}">{ui("End Time")}</th>
+                <th class="px-2 py-1 text-start text-xs font-medium text-gray-500 uppercase tracking-wider w-24 {columnVisibility.actions ? '' : 'hidden'}">{ui("Actions")}</th>
               </tr>
             </thead>
             <tbody class="bg-white divide-y divide-gray-200">
@@ -2592,7 +2599,7 @@
                       draggable="true"
                       ondragstart={(e) => handleDragStart(e, lot)}
                       class="cursor-move text-gray-400 hover:text-gray-600 flex items-center justify-center"
-                      title="Drag to reorder"
+                      title={ui("Drag to reorder")}
                     >
                       <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 8h16M4 16h16"></path>
@@ -2609,7 +2616,7 @@
                           onclick={(e) => { e.stopPropagation(); moveLotUp(index); }}
                           disabled={index === 0 || reordering}
                           class="text-[10px] leading-none text-gray-600 hover:text-gray-900 disabled:opacity-50 disabled:cursor-not-allowed"
-                          title="Move up"
+                          title={ui("Move up")}
                         >
                           ↑
                         </button>
@@ -2617,7 +2624,7 @@
                           onclick={(e) => { e.stopPropagation(); moveLotDown(index); }}
                           disabled={index === lots.length - 1 || reordering}
                           class="text-[10px] leading-none text-gray-600 hover:text-gray-900 disabled:opacity-50 disabled:cursor-not-allowed"
-                          title="Move down"
+                          title={ui("Move down")}
                         >
                           ↓
                         </button>
@@ -2673,8 +2680,8 @@
                       </div>
                       <button
                         onclick={() => toggleImageRow(lot.id)}
-                        class="ml-1 text-[10px] text-gray-600 hover:text-gray-700 whitespace-nowrap"
-                        title="Manage images"
+                        class="ms-1 text-[10px] text-gray-600 hover:text-gray-700 whitespace-nowrap"
+                        title={ui("Manage images")}
                       >
                         {expandedImageRows.has(lot.id) ? '✕' : '⋯'}
                       </button>
@@ -2701,7 +2708,7 @@
                             {#if lot.title}
                               {lot.title}
                             {:else}
-                              <span class="text-gray-400 italic">Double-click to edit</span>
+                              <span class="text-gray-400 italic">{ui("Double-click to edit")}</span>
                             {/if}
                           </span>
                         {/if}
@@ -2726,7 +2733,7 @@
                             {#if lot.description}
                               {lot.description}
                             {:else}
-                              <span class="text-gray-400 italic">Double-click to edit</span>
+                              <span class="text-gray-400 italic">{ui("Double-click to edit")}</span>
                             {/if}
                           </span>
                         {/if}
@@ -2752,7 +2759,7 @@
                         {#if lot.hebrewTitle || lot.HebrewTitle}
                           {lot.hebrewTitle || lot.HebrewTitle}
                         {:else}
-                          <span class="text-gray-400 italic">Double-click to edit</span>
+                          <span class="text-gray-400 italic">{ui("Double-click to edit")}</span>
                         {/if}
                       </span>
                     {/if}
@@ -2779,7 +2786,7 @@
                         {#if lot.hebrewDescription || lot.HebrewDescription}
                           {lot.hebrewDescription || lot.HebrewDescription}
                         {:else}
-                          <span class="text-gray-400 italic">Double-click to edit</span>
+                          <span class="text-gray-400 italic">{ui("Double-click to edit")}</span>
                         {/if}
                       </span>
                     {/if}
@@ -2876,7 +2883,7 @@
                                       editingCell.value = cat;
                                       showCategoryDropdown[lot.id] = false;
                                     }}
-                                    class="w-full text-left px-2 py-1 hover:bg-blue-50 text-xs"
+                                    class="w-full text-start px-2 py-1 hover:bg-blue-50 text-xs"
                                   >
                                     {cat}
                                   </button>
@@ -2888,9 +2895,9 @@
                                       editingCell.value = categoryInputs[lot.id];
                                       showCategoryDropdown[lot.id] = false;
                                     }}
-                                    class="w-full text-left px-2 py-1 hover:bg-green-50 text-xs text-green-600 font-semibold"
+                                    class="w-full text-start px-2 py-1 hover:bg-green-50 text-xs text-green-600 font-semibold"
                                   >
-                                    + Create "{categoryInputs[lot.id]}"
+                                    {ui("+ Create \"")}{categoryInputs[lot.id]}"
                                   </button>
                                 {/if}
                               </div>
@@ -2930,7 +2937,7 @@
                                       editingCell.value = JSON.stringify(tags);
                                       saveCell(lot.id, 'tags', JSON.stringify(tags));
                                     }}
-                                    class="ml-0.5 text-blue-600 hover:text-blue-800 text-xs"
+                                    class="ms-0.5 text-blue-600 hover:text-blue-800 text-xs"
                                   >
                                     ×
                                   </button>
@@ -2970,7 +2977,7 @@
                                     cancelEdit();
                                   }
                                 }}
-                                placeholder="Add tag..."
+                                placeholder={ui("Add tag...")}
                                 class="w-full px-1 py-0.5 text-xs border-2 border-blue-500 rounded focus:outline-none"
                                 autofocus
                               />
@@ -2990,7 +2997,7 @@
                                         showTagDropdown[lot.id] = false;
                                         saveCell(lot.id, 'tags', JSON.stringify(tags));
                                       }}
-                                      class="w-full text-left px-2 py-1 hover:bg-blue-50 text-xs"
+                                      class="w-full text-start px-2 py-1 hover:bg-blue-50 text-xs"
                                     >
                                       {tag}
                                     </button>
@@ -3021,7 +3028,7 @@
                                 {/if}
                               </div>
                             {:else}
-                              <span class="text-gray-400 italic text-xs">Double-click to add tags</span>
+                              <span class="text-gray-400 italic text-xs">{ui("Double-click to add tags")}</span>
                             {/if}
                           </div>
                         {/if}
@@ -3049,7 +3056,7 @@
                             ondblclick={() => startEdit(lot.id, 'startingBid', lot.startingBid)}
                             class="cursor-pointer hover:bg-blue-50 px-1 py-0.5 rounded text-xs"
                           >
-                            Start: ${lot.startingBid?.toFixed(2) || '0.00'}
+                            {ui("Start: $")}{lot.startingBid?.toFixed(2) || '0.00'}
                           </span>
                         {/if}
                       </div>
@@ -3070,7 +3077,7 @@
                             ondblclick={() => startEdit(lot.id, 'currentBid', lot.currentBid)}
                             class="cursor-pointer hover:bg-blue-50 px-1 py-0.5 rounded text-xs font-semibold"
                           >
-                            Current: ${lot.currentBid?.toFixed(2) || '0.00'}
+                            {ui("Current: $")}{lot.currentBid?.toFixed(2) || '0.00'}
                           </span>
                         {/if}
                       </div>
@@ -3109,17 +3116,17 @@
                         class="w-full px-1 py-0.5 text-xs border-2 border-blue-500 rounded focus:outline-none"
                         autofocus
                       >
-                        <option value="ACTIVE">Active</option>
-                        <option value="SOLD">Sold</option>
-                        <option value="UNSOLD">Unsold</option>
-                        <option value="WITHDRAWN">Withdrawn</option>
+                        <option value="ACTIVE">{ui("Active")}</option>
+                        <option value="SOLD">{ui("Sold")}</option>
+                        <option value="UNSOLD">{ui("Unsold")}</option>
+                        <option value="WITHDRAWN">{ui("Withdrawn")}</option>
                       </select>
                     {:else}
                       <span
                         ondblclick={() => startEdit(lot.id, 'status', lot.status)}
                         class="cursor-pointer hover:bg-blue-50 px-2 py-1 rounded text-xs font-semibold {lot.status === 'ACTIVE' ? 'text-green-600' : lot.status === 'SOLD' ? 'text-blue-600' : 'text-gray-600'}"
                       >
-                        {lot.status}
+                        {uiStatus(lot.status)}
                       </span>
                     {/if}
                   </td>
@@ -3141,25 +3148,25 @@
                         class="w-full px-1 py-0.5 text-xs border-2 border-blue-500 rounded focus:outline-none"
                         autofocus
                       >
-                        <option value="false">Not Ready</option>
-                        <option value="true">Ready</option>
+                        <option value="false">{ui("Not Ready")}</option>
+                        <option value="true">{ui("Ready")}</option>
                       </select>
                     {:else}
                       <span
                         ondblclick={() => startEdit(lot.id, 'isReady', lot.isReady ? 'true' : 'false')}
                         class="cursor-pointer hover:bg-blue-50 px-2 py-1 rounded text-xs font-semibold flex items-center justify-center {lot.isReady ? 'text-green-600 bg-green-50' : 'text-gray-600 bg-gray-50'}"
-                        title={lot.isReady ? 'Approved and ready to go' : 'Not yet approved'}
+                        title={lot.isReady ? ui("Approved and ready to go") : ui("Not yet approved")}
                       >
                         {#if lot.isReady}
-                          <svg class="w-4 h-4 mr-1" fill="currentColor" viewBox="0 0 20 20">
+                          <svg class="w-4 h-4 me-1" fill="currentColor" viewBox="0 0 20 20">
                             <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd" />
                           </svg>
-                          Ready
+                          {ui("Ready")}
                         {:else}
-                          <svg class="w-4 h-4 mr-1" fill="currentColor" viewBox="0 0 20 20">
+                          <svg class="w-4 h-4 me-1" fill="currentColor" viewBox="0 0 20 20">
                             <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clip-rule="evenodd" />
                           </svg>
-                          Not Ready
+                          {ui("Not Ready")}
                         {/if}
                       </span>
                     {/if}
@@ -3185,7 +3192,7 @@
                         class="cursor-pointer hover:bg-blue-50 px-1 py-0.5 rounded text-xs"
                       >
                         {#if lot.endTime}
-                          {new Date(lot.endTime).toLocaleString()}
+                          {new Date(lot.endTime).toLocaleString(uiLocale())}
                         {:else}
                           <span class="text-gray-400 italic">-</span>
                         {/if}
@@ -3217,8 +3224,8 @@
                         }}
                         disabled={cleaningUp[lot.id]}
                         class="p-1.5 text-blue-600 hover:text-blue-700 hover:bg-blue-50 rounded transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-                        title="AI Cleanup - Clean and organize all fields"
-                        aria-label="AI Cleanup"
+                        title={ui("AI Cleanup - Clean and organize all fields")}
+                        aria-label={ui("AI Cleanup")}
                       >
                         {#if cleaningUp[lot.id]}
                           <svg class="w-4 h-4 animate-spin" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -3238,8 +3245,8 @@
                           toggleAIRow(lot.id);
                         }}
                         class="p-1.5 text-purple-600 hover:text-purple-700 hover:bg-purple-50 rounded transition-colors"
-                        title="AI Tools"
-                        aria-label="AI Tools"
+                        title={ui("AI Tools")}
+                        aria-label={ui("AI Tools")}
                       >
                         <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" />
@@ -3253,8 +3260,8 @@
                           toggleBannerRow(lot.id);
                         }}
                         class="p-1.5 text-green-600 hover:text-green-700 hover:bg-green-50 rounded transition-colors"
-                        title="Create Banner Image"
-                        aria-label="Create Banner Image"
+                        title={ui("Create Banner Image")}
+                        aria-label={ui("Create Banner Image")}
                       >
                         <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
@@ -3268,8 +3275,8 @@
                           showConsignmentPDF = { lotId: lot.id };
                         }}
                         class="p-1.5 text-orange-600 hover:text-orange-700 hover:bg-orange-50 rounded transition-colors"
-                        title="Print Consignment Agreement"
-                        aria-label="Print Consignment Agreement"
+                        title={ui("Print Consignment Agreement")}
+                        aria-label={ui("Print Consignment Agreement")}
                       >
                         <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z" />
@@ -3285,12 +3292,12 @@
                     <td colspan="12" class="px-4 py-4">
                       <div class="bg-white rounded-lg border border-blue-200 p-4">
                         <div class="flex items-center justify-between mb-4">
-                          <h3 class="text-lg font-semibold text-gray-900">Voice Notes - Lot #{lot.lotNumber}</h3>
+                          <h3 class="text-lg font-semibold text-gray-900">{ui("Voice Notes - Lot #")}{lot.lotNumber}</h3>
                           <button
                             onclick={() => toggleNotesRow(lot.id)}
                             class="text-gray-500 hover:text-gray-700 text-sm"
                           >
-                            Collapse
+                            {ui("Collapse")}
                           </button>
                         </div>
                         
@@ -3312,12 +3319,12 @@
                     <td colspan="12" class="px-4 py-4">
                       <div class="bg-white rounded-lg border border-purple-200 p-4">
                         <div class="flex items-center justify-between mb-4">
-                          <h3 class="text-lg font-semibold text-gray-900">AI Tools - Lot #{lot.lotNumber}</h3>
+                          <h3 class="text-lg font-semibold text-gray-900">{ui("AI Tools - Lot #")}{lot.lotNumber}</h3>
                           <button
                             onclick={() => toggleAIRow(lot.id)}
                             class="text-gray-500 hover:text-gray-700 text-sm"
                           >
-                            Collapse
+                            {ui("Collapse")}
                           </button>
                         </div>
                         
@@ -3342,12 +3349,12 @@
                     <td colspan="12" class="px-4 py-4">
                       <div class="bg-white rounded-lg border border-green-200 p-4">
                         <div class="flex items-center justify-between mb-4">
-                          <h3 class="text-lg font-semibold text-gray-900">Banner Generator - Lot #{lot.lotNumber}</h3>
+                          <h3 class="text-lg font-semibold text-gray-900">{ui("Banner Generator - Lot #")}{lot.lotNumber}</h3>
                           <button
                             onclick={() => toggleBannerRow(lot.id)}
                             class="text-gray-500 hover:text-gray-700 text-sm"
                           >
-                            Collapse
+                            {ui("Collapse")}
                           </button>
                         </div>
                         
@@ -3373,30 +3380,30 @@
                     <td colspan="12" class="px-4 py-4">
                       <div class="bg-white rounded-lg border border-gray-200 p-4">
                         <div class="flex items-center justify-between mb-4">
-                          <h3 class="text-lg font-semibold text-gray-900">Image Management - Lot #{lot.lotNumber}</h3>
+                          <h3 class="text-lg font-semibold text-gray-900">{ui("Image Management - Lot #")}{lot.lotNumber}</h3>
                           <div class="flex items-center gap-3">
                             {#if (lot.images || []).length > 0}
                               <button
                                 onclick={() => removeBackgroundFromAllImages(lot.id)}
                                 disabled={removingBackgroundFromAll[lot.id]}
                                 class="px-3 py-1.5 text-sm font-medium bg-purple-500 text-white rounded hover:bg-purple-600 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-                                title="Remove background from all images in this lot"
+                                title={ui("Remove background from all images in this lot")}
                               >
-                                {removingBackgroundFromAll[lot.id] ? '⏳ Processing All...' : '🎨 Remove BG from All'}
+                                {removingBackgroundFromAll[lot.id] ? ui("⏳ Processing All...") : ui("🎨 Remove BG from All")}
                               </button>
                               <button
                                 onclick={() => deleteAllImages(lot.id)}
                                 class="px-3 py-1.5 text-sm font-medium bg-red-500 text-white rounded hover:bg-red-600 transition-colors"
-                                title="Delete all images for this lot"
+                                title={ui("Delete all images for this lot")}
                               >
-                                🗑️ Delete All Images
+                                {ui("🗑️ Delete All Images")}
                               </button>
                             {/if}
                             <button
                               onclick={() => toggleImageRow(lot.id)}
                               class="text-gray-500 hover:text-gray-700 text-sm"
                             >
-                              Collapse
+                              {ui("Collapse")}
                             </button>
                           </div>
                         </div>
@@ -3415,7 +3422,7 @@
                           <!-- Visible Images -->
                           {#if visibleImages.length > 0}
                             <div class="mb-4">
-                              <h4 class="text-sm font-medium text-gray-700 mb-2">Visible Images</h4>
+                              <h4 class="text-sm font-medium text-gray-700 mb-2">{ui("Visible Images")}</h4>
                               <div class="flex flex-wrap gap-2">
                                 {#each visibleImages as imageObj, index}
                               <div
@@ -3445,7 +3452,7 @@
                                 }}
                               >
                                 <!-- Drag Handle -->
-                                <div class="cursor-move text-gray-400 hover:text-gray-600" title="Drag to reorder">
+                                <div class="cursor-move text-gray-400 hover:text-gray-600" title={ui("Drag to reorder")}>
                                   <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 8h16M4 16h16"></path>
                                   </svg>
@@ -3458,8 +3465,8 @@
                                     onclick={() => moveImageUp(lot.id, imageObj.id)}
                                     disabled={index === 0}
                                     class="p-0.5 text-gray-400 hover:text-gray-600 disabled:opacity-30 disabled:cursor-not-allowed"
-                                    title="Move up"
-                                    aria-label="Move image up"
+                                    title={ui("Move up")}
+                                    aria-label={ui("Move image up")}
                                   >
                                     <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                       <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 15l7-7 7 7"></path>
@@ -3470,8 +3477,8 @@
                                     onclick={() => moveImageDown(lot.id, imageObj.id)}
                                     disabled={index === (lot.images || []).length - 1}
                                     class="p-0.5 text-gray-400 hover:text-gray-600 disabled:opacity-30 disabled:cursor-not-allowed"
-                                    title="Move down"
-                                    aria-label="Move image down"
+                                    title={ui("Move down")}
+                                    aria-label={ui("Move image down")}
                                   >
                                     <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                       <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
@@ -3517,9 +3524,9 @@
                                     };
                                   }}
                                   class="px-2 py-1 text-xs bg-blue-500 text-white rounded hover:bg-blue-600"
-                                  title="Edit image"
+                                  title={ui("Edit image")}
                                 >
-                                  ✎ Edit
+                                  {ui("✎ Edit")}
                                 </button>
                                 
                                 <!-- Remove Background Button -->
@@ -3528,9 +3535,9 @@
                                   onclick={() => removeBackgroundFromImage(lot.id, imageObj.id, imageObj.url)}
                                   disabled={removingBackground[imageObj.id]}
                                   class="px-2 py-1 text-xs bg-purple-500 text-white rounded hover:bg-purple-600 disabled:opacity-50 disabled:cursor-not-allowed"
-                                  title="Remove background and save as new image"
+                                  title={ui("Remove background and save as new image")}
                                 >
-                                  {removingBackground[imageObj.id] ? '⏳ Processing...' : '🎨 Remove BG'}
+                                  {removingBackground[imageObj.id] ? ui("⏳ Processing...") : ui("🎨 Remove BG")}
                                 </button>
                                 
                                 <!-- Featured/Default Toggle -->
@@ -3538,9 +3545,9 @@
                                   type="button"
                                   onclick={() => setFeaturedImage(lot.id, imageObj.id)}
                                   class="px-3 py-1 text-xs rounded transition-colors {imageObj.isPrimary ? 'bg-yellow-500 text-white hover:bg-yellow-600' : 'bg-gray-200 text-gray-700 hover:bg-gray-300'}"
-                                  title={imageObj.isPrimary ? 'Featured Image (click to unset)' : 'Set as Featured Image'}
+                                  title={imageObj.isPrimary ? ui("Featured Image (click to unset)") : ui("Set as Featured Image")}
                                 >
-                                  {imageObj.isPrimary ? '⭐ Featured' : 'Set Featured'}
+                                  {imageObj.isPrimary ? ui("⭐ Featured") : ui("Set Featured")}
                                 </button>
                                 
                                 <!-- Hide/Show Toggle -->
@@ -3548,9 +3555,9 @@
                                   type="button"
                                   onclick={() => toggleImageHidden(lot.id, imageObj.id, imageObj.isHidden || false)}
                                   class="px-2 py-1 text-xs bg-gray-200 text-gray-700 rounded hover:bg-gray-300"
-                                  title="Hide image"
+                                  title={ui("Hide image")}
                                 >
-                                  🙈 Hide
+                                  {ui("🙈 Hide")}
                                 </button>
                                 
                                 <!-- Remove Button -->
@@ -3558,7 +3565,7 @@
                                   type="button"
                                   onclick={() => removeImage(lot.id, imageObj.id)}
                                   class="px-2 py-1 text-xs bg-red-500 text-white rounded hover:bg-red-600"
-                                  title="Remove image"
+                                  title={ui("Remove image")}
                                 >
                                   ✕
                                 </button>
@@ -3571,7 +3578,7 @@
                           <!-- Hidden Images -->
                           {#if hiddenImages.length > 0}
                             <div class="mb-4">
-                              <h4 class="text-sm font-medium text-gray-500 mb-2">Hidden Images</h4>
+                              <h4 class="text-sm font-medium text-gray-500 mb-2">{ui("Hidden Images")}</h4>
                               <div class="flex flex-wrap gap-2">
                                 {#each hiddenImages as imageObj, index}
                                   <div
@@ -3591,9 +3598,9 @@
                                       type="button"
                                       onclick={() => toggleImageHidden(lot.id, imageObj.id, imageObj.isHidden || false)}
                                       class="px-2 py-1 text-xs bg-gray-400 text-white rounded hover:bg-gray-500"
-                                      title="Show image"
+                                      title={ui("Show image")}
                                     >
-                                      👁️ Show
+                                      {ui("👁️ Show")}
                                     </button>
                                     
                                     <!-- Remove Button -->
@@ -3601,7 +3608,7 @@
                                       type="button"
                                       onclick={() => removeImage(lot.id, imageObj.id)}
                                       class="px-2 py-1 text-xs bg-red-500 text-white rounded hover:bg-red-600"
-                                      title="Remove image"
+                                      title={ui("Remove image")}
                                     >
                                       ✕
                                     </button>
@@ -3612,7 +3619,7 @@
                           {/if}
                         {:else}
                           <div class="text-center py-8 text-gray-400">
-                            <p>No images uploaded yet</p>
+                            <p>{ui("No images uploaded yet")}</p>
                           </div>
                         {/if}
                         
@@ -3629,21 +3636,21 @@
                                 }}
                                 class="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
                               />
-                              <span class="text-sm text-gray-700">Remove background</span>
+                              <span class="text-sm text-gray-700">{ui("Remove background")}</span>
                             </label>
-                            <p class="text-xs text-gray-500 ml-6">Uses AI to remove background from images</p>
+                            <p class="text-xs text-gray-500 ms-6">{ui("Uses AI to remove background from images")}</p>
                           </div>
                           <label class="block mb-2">
-                            <span class="text-sm font-medium text-gray-700">Add Images</span>
+                            <span class="text-sm font-medium text-gray-700">{ui("Add Images")}</span>
                             <input
                               type="file"
                               multiple
                               accept="image/*"
                               onchange={(e) => handleImageUpload(lot.id, e)}
-                              class="mt-2 block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100"
+                              class="mt-2 block w-full text-sm text-gray-500 file:me-4 file:py-2 file:px-4 file:rounded file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100"
                             />
                           </label>
-                          <p class="text-xs text-gray-500 mt-1">Select multiple images to upload</p>
+                          <p class="text-xs text-gray-500 mt-1">{ui("Select multiple images to upload")}</p>
                         </div>
                       </div>
                     </td>
@@ -3662,7 +3669,7 @@
           <div class="bg-white rounded-lg shadow-xl max-w-4xl w-full max-h-[90vh] overflow-y-auto">
             <div class="p-6">
               <div class="flex items-center justify-between mb-4">
-                <h2 class="text-2xl font-bold text-gray-900">Manage Images - Lot {lots.find(l => l.id === showImageModal.lotId)?.lotNumber}</h2>
+                <h2 class="text-2xl font-bold text-gray-900">{ui("Manage Images - Lot")} {lots.find(l => l.id === showImageModal.lotId)?.lotNumber}</h2>
                 <button
                   onclick={() => showImageModal = null}
                   class="text-gray-500 hover:text-gray-700"
@@ -3702,22 +3709,22 @@
                           onclick={() => removeBackgroundFromImage(showImageModal.lotId, imageId, imageUrl)}
                           disabled={removingBackground[imageId]}
                           class="w-full px-2 py-1 text-xs bg-purple-500 text-white rounded hover:bg-purple-600 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-                          title="Remove background and save as new image"
+                          title={ui("Remove background and save as new image")}
                         >
-                          {removingBackground[imageId] ? '⏳ Processing...' : '🎨 Remove Background'}
+                          {removingBackground[imageId] ? ui("⏳ Processing...") : ui("🎨 Remove Background")}
                         </button>
                         <button
                           onclick={() => removeImage(showImageModal.lotId, imageId)}
                           class="w-full px-2 py-1 text-xs bg-red-500 text-white rounded hover:bg-red-600 transition-colors"
-                          title="Delete image"
+                          title={ui("Delete image")}
                         >
-                          ✕ Delete
+                          {ui("✕ Delete")}
                         </button>
                       </div>
                     {/if}
                     {#if removingBackground[imageId]}
                       <div class="absolute inset-0 bg-black bg-opacity-50 rounded flex items-center justify-center">
-                        <div class="text-white text-sm font-semibold">Processing...</div>
+                        <div class="text-white text-sm font-semibold">{ui("Processing...")}</div>
                       </div>
                     {/if}
                   </div>
@@ -3725,7 +3732,7 @@
               </div>
               
               <label class="block">
-                <span class="text-sm font-medium text-gray-700">Add Images</span>
+                <span class="text-sm font-medium text-gray-700">{ui("Add Images")}</span>
                 <input
                   type="file"
                   multiple
@@ -3734,7 +3741,7 @@
                     handleImageUpload(showImageModal.lotId, e);
                     showImageModal = null;
                   }}
-                  class="mt-2 block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100"
+                  class="mt-2 block w-full text-sm text-gray-500 file:me-4 file:py-2 file:px-4 file:rounded file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100"
                 />
               </label>
             </div>
@@ -3751,7 +3758,7 @@
           <div class="bg-white rounded-lg shadow-2xl border-2 border-gray-300 p-2 max-w-md">
             <img
               src={hoveredImage.url}
-              alt="Preview"
+              alt={ui("Preview")}
               class="max-w-sm max-h-96 object-contain rounded"
               style="max-width: 400px; max-height: 400px;"
             />
@@ -3778,14 +3785,14 @@
           <div class="bg-white rounded-lg shadow-2xl max-w-5xl w-full max-h-[90vh] overflow-y-auto p-6 space-y-4">
             <div class="flex items-start justify-between gap-4">
               <div>
-                <h3 class="text-xl font-semibold text-gray-900">Import Lots (CSV / Excel)</h3>
+                <h3 class="text-xl font-semibold text-gray-900">{ui("Import Lots (CSV / Excel)")}</h3>
                 <p class="text-gray-600 text-sm">
-                  Upload a BidSpirit export or any spreadsheet, then map columns to fields.
+                  {ui("Upload a BidSpirit export or any spreadsheet, then map columns to fields.")}
                 </p>
               </div>
               <button
                 class="text-gray-500 hover:text-gray-700"
-                aria-label="Close import modal"
+                aria-label={ui("Close import modal")}
                 onclick={() => {
                   showImportModal = false;
                 }}
@@ -3796,21 +3803,21 @@
 
             {#if importError}
               <div class="bg-red-50 border border-red-200 text-red-700 px-3 py-2 rounded text-sm">
-                {importError}
+                {ui(importError)}
               </div>
             {/if}
 
             <div class="space-y-3">
               <div class="border border-gray-200 rounded-lg p-4 space-y-3">
-                <label class="block text-sm font-medium text-gray-700">Upload file</label>
+                <label class="block text-sm font-medium text-gray-700">{ui("Upload file")}</label>
                 <input
                   type="file"
                   accept=".csv, application/vnd.ms-excel, application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
                   onchange={handleImportFileChange}
-                  class="block w-full text-sm text-gray-700 file:mr-4 file:py-2 file:px-4 file:rounded file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100"
+                  class="block w-full text-sm text-gray-700 file:me-4 file:py-2 file:px-4 file:rounded file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100"
                 />
                 {#if importFile}
-                  <div class="text-xs text-gray-600">Selected: {importFile.name}</div>
+                  <div class="text-xs text-gray-600">{ui("Selected:")} {importFile.name}</div>
                 {/if}
               </div>
 
@@ -3818,16 +3825,16 @@
                 <div class="border border-gray-200 rounded-lg p-4 space-y-4">
                   <div class="flex items-center justify-between">
                     <div>
-                      <div class="font-semibold text-gray-900">Map columns</div>
+                      <div class="font-semibold text-gray-900">{ui("Map columns")}</div>
                       <p class="text-sm text-gray-600">
-                        Required: Lot Number, Title. Others are optional.
+                        {ui("Required: Lot Number, Title. Others are optional.")}
                       </p>
                     </div>
                     <button
                       class="text-sm text-blue-600 hover:underline"
                       onclick={() => (columnMapping = guessMapping(importPreview.columns || []))}
                     >
-                      Auto-map again
+                      {ui("Auto-map again")}
                     </button>
                   </div>
 
@@ -3847,7 +3854,7 @@
                             columnMapping = { ...columnMapping, [field.key]: e.target.value };
                           }}
                         >
-                          <option value="__skip__">Skip</option>
+                          <option value="__skip__">{ui("Skip")}</option>
                           {#each importPreview.columns || [] as column}
                             <option value={column}>{column}</option>
                           {/each}
@@ -3858,13 +3865,13 @@
 
                   {#if importPreview.sampleRows?.length}
                     <div class="space-y-2">
-                      <div class="text-xs font-semibold text-gray-700">Preview (first rows)</div>
+                      <div class="text-xs font-semibold text-gray-700">{ui("Preview (first rows)")}</div>
                       <div class="overflow-auto border border-gray-200 rounded">
                         <table class="min-w-full divide-y divide-gray-200 text-xs">
                           <thead class="bg-gray-50">
                             <tr>
                               {#each importPreview.columns || [] as col}
-                                <th class="px-2 py-2 text-left font-semibold text-gray-700 whitespace-nowrap">
+                                <th class="px-2 py-2 text-start font-semibold text-gray-700 whitespace-nowrap">
                                   {col}
                                 </th>
                               {/each}
@@ -3890,14 +3897,14 @@
 
               {#if importResult}
                 <div class="border border-green-200 bg-green-50 rounded-lg p-4 space-y-2 text-sm text-green-900">
-                  <div class="font-semibold">Import complete</div>
-                  <div>Created: {importResult.created || 0}</div>
-                  <div>Updated: {importResult.updated || 0}</div>
+                  <div class="font-semibold">{ui("Import complete")}</div>
+                  <div>{ui("Created:")} {importResult.created || 0}</div>
+                  <div>{ui("Updated:")} {importResult.updated || 0}</div>
                   {#if importResult.errors?.length}
                     <div class="text-red-700">
-                      Errors ({importResult.errors.length}): {importResult.errors.slice(0, 5).map(e => `Row ${e.row}: ${e.message}`).join('; ')}
+                      {ui("Errors (")}{importResult.errors.length}): {importResult.errors.slice(0, 5).map(e => `Row ${e.row}: ${e.message}`).join('; ')}
                       {#if importResult.errors.length > 5}
-                        ...and {importResult.errors.length - 5} more
+                        {ui("...and")} {importResult.errors.length - 5} {ui("more")}
                       {/if}
                     </div>
                   {/if}
@@ -3907,7 +3914,7 @@
 
             <div class="flex items-center justify-between">
               <div class="text-xs text-gray-500">
-                Tip: Use BidSpirit export as a template — columns will auto-map.
+                {ui("Tip: Use BidSpirit export as a template — columns will auto-map.")}
               </div>
               <div class="flex items-center gap-2">
                 <button
@@ -3917,14 +3924,14 @@
                     showImportModal = false;
                   }}
                 >
-                  Cancel
+                  {ui("Cancel")}
                 </button>
                 <button
                   class="px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded hover:bg-blue-700 disabled:bg-gray-400 disabled:cursor-not-allowed"
                   disabled={importing || !importPreview || !mappingIsValid()}
                   onclick={runImport}
                 >
-                  {importing ? 'Importing...' : 'Import Lots'}
+                  {importing ? ui("Importing...") : ui("Import Lots")}
                 </button>
               </div>
             </div>
@@ -3955,7 +3962,7 @@
         <div class="bg-white rounded-lg shadow-xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
           <div class="p-6">
             <div class="flex items-center justify-between mb-4">
-              <h2 class="text-2xl font-bold text-gray-900">Select Template for Banner Generation</h2>
+              <h2 class="text-2xl font-bold text-gray-900">{ui("Select Template for Banner Generation")}</h2>
               <button
                 onclick={() => showBannerTemplateSelector = false}
                 class="text-gray-500 hover:text-gray-700"
@@ -3965,18 +3972,18 @@
             </div>
 
             <p class="text-sm text-gray-600 mb-4">
-              Generate banners for {selectedLots.size} selected lot(s) using a template. Each lot will use its featured image.
+              {ui("Generate banners for")} {selectedLots.size} {ui("selected lot(s) using a template. Each lot will use its featured image.")}
             </p>
 
             <div class="grid grid-cols-2 gap-4">
               <!-- No Template / Default Option -->
               <button
                 onclick={() => generateBannersForSelectedLots(null)}
-                class="p-4 border-2 rounded-lg hover:border-purple-500 hover:bg-purple-50 transition-colors text-left border-gray-200"
+                class="p-4 border-2 rounded-lg hover:border-purple-500 hover:bg-purple-50 transition-colors text-start border-gray-200"
               >
-                <h3 class="font-semibold text-gray-900 mb-1">Default Settings</h3>
+                <h3 class="font-semibold text-gray-900 mb-1">{ui("Default Settings")}</h3>
                 <p class="text-xs text-gray-500">
-                  Use default banner settings (image on right, text on left)
+                  {ui("Use default banner settings (image on right, text on left)")}
                 </p>
               </button>
 
@@ -3984,12 +3991,12 @@
               {#each savedBannerTemplates as template}
                 <button
                   onclick={() => generateBannersForSelectedLots(template)}
-                  class="p-4 border-2 rounded-lg hover:border-purple-500 hover:bg-purple-50 transition-colors text-left {selectedBannerTemplate?.id === template.id ? 'border-purple-500 bg-purple-50' : 'border-gray-200'}"
+                  class="p-4 border-2 rounded-lg hover:border-purple-500 hover:bg-purple-50 transition-colors text-start {selectedBannerTemplate?.id === template.id ? 'border-purple-500 bg-purple-50' : 'border-gray-200'}"
                 >
                   <h3 class="font-semibold text-gray-900 mb-1">{template.name}</h3>
                   {#if template.createdAt}
                     <p class="text-xs text-gray-500">
-                      Created: {new Date(template.createdAt).toLocaleDateString()}
+                      {ui("Created:")} {new Date(template.createdAt).toLocaleDateString(uiLocale())}
                     </p>
                   {/if}
                 </button>
@@ -3998,7 +4005,7 @@
             
             {#if savedBannerTemplates.length === 0}
               <div class="mt-4 text-center text-sm text-gray-500">
-                <p>No saved templates. Create templates in the Banner Generator to use them here.</p>
+                <p>{ui("No saved templates. Create templates in the Banner Generator to use them here.")}</p>
               </div>
             {/if}
 
@@ -4007,7 +4014,7 @@
                 onclick={() => showBannerTemplateSelector = false}
                 class="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200"
               >
-                Cancel
+                {ui("Cancel")}
               </button>
             </div>
           </div>

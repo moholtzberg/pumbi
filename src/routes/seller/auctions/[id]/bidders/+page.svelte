@@ -1,4 +1,11 @@
 <script>
+  import { page as localePage } from '$app/stores';
+  import { translate as translateUi } from '$lib/i18n.js';
+  import { localeTag as uiLocaleTag } from '$lib/utils/region.js';
+  const uiLocale = () => uiLocaleTag($localePage.data.locale);
+  const ui = (text, values) => translateUi($localePage.data.locale || 'en', text, values);
+  const uiStatus = value => ui(String(value ?? '').replaceAll('_', ' '));
+
   import BidderDirectory from '$lib/components/BidderDirectory.svelte';
   import { page } from '$app/stores';
 
@@ -24,7 +31,7 @@
         fetch(`/api/auctions/${$page.params.id}/registrations`)
       ]);
       if (!auctionResponse.ok || !registrationsResponse.ok) {
-        throw new Error('Unable to load bidder registrations');
+        throw new Error(ui("Unable to load bidder registrations"));
       }
       auction = await auctionResponse.json();
       registrations = await registrationsResponse.json();
@@ -32,7 +39,7 @@
       query.set('auctionId', $page.params.id);
       const rosterResponse = await fetch(`/api/auction-houses/${auction.auctionHouseId}/bidders?${query}`);
       const roster = await rosterResponse.json();
-      if (!rosterResponse.ok) throw new Error(roster.message || 'Unable to load auction participants');
+      if (!rosterResponse.ok) throw new Error(roster.message || ui("Unable to load auction participants"));
       bidderRoster = roster;
     } catch (error) {
       errorMessage = error.message;
@@ -55,7 +62,7 @@
         })
       });
       const result = await response.json();
-      if (!response.ok) throw new Error(result.message || 'Unable to update registration');
+      if (!response.ok) throw new Error(result.message || ui("Unable to update registration"));
       registrations = registrations.map((item) => item.id === result.id ? result : item);
     } catch (error) {
       errorMessage = error.message;
@@ -65,28 +72,28 @@
   }
 </script>
 
-<svelte:head><title>Bidders & approvals | Pumbi</title></svelte:head>
+<svelte:head><title>{ui("Bidders & approvals | Pumbi")}</title></svelte:head>
 
 <div>
   <div class="flex flex-wrap items-start justify-between gap-4">
     <div>
-      <p class="pumbi-eyebrow">Auction participants</p>
-      <h2 class="mt-1 font-[family-name:var(--pumbi-serif)] text-2xl font-semibold">Bidders & approvals</h2>
-      <p class="mt-1 text-sm text-[var(--pumbi-ink-soft)]">{auction?.title || 'Auction'}</p>
+      <p class="pumbi-eyebrow">{ui("Auction participants")}</p>
+      <h2 class="mt-1 font-[family-name:var(--pumbi-serif)] text-2xl font-semibold">{ui("Bidders & approvals")}</h2>
+      <p class="mt-1 text-sm text-[var(--pumbi-ink-soft)]">{auction?.title || ui("Auction")}</p>
     </div>
     <span class="bg-[var(--pumbi-cream-deep)] px-3 py-1 text-xs font-bold uppercase tracking-wide text-[var(--pumbi-ink)]">
-      {registrations.filter((item) => item.status === 'PENDING').length} pending
+      {registrations.filter((item) => item.status === 'PENDING').length} {ui("pending")}
     </span>
   </div>
 
   {#if errorMessage}
-    <div class="mt-6 border border-red-200 bg-red-50 p-4 text-red-800">{errorMessage}</div>
+    <div class="mt-6 border border-red-200 bg-red-50 p-4 text-red-800">{ui(errorMessage)}</div>
   {/if}
 
   {#if loading}
-    <p class="mt-8 text-[var(--pumbi-muted)]">Loading bidders…</p>
+    <p class="mt-8 text-[var(--pumbi-muted)]">{ui("Loading bidders…")}</p>
   {:else if registrations.length === 0}
-    <div class="pumbi-panel mt-8 p-8 text-center text-[var(--pumbi-muted)]">No advance registration records. Bidders in open auctions appear in the directory below.</div>
+    <div class="pumbi-panel mt-8 p-8 text-center text-[var(--pumbi-muted)]">{ui("No advance registration records. Bidders in open auctions appear in the directory below.")}</div>
   {:else}
     <div class="mt-8 space-y-4">
       {#each registrations as registration}
@@ -96,24 +103,24 @@
               <div class="flex items-center gap-3">
                 <h2 class="text-lg font-semibold">{#if bidderRoster?.canViewProfiles}<a class="underline underline-offset-4" href={`/seller/bidders/${registration.user.id}?houseId=${auction.auctionHouseId}`}>{registration.user.name || registration.user.email}</a>{:else}{registration.user.name || registration.user.email}{/if}</h2>
                 <span class="px-2 py-1 text-[10px] font-bold uppercase tracking-wide {registration.status === 'APPROVED' ? 'bg-[#e8eee9] text-[var(--pumbi-forest)]' : registration.status === 'REJECTED' ? 'bg-red-50 text-red-800' : 'bg-[var(--pumbi-cream-deep)] text-[var(--pumbi-ink)]'}">
-                  {registration.status}
+                  {uiStatus(registration.status)}
                 </span>
               </div>
               <p class="text-sm text-[var(--pumbi-ink-soft)]">{registration.user.email}</p>
               {#if registration.user.phone}<p class="text-sm text-[var(--pumbi-ink-soft)]">{registration.user.phone}</p>{/if}
-              <p class="mt-2 text-xs text-[var(--pumbi-muted)]">Requested {new Date(registration.createdAt).toLocaleString()}</p>
+              <p class="mt-2 text-xs text-[var(--pumbi-muted)]">{ui("Requested")} {new Date(registration.createdAt).toLocaleString(uiLocale())}</p>
             </div>
 
               {#if registration.status === 'PENDING'}
                 <div class="w-full max-w-md space-y-2">
                   <input
                     class="w-full rounded-lg border border-gray-300 px-3 py-2 text-sm"
-                    placeholder="Reason required when rejecting"
+                    placeholder={ui("Reason required when rejecting")}
                     bind:value={rejectionReasons[registration.id]}
                   />
                   <div class="flex gap-2">
-                    <button disabled={actionId === registration.id} onclick={() => review(registration, 'APPROVED')} class="rounded-lg bg-green-700 px-4 py-2 text-sm font-bold text-white disabled:opacity-50">Approve</button>
-                    <button disabled={actionId === registration.id} onclick={() => review(registration, 'REJECTED')} class="rounded-lg bg-red-700 px-4 py-2 text-sm font-bold text-white disabled:opacity-50">Reject</button>
+                    <button disabled={actionId === registration.id} onclick={() => review(registration, 'APPROVED')} class="rounded-lg bg-green-700 px-4 py-2 text-sm font-bold text-white disabled:opacity-50">{ui("Approve")}</button>
+                    <button disabled={actionId === registration.id} onclick={() => review(registration, 'REJECTED')} class="rounded-lg bg-red-700 px-4 py-2 text-sm font-bold text-white disabled:opacity-50">{ui("Reject")}</button>
                   </div>
                 </div>
               {:else if registration.rejectionReason}

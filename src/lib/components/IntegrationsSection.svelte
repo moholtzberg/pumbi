@@ -1,4 +1,8 @@
 <script>
+  import { page as localePage } from '$app/stores';
+  import { translate as translateUi } from '$lib/i18n.js';
+  const ui = (text, values) => translateUi($localePage.data.locale || 'en', text, values);
+
     // Define the list of integrations
     const integrations = [
       {
@@ -42,7 +46,7 @@
   
 <section id="integrations" class="py-20 bg-gray-100">
     <div class="container mx-auto px-4">
-      <h2 class="text-4xl font-bold text-center mb-12 text-gray-800">🔗 Integrations</h2>
+      <h2 class="text-4xl font-bold text-center mb-12 text-gray-800">{ui("🔗 Integrations")}</h2>
       <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-8">
         {#each integrations as integration}
           <a href={integration.link} target="_blank" rel="noopener noreferrer" class="flex items-center justify-center p-4 bg-white rounded-lg shadow hover:shadow-lg transition-shadow duration-300">

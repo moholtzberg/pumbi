@@ -1,4 +1,8 @@
 <script>
+  import { page as localePage } from '$app/stores';
+  import { translate as translateUi } from '$lib/i18n.js';
+  const ui = (text, values) => translateUi($localePage.data.locale || 'en', text, values);
+
   let { settings = $bindable({ categoryMetaFields: {} }) } = $props();
   let newCategoryName = $state('');
   function addMetaField(category) {
@@ -45,7 +49,7 @@
       <input
         type="text"
         bind:value={newCategoryName}
-        placeholder="Enter category name (e.g., Books, Art, Jewelry)"
+        placeholder={ui("Enter category name (e.g., Books, Art, Jewelry)")}
         class="flex-1 px-3 py-2 text-sm border border-gray-300 rounded-sm focus:ring-2 focus:ring-[#18372f] focus:border-[#18372f]"
         onkeydown={(e) => {
           if (e.key === 'Enter') {
@@ -59,7 +63,7 @@
         onclick={addCategory}
         class="px-4 py-2 bg-[#18372f] text-white text-sm rounded-sm hover:bg-[#152c26] transition-colors"
       >
-        Add Category
+        {ui("Add Category")}
       </button>
     </div>
   </div>
@@ -74,7 +78,7 @@
           onclick={() => removeCategory(category)}
           class="text-red-600 hover:text-red-800 text-sm font-medium"
         >
-          Remove Category
+          {ui("Remove Category")}
         </button>
       </div>
 
@@ -83,28 +87,28 @@
           <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-3">
             <div>
               <label class="block text-xs font-medium text-gray-700 mb-1">
-                Field Label
+                {ui("Field Label")}
               </label>
               <input
                 type="text"
                 bind:value={field.label}
-                placeholder="e.g., Author, Year Printed"
+                placeholder={ui("e.g., Author, Year Printed")}
                 class="w-full px-3 py-2 text-sm border border-gray-300 rounded-sm focus:ring-2 focus:ring-[#18372f] focus:border-[#18372f]"
               />
             </div>
             <div>
               <label class="block text-xs font-medium text-gray-700 mb-1">
-                Field Type
+                {ui("Field Type")}
               </label>
               <select
                 bind:value={field.type}
                 class="w-full px-3 py-2 text-sm border border-gray-300 rounded-sm focus:ring-2 focus:ring-[#18372f] focus:border-[#18372f]"
               >
-                <option value="text">Text</option>
-                <option value="number">Number</option>
-                <option value="date">Date</option>
-                <option value="boolean">Yes/No</option>
-                <option value="select">Dropdown</option>
+                <option value="text">{ui("Text")}</option>
+                <option value="number">{ui("Number")}</option>
+                <option value="date">{ui("Date")}</option>
+                <option value="boolean">{ui("Yes/No")}</option>
+                <option value="select">{ui("Dropdown")}</option>
               </select>
             </div>
           </div>
@@ -112,12 +116,12 @@
           <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-3">
             <div>
               <label class="block text-xs font-medium text-gray-700 mb-1">
-                Placeholder
+                {ui("Placeholder")}
               </label>
               <input
                 type="text"
                 bind:value={field.placeholder}
-                placeholder="Optional placeholder text"
+                placeholder={ui("Optional placeholder text")}
                 class="w-full px-3 py-2 text-sm border border-gray-300 rounded-sm focus:ring-2 focus:ring-[#18372f] focus:border-[#18372f]"
               />
             </div>
@@ -126,10 +130,10 @@
                 <input
                   type="checkbox"
                   bind:checked={field.required}
-                  class="mr-2 h-4 w-4 text-[#18372f] focus:ring-[#18372f] border-gray-300 rounded"
+                  class="me-2 h-4 w-4 text-[#18372f] focus:ring-[#18372f] border-gray-300 rounded"
                 />
                 <span class="text-xs font-medium text-gray-700">
-                  Required field
+                  {ui("Required field")}
                 </span>
               </label>
             </div>
@@ -138,7 +142,7 @@
           {#if field.type === 'select'}
             <div class="mb-3">
               <label class="block text-xs font-medium text-gray-700 mb-1">
-                Options (one per line)
+                {ui("Options (one per line)")}
               </label>
               <textarea
                 value={field.options?.join('\n') || ''}
@@ -147,7 +151,7 @@
                     .split('\n')
                     .filter((o) => o.trim());
                 }}
-                placeholder="Option 1&#10;Option 2&#10;Option 3"
+                placeholder={ui("Option 1 Option 2 Option 3")}
                 rows="3"
                 class="w-full px-3 py-2 text-sm border border-gray-300 rounded-sm focus:ring-2 focus:ring-[#18372f] focus:border-[#18372f]"
               ></textarea>
@@ -156,12 +160,12 @@
 
           <div class="mb-3">
             <label class="block text-xs font-medium text-gray-700 mb-1">
-              Help Text (optional)
+              {ui("Help Text (optional)")}
             </label>
             <input
               type="text"
               bind:value={field.helpText}
-              placeholder="Additional information for users"
+              placeholder={ui("Additional information for users")}
               class="w-full px-3 py-2 text-sm border border-gray-300 rounded-sm focus:ring-2 focus:ring-[#18372f] focus:border-[#18372f]"
             />
           </div>
@@ -171,7 +175,7 @@
             onclick={() => removeMetaField(category, index)}
             class="text-red-600 hover:text-red-800 text-xs font-medium"
           >
-            Remove Field
+            {ui("Remove Field")}
           </button>
         </div>
       {/each}
@@ -181,15 +185,15 @@
         onclick={() => addMetaField(category)}
         class="w-full mt-2 px-4 py-2 bg-gray-100 text-gray-700 text-sm rounded-sm hover:bg-gray-200 transition-colors"
       >
-        + Add Field
+        {ui("+ Add Field")}
       </button>
     </div>
   {/each}
 
   {#if Object.keys(settings.categoryMetaFields || {}).length === 0}
     <div class="text-center py-12 text-gray-500">
-      <p>No category meta fields configured yet.</p>
-      <p class="text-sm mt-2">Add a category above to get started.</p>
+      <p>{ui("No category meta fields configured yet.")}</p>
+      <p class="text-sm mt-2">{ui("Add a category above to get started.")}</p>
     </div>
   {/if}
 </div>

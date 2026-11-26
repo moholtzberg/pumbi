@@ -1,4 +1,8 @@
 <script>
+  import { page as localePage } from '$app/stores';
+  import { translate as translateUi } from '$lib/i18n.js';
+  const ui = (text, values) => translateUi($localePage.data.locale || 'en', text, values);
+
   import CollapsibleSection from './CollapsibleSection.svelte';
   
   let {
@@ -11,15 +15,15 @@
   
   // Available field mappings
   const fieldMappings = [
-    { value: 'title', label: 'Title (English)' },
-    { value: 'titleHebrew', label: 'Title (Hebrew)' },
-    { value: 'subtitle', label: 'Subtitle (English)' },
-    { value: 'subtitleHebrew', label: 'Subtitle (Hebrew)' },
-    { value: 'yearEnglish', label: 'Year (English)' },
-    { value: 'yearHebrew', label: 'Year (Hebrew)' },
-    { value: 'category', label: 'Category (English)' },
-    { value: 'categoryHebrew', label: 'Category (Hebrew)' },
-    { value: 'custom', label: 'Custom Text' },
+    { value: 'title', label: ui("Title (English)") },
+    { value: 'titleHebrew', label: ui("Title (Hebrew)") },
+    { value: 'subtitle', label: ui("Subtitle (English)") },
+    { value: 'subtitleHebrew', label: ui("Subtitle (Hebrew)") },
+    { value: 'yearEnglish', label: ui("Year (English)") },
+    { value: 'yearHebrew', label: ui("Year (Hebrew)") },
+    { value: 'category', label: ui("Category (English)") },
+    { value: 'categoryHebrew', label: ui("Category (Hebrew)") },
+    { value: 'custom', label: ui("Custom Text") },
   ];
   
   function addTextElement() {
@@ -29,7 +33,7 @@
       ...bannerSettings.textElements,
       {
         id: newId,
-        label: `Text Element ${bannerSettings.textElements.length + 1}`,
+        label: ui("Text Element {value0}", { value0: bannerSettings.textElements.length + 1 }),
         content: '',
         mappedField: 'custom',
         enabled: true,
@@ -107,7 +111,7 @@
 </script>
 
 <CollapsibleSection
-  title="Text Elements"
+  title={ui("Text Elements")}
   bind:isCollapsed
   bgColor="bg-blue-50"
   borderColor="border-blue-200"
@@ -121,7 +125,7 @@
           bind:checked={bannerSettings.useFlexibleTextElements}
           class="w-4 h-4 text-purple-600 border-gray-300 rounded focus:ring-purple-500"
         />
-        <span class="text-sm font-medium text-gray-700">Use Flexible Text Elements</span>
+        <span class="text-sm font-medium text-gray-700">{ui("Use Flexible Text Elements")}</span>
       </label>
       {#if bannerSettings.useFlexibleTextElements}
         <button
@@ -129,7 +133,7 @@
           onclick={addTextElement}
           class="px-3 py-1.5 text-xs bg-purple-600 text-white rounded hover:bg-purple-700 focus:ring-2 focus:ring-purple-500"
         >
-          + Add Element
+          {ui("+ Add Element")}
         </button>
       {/if}
     </div>
@@ -148,7 +152,7 @@
                 <input
                   type="text"
                   bind:value={element.label}
-                  placeholder="Element label"
+                  placeholder={ui("Element label")}
                   class="flex-1 px-2 py-1 text-xs border border-gray-300 rounded focus:ring-2 focus:ring-purple-500"
                 />
               </div>
@@ -158,7 +162,7 @@
                   onclick={() => moveElement(index, 'up')}
                   disabled={index === 0}
                   class="px-2 py-1 text-xs bg-gray-100 hover:bg-gray-200 rounded disabled:opacity-50"
-                  title="Move up"
+                  title={ui("Move up")}
                 >
                   ↑
                 </button>
@@ -167,7 +171,7 @@
                   onclick={() => moveElement(index, 'down')}
                   disabled={index === bannerSettings.textElements.length - 1}
                   class="px-2 py-1 text-xs bg-gray-100 hover:bg-gray-200 rounded disabled:opacity-50"
-                  title="Move down"
+                  title={ui("Move down")}
                 >
                   ↓
                 </button>
@@ -176,7 +180,7 @@
                     type="button"
                     onclick={() => removeTextElement(index)}
                     class="px-2 py-1 text-xs bg-red-100 hover:bg-red-200 text-red-700 rounded"
-                    title="Remove"
+                    title={ui("Remove")}
                   >
                     ×
                   </button>
@@ -189,7 +193,7 @@
                 <!-- Content Source -->
                 <div>
                   <label class="block text-xs font-medium text-gray-700 mb-1">
-                    Content Source
+                    {ui("Content Source")}
                   </label>
                   <select
                     bind:value={element.mappedField}
@@ -205,11 +209,11 @@
                 <!-- Content -->
                 <div>
                   <label class="block text-xs font-medium text-gray-700 mb-1">
-                    Content
+                    {ui("Content")}
                   </label>
                   <textarea
                     bind:value={element.content}
-                    placeholder={element.mappedField === 'custom' ? 'Enter text...' : 'Auto-filled from mapped field'}
+                    placeholder={element.mappedField === 'custom' ? ui("Enter text...") : ui("Auto-filled from mapped field")}
                     rows="2"
                     dir={element.language === 'hebrew' ? 'rtl' : 'ltr'}
                     class="w-full px-2 py-1.5 text-sm border border-gray-300 rounded focus:ring-2 focus:ring-purple-500 resize-y"
@@ -219,14 +223,14 @@
                 <!-- Language -->
                 <div>
                   <label class="block text-xs font-medium text-gray-700 mb-1">
-                    Language
+                    {ui("Language")}
                   </label>
                   <select
                     bind:value={element.language}
                     class="w-full px-2 py-1.5 text-xs border border-gray-300 rounded focus:ring-2 focus:ring-purple-500"
                   >
-                    <option value="english">English</option>
-                    <option value="hebrew">Hebrew</option>
+                    <option value="english">{ui("English")}</option>
+                    <option value="hebrew">{ui("Hebrew")}</option>
                   </select>
                 </div>
                 
@@ -234,7 +238,7 @@
                 <div class="grid grid-cols-2 gap-2">
                   <div>
                     <label class="block text-xs font-medium text-gray-700 mb-1">
-                      Font Family
+                      {ui("Font Family")}
                     </label>
                     <select
                       bind:value={element.fontFamily}
@@ -248,19 +252,19 @@
                   
                   <div>
                     <label class="block text-xs font-medium text-gray-700 mb-1">
-                      Font Weight
+                      {ui("Font Weight")}
                     </label>
                     <select
                       bind:value={element.fontWeight}
                       class="w-full px-2 py-1.5 text-xs border border-gray-300 rounded focus:ring-2 focus:ring-purple-500"
                     >
-                      <option value="normal">Normal</option>
-                      <option value="300">Light</option>
-                      <option value="400">Regular</option>
-                      <option value="500">Medium</option>
-                      <option value="600">Semi Bold</option>
-                      <option value="700">Bold</option>
-                      <option value="bold">Bold (legacy)</option>
+                      <option value="normal">{ui("Normal")}</option>
+                      <option value="300">{ui("Light")}</option>
+                      <option value="400">{ui("Regular")}</option>
+                      <option value="500">{ui("Medium")}</option>
+                      <option value="600">{ui("Semi Bold")}</option>
+                      <option value="700">{ui("Bold")}</option>
+                      <option value="bold">{ui("Bold (legacy)")}</option>
                     </select>
                   </div>
                 </div>
@@ -269,7 +273,7 @@
                 <div class="grid grid-cols-3 gap-2">
                   <div>
                     <label class="block text-xs font-medium text-gray-700 mb-1">
-                      Font Size
+                      {ui("Font Size")}
                     </label>
                     <input
                       type="number"
@@ -283,21 +287,21 @@
                   
                   <div>
                     <label class="block text-xs font-medium text-gray-700 mb-1">
-                      Alignment
+                      {ui("Alignment")}
                     </label>
                     <select
                       bind:value={element.align}
                       class="w-full px-2 py-1.5 text-xs border border-gray-300 rounded focus:ring-2 focus:ring-purple-500"
                     >
-                      <option value="left">Left</option>
-                      <option value="center">Center</option>
-                      <option value="right">Right</option>
+                      <option value="left">{ui("Left")}</option>
+                      <option value="center">{ui("Center")}</option>
+                      <option value="right">{ui("Right")}</option>
                     </select>
                   </div>
                   
                   <div>
                     <label class="block text-xs font-medium text-gray-700 mb-1">
-                      Line Height
+                      {ui("Line Height")}
                     </label>
                     <input
                       type="number"
@@ -313,7 +317,7 @@
                 <!-- Color -->
                 <div>
                   <label class="block text-xs font-medium text-gray-700 mb-1">
-                    Color
+                    {ui("Color")}
                   </label>
                   <div class="flex gap-2">
                     <input
@@ -332,31 +336,31 @@
                 <!-- Margins -->
                 <div>
                   <label class="block text-xs font-medium text-gray-700 mb-1">
-                    Margins (Top, Bottom, Left, Right)
+                    {ui("Margins (Top, Bottom, Left, Right)")}
                   </label>
                   <div class="grid grid-cols-4 gap-2">
                     <input
                       type="number"
                       bind:value={element.marginTop}
-                      placeholder="Top"
+                      placeholder={ui("Top")}
                       class="px-2 py-1.5 text-xs border border-gray-300 rounded focus:ring-2 focus:ring-purple-500"
                     />
                     <input
                       type="number"
                       bind:value={element.marginBottom}
-                      placeholder="Bottom"
+                      placeholder={ui("Bottom")}
                       class="px-2 py-1.5 text-xs border border-gray-300 rounded focus:ring-2 focus:ring-purple-500"
                     />
                     <input
                       type="number"
                       bind:value={element.marginLeft}
-                      placeholder="Left"
+                      placeholder={ui("Left")}
                       class="px-2 py-1.5 text-xs border border-gray-300 rounded focus:ring-2 focus:ring-purple-500"
                     />
                     <input
                       type="number"
                       bind:value={element.marginRight}
-                      placeholder="Right"
+                      placeholder={ui("Right")}
                       class="px-2 py-1.5 text-xs border border-gray-300 rounded focus:ring-2 focus:ring-purple-500"
                     />
                   </div>
@@ -365,31 +369,31 @@
                 <!-- Padding -->
                 <div>
                   <label class="block text-xs font-medium text-gray-700 mb-1">
-                    Padding (Top, Bottom, Left, Right)
+                    {ui("Padding (Top, Bottom, Left, Right)")}
                   </label>
                   <div class="grid grid-cols-4 gap-2">
                     <input
                       type="number"
                       bind:value={element.paddingTop}
-                      placeholder="Top"
+                      placeholder={ui("Top")}
                       class="px-2 py-1.5 text-xs border border-gray-300 rounded focus:ring-2 focus:ring-purple-500"
                     />
                     <input
                       type="number"
                       bind:value={element.paddingBottom}
-                      placeholder="Bottom"
+                      placeholder={ui("Bottom")}
                       class="px-2 py-1.5 text-xs border border-gray-300 rounded focus:ring-2 focus:ring-purple-500"
                     />
                     <input
                       type="number"
                       bind:value={element.paddingLeft}
-                      placeholder="Left"
+                      placeholder={ui("Left")}
                       class="px-2 py-1.5 text-xs border border-gray-300 rounded focus:ring-2 focus:ring-purple-500"
                     />
                     <input
                       type="number"
                       bind:value={element.paddingRight}
-                      placeholder="Right"
+                      placeholder={ui("Right")}
                       class="px-2 py-1.5 text-xs border border-gray-300 rounded focus:ring-2 focus:ring-purple-500"
                     />
                   </div>
@@ -400,7 +404,7 @@
         {/each}
       </div>
     {:else}
-      <p class="text-xs text-gray-500">Enable flexible text elements to use the new system. Legacy text fields will be used when disabled.</p>
+      <p class="text-xs text-gray-500">{ui("Enable flexible text elements to use the new system. Legacy text fields will be used when disabled.")}</p>
     {/if}
   </div>
 </CollapsibleSection>

@@ -1,4 +1,11 @@
 <script>
+  import { page as localePage } from '$app/stores';
+  import { translate as translateUi } from '$lib/i18n.js';
+  import { localeTag as uiLocaleTag } from '$lib/utils/region.js';
+  const uiLocale = () => uiLocaleTag($localePage.data.locale);
+  const ui = (text, values) => translateUi($localePage.data.locale || 'en', text, values);
+  const uiStatus = value => ui(String(value ?? '').replaceAll('_', ' '));
+
   import { onMount } from 'svelte';
   let { data } = $props();
   let overview = $state(null);
@@ -22,12 +29,12 @@
   const endpoint = `/api/auction-houses/${data.marketingHouse.id}/marketing`;
   let campaign = $derived(overview?.campaign);
   let selectedAuction = $derived(overview?.auctions.find(item => item.id === auctionId));
-  const dates = value => value ? new Date(value).toLocaleString() : '—';
+  const dates = value => value ? new Date(value).toLocaleString(uiLocale()) : '—';
   const label = value => String(value).toLowerCase().replaceAll('_', ' ');
   async function request(url, options) {
     const response = await fetch(url, options);
     const result = await response.json();
-    if (!response.ok) throw new Error(result.message || result.error || 'Could not complete this action');
+    if (!response.ok) throw new Error(result.message || result.error || ui("Could not complete this action"));
     return result;
   }
   async function refresh(hydrate = false) {
@@ -86,16 +93,16 @@
   }
 </script>
 
-<svelte:head><title>Marketing & contacts | Pumbi</title></svelte:head>
+<svelte:head><title>{ui("Marketing & contacts | Pumbi")}</title></svelte:head>
 <main class="mx-auto max-w-7xl space-y-7 px-4 py-8 sm:px-6 lg:px-8">
   <header class="flex flex-wrap items-end justify-between gap-4">
-    <div><p class="pumbi-eyebrow">{data.marketingHouse.name} · Seller CRM</p><h1 class="mt-2 font-[family-name:var(--pumbi-serif)] text-4xl font-semibold">Marketing & contacts</h1><p class="mt-3 max-w-2xl text-sm text-slate-600">Bring your audience to the auction. Manage contacts, invite bidders, and keep them informed by email.</p></div>
-    <button class="secondary" disabled={busy} onclick={() => reload()}>Refresh activity</button>
+    <div><p class="pumbi-eyebrow">{data.marketingHouse.name} {ui("· Seller CRM")}</p><h1 class="mt-2 font-[family-name:var(--pumbi-serif)] text-4xl font-semibold">{ui("Marketing & contacts")}</h1><p class="mt-3 max-w-2xl text-sm text-slate-600">{ui("Bring your audience to the auction. Manage contacts, invite bidders, and keep them informed by email.")}</p></div>
+    <button class="secondary" disabled={busy} onclick={() => reload()}>{ui("Refresh activity")}</button>
   </header>
-  {#if problem}<p role="alert" class="border border-red-200 bg-red-50 p-4 text-sm text-red-800">{problem}</p>{/if}
+  {#if problem}<p role="alert" class="border border-red-200 bg-red-50 p-4 text-sm text-red-800">{ui(problem)}</p>{/if}
   {#if success}<p role="status" class="border border-emerald-200 bg-emerald-50 p-4 text-sm text-emerald-900">{success}</p>{/if}
-  {#if !overview}<p class="py-10 text-slate-500">Loading contacts…</p>{:else}
-    {#if !overview.emailConfigured}<p class="border border-amber-200 bg-amber-50 p-4 text-sm">Email sending needs to be configured by the platform administrator. You can still organize contacts and save email settings.</p>{/if}
+  {#if !overview}<p class="py-10 text-slate-500">{ui("Loading contacts…")}</p>{:else}
+    {#if !overview.emailConfigured}<p class="border border-amber-200 bg-amber-50 p-4 text-sm">{ui("Email sending needs to be configured by the platform administrator. You can still organize contacts and save email settings.")}</p>{/if}
     <div class="grid grid-cols-2 gap-3 md:grid-cols-4">
       {#each [['Contacts', overview.totalContacts], ['Subscribed contacts', overview.subscribed], ['Emails accepted', overview.statuses.SENT || 0], ['House opt-outs', overview.optedOut]] as stat}
         <div class="border border-[#ded8ce] bg-white/60 p-5"><p class="text-xs font-bold uppercase tracking-wider text-slate-500">{stat[0]}</p><p class="mt-2 text-3xl font-semibold">{stat[1]}</p></div>
@@ -103,86 +110,86 @@
     </div>
 
     <section class="panel space-y-5">
-      <div class="flex flex-wrap items-end justify-between gap-4"><div><h2>Auction emails</h2><p class="hint">Choose an auction, save its settings, then invite your contacts.</p></div><label class="min-w-64">Auction<select bind:value={auctionId} disabled={busy} onchange={() => reload(true)}><option value="" disabled>Choose an auction</option>{#each overview.auctions as auction}<option value={auction.id}>{auction.title} · {label(auction.status)}</option>{/each}</select></label></div>
+      <div class="flex flex-wrap items-end justify-between gap-4"><div><h2>{ui("Auction emails")}</h2><p class="hint">{ui("Choose an auction, save its settings, then invite your contacts.")}</p></div><label class="min-w-64">{ui("Auction")}<select bind:value={auctionId} disabled={busy} onchange={() => reload(true)}><option value="" disabled>{ui("Choose an auction")}</option>{#each overview.auctions as auction}<option value={auction.id}>{auction.title} · {uiStatus(label(auction.status))}</option>{/each}</select></label></div>
       {#if selectedAuction}
-        <p class="text-sm text-slate-600">Scheduled start: {dates(selectedAuction.startDate)} · {campaign?._count.enrollments || 0} invited contacts enrolled</p>
+        <p class="text-sm text-slate-600">{ui("Scheduled start:")} {dates(selectedAuction.startDate)} · {campaign?._count.enrollments || 0} {ui("invited contacts enrolled")}</p>
         <form onsubmit={event => { event.preventDefault(); run('save_campaign', { auctionId, ...settings }, 'Auction email settings saved.'); }} class="space-y-5">
           <div class="grid gap-4 md:grid-cols-3">
-            <label class="check"><input type="checkbox" bind:checked={settings.enabled} />Enable marketing emails for this auction</label>
-            <label class="check"><input type="checkbox" bind:checked={settings.auctionReminders} />Email invited contacts & approved bidders before start</label>
-            <label class="check"><input type="checkbox" bind:checked={settings.lotReminders} />Email watchers when their lot is next up or live</label>
+            <label class="check"><input type="checkbox" bind:checked={settings.enabled} />{ui("Enable marketing emails for this auction")}</label>
+            <label class="check"><input type="checkbox" bind:checked={settings.auctionReminders} />{ui("Email invited contacts & approved bidders before start")}</label>
+            <label class="check"><input type="checkbox" bind:checked={settings.lotReminders} />{ui("Email watchers when their lot is next up or live")}</label>
           </div>
-          <div class="grid gap-4 md:grid-cols-3"><label>Reminder before auction (minutes)<input type="number" min="5" max="1440" required bind:value={settings.reminderMinutes} /></label><label class="md:col-span-2">Invitation subject (optional)<input maxlength="180" bind:value={settings.subject} placeholder={`You're invited: ${selectedAuction.title}`} /></label></div>
-          <label>Invitation message (optional)<textarea rows="3" maxlength="8000" bind:value={settings.message} placeholder="Leave blank for an invitation with the auction name, start time, and registration instructions."></textarea></label>
-          <p class="hint">Each email includes the auction link and an unsubscribe link. Watching a lot triggers a reminder when it reaches the front of the live queue. Account recipients must have a verified email. Phone numbers are stored for your records; these campaigns send email.</p>
-          <button class="primary" disabled={busy}>Save auction email settings</button>
+          <div class="grid gap-4 md:grid-cols-3"><label>{ui("Reminder before auction (minutes)")}<input type="number" min="5" max="1440" required bind:value={settings.reminderMinutes} /></label><label class="md:col-span-2">{ui("Invitation subject (optional)")}<input maxlength="180" bind:value={settings.subject} placeholder={ui("You're invited: {value0}", { value0: selectedAuction.title })} /></label></div>
+          <label>{ui("Invitation message (optional)")}<textarea rows="3" maxlength="8000" bind:value={settings.message} placeholder={ui("Leave blank for an invitation with the auction name, start time, and registration instructions.")}></textarea></label>
+          <p class="hint">{ui("Each email includes the auction link and an unsubscribe link. Watching a lot triggers a reminder when it reaches the front of the live queue. Account recipients must have a verified email. Phone numbers are stored for your records; these campaigns send email.")}</p>
+          <button class="primary" disabled={busy}>{ui("Save auction email settings")}</button>
         </form>
-      {:else}<p class="hint">Create an upcoming auction to start inviting contacts.</p>{/if}
+      {:else}<p class="hint">{ui("Create an upcoming auction to start inviting contacts.")}</p>{/if}
     </section>
 
     <div class="grid items-start gap-6 lg:grid-cols-2">
       <section class="panel space-y-4">
-        <div class="flex items-center justify-between gap-3"><h2>{importMode ? 'Import contacts' : 'Add a contact'}</h2><button class="link" onclick={() => importMode = !importMode}>{importMode ? 'Add one person' : 'Upload CSV'}</button></div>
+        <div class="flex items-center justify-between gap-3"><h2>{importMode ? ui("Import contacts") : ui("Add a contact")}</h2><button class="link" onclick={() => importMode = !importMode}>{importMode ? ui("Add one person") : ui("Upload CSV")}</button></div>
         <form onsubmit={saveContacts} class="space-y-4">
           {#if importMode}
-            <p class="hint">Import up to 500 contacts. Emails are deduplicated within your house. Existing contact details are updated; opt-outs stay in place.</p>
-            <a class="link" href="/marketing-contacts-template.csv" download>Download CSV template →</a>
-            <label>CSV file<input type="file" accept=".csv,text/csv" onchange={fileChanged} /></label>
-            <label>Review or paste CSV<textarea rows="6" bind:value={csv} required placeholder="name,email,phone,tags,notes"></textarea></label>
+            <p class="hint">{ui("Import up to 500 contacts. Emails are deduplicated within your house. Existing contact details are updated; opt-outs stay in place.")}</p>
+            <a class="link" href="/marketing-contacts-template.csv" download>{ui("Download CSV template →")}</a>
+            <label>{ui("CSV file")}<input type="file" accept=".csv,text/csv" onchange={fileChanged} /></label>
+            <label>{ui("Review or paste CSV")}<textarea rows="6" bind:value={csv} required placeholder="name,email,phone,tags,notes"></textarea></label>
           {:else}
-            <div class="grid gap-3 sm:grid-cols-2"><label>Name<input bind:value={contact.name} maxlength="160" /></label><label>Email<input type="email" bind:value={contact.email} maxlength="254" required /></label><label>Phone<input type="tel" bind:value={contact.phone} maxlength="50" /></label><label>Tags<input bind:value={contact.tags} maxlength="250" placeholder="books, silver, regular buyer" /></label></div>
-            <label>Notes<textarea rows="2" bind:value={contact.notes} maxlength="2000"></textarea></label>
+            <div class="grid gap-3 sm:grid-cols-2"><label>{ui("Name")}<input bind:value={contact.name} maxlength="160" /></label><label>{ui("Email")}<input type="email" bind:value={contact.email} maxlength="254" required /></label><label>{ui("Phone")}<input type="tel" bind:value={contact.phone} maxlength="50" /></label><label>{ui("Tags")}<input bind:value={contact.tags} maxlength="250" placeholder={ui("books, silver, regular buyer")} /></label></div>
+            <label>{ui("Notes")}<textarea rows="2" bind:value={contact.notes} maxlength="2000"></textarea></label>
           {/if}
-          <label class="check"><input type="checkbox" bind:checked={consentConfirmed} required />These contacts agreed to receive auction invitations and updates from our house.</label>
-          <label class="check"><input type="checkbox" bind:checked={inviteAfterAdd} />Automatically invite these contacts to the selected auction</label>
-          {#if inviteAfterAdd && !campaign}<p class="hint">Save the selected auction’s email settings before adding and inviting contacts.</p>{/if}
-          <button class="primary" disabled={busy || (inviteAfterAdd && (!campaign?.enabled || !auctionId))}>{inviteAfterAdd ? 'Save contacts & queue invitations' : 'Save contacts'}</button>
+          <label class="check"><input type="checkbox" bind:checked={consentConfirmed} required />{ui("These contacts agreed to receive auction invitations and updates from our house.")}</label>
+          <label class="check"><input type="checkbox" bind:checked={inviteAfterAdd} />{ui("Automatically invite these contacts to the selected auction")}</label>
+          {#if inviteAfterAdd && !campaign}<p class="hint">{ui("Save the selected auction’s email settings before adding and inviting contacts.")}</p>{/if}
+          <button class="primary" disabled={busy || (inviteAfterAdd && (!campaign?.enabled || !auctionId))}>{inviteAfterAdd ? ui("Save contacts & queue invitations") : ui("Save contacts")}</button>
         </form>
       </section>
       <section class="panel space-y-4">
-        <h2>Send an auction update</h2><p class="hint">Send a message to this auction’s subscribed invited contacts. Use this for catalog additions, viewing hours, or schedule changes.</p>
+        <h2>{ui("Send an auction update")}</h2><p class="hint">{ui("Send a message to this auction’s subscribed invited contacts. Use this for catalog additions, viewing hours, or schedule changes.")}</p>
         <form onsubmit={sendUpdate} class="space-y-4">
-          <label>Subject<input bind:value={updateSubject} oninput={() => updateRequestId = null} maxlength="180" required placeholder="New lots have been added" /></label>
-          <label>Message<textarea rows="5" bind:value={updateMessage} oninput={() => updateRequestId = null} maxlength="8000" required placeholder="Tell your bidders what’s new…"></textarea></label>
-          <p class="hint">The email will include this message, a link to {selectedAuction?.title || 'your auction'}, and an unsubscribe link.</p>
-          <button class="primary" disabled={busy || !campaign?.enabled || !overview.emailConfigured}>Queue update to {campaign?._count.enrollments || 0} invited contacts</button>
+          <label>{ui("Subject")}<input bind:value={updateSubject} oninput={() => updateRequestId = null} maxlength="180" required placeholder={ui("New lots have been added")} /></label>
+          <label>{ui("Message")}<textarea rows="5" bind:value={updateMessage} oninput={() => updateRequestId = null} maxlength="8000" required placeholder={ui("Tell your bidders what’s new…")}></textarea></label>
+          <p class="hint">{ui("The email will include this message, a link to")} {selectedAuction?.title || ui("your auction")}{ui(", and an unsubscribe link.")}</p>
+          <button class="primary" disabled={busy || !campaign?.enabled || !overview.emailConfigured}>{ui("Queue update to")} {campaign?._count.enrollments || 0} {ui("invited contacts")}</button>
         </form>
       </section>
     </div>
 
     {#if editing}
       <section class="panel border-[#a95739] space-y-4">
-        <h2>Edit {editing.email}</h2>
+        <h2>{ui("Edit")} {editing.email}</h2>
         <form onsubmit={saveEdit} class="space-y-4">
-          <div class="grid gap-4 sm:grid-cols-3"><label>Name<input bind:value={editing.name} maxlength="160" /></label><label>Phone<input bind:value={editing.phone} maxlength="50" /></label><label>Tags<input bind:value={editing.tags} maxlength="250" /></label></div>
-          <label>Notes<textarea bind:value={editing.notes} maxlength="2000"></textarea></label>
-          <label class="check"><input type="checkbox" bind:checked={editing.subscribed} />Subscribed to auction emails (recipient opt-outs cannot be overridden)</label>
-          <div class="flex gap-3"><button class="primary" disabled={busy}>Save contact</button><button type="button" class="secondary" onclick={() => editing = null}>Cancel</button></div>
+          <div class="grid gap-4 sm:grid-cols-3"><label>{ui("Name")}<input bind:value={editing.name} maxlength="160" /></label><label>{ui("Phone")}<input bind:value={editing.phone} maxlength="50" /></label><label>{ui("Tags")}<input bind:value={editing.tags} maxlength="250" /></label></div>
+          <label>{ui("Notes")}<textarea bind:value={editing.notes} maxlength="2000"></textarea></label>
+          <label class="check"><input type="checkbox" bind:checked={editing.subscribed} />{ui("Subscribed to auction emails (recipient opt-outs cannot be overridden)")}</label>
+          <div class="flex gap-3"><button class="primary" disabled={busy}>{ui("Save contact")}</button><button type="button" class="secondary" onclick={() => editing = null}>{ui("Cancel")}</button></div>
         </form>
       </section>
     {/if}
 
     <section class="panel space-y-4">
-      <div class="flex flex-wrap items-end justify-between gap-4"><div><h2>Your contacts</h2><p class="hint">{overview.count} matching contacts · {selected.length} selected</p></div><form class="flex items-end gap-2" onsubmit={event => { event.preventDefault(); page = 1; selected = []; reload(); }}><label>Search<input bind:value={search} placeholder="Name, email, phone, tags" /></label><button class="secondary" disabled={busy}>Search</button></form></div>
+      <div class="flex flex-wrap items-end justify-between gap-4"><div><h2>{ui("Your contacts")}</h2><p class="hint">{overview.count} {ui("matching contacts ·")} {selected.length} {ui("selected")}</p></div><form class="flex items-end gap-2" onsubmit={event => { event.preventDefault(); page = 1; selected = []; reload(); }}><label>{ui("Search")}<input bind:value={search} placeholder={ui("Name, email, phone, tags")} /></label><button class="secondary" disabled={busy}>{ui("Search")}</button></form></div>
       <div class="flex flex-wrap gap-2">
-        <button class="secondary" disabled={busy || !overview.contacts.length} onclick={() => selected = overview.contacts.filter(c => c.subscribed).map(c => c.id)}>Select this page</button>
-        <button class="secondary" disabled={busy || !selected.length} onclick={() => selected = []}>Clear selection</button>
-        <button class="primary" disabled={busy || !selected.length || !campaign?.enabled || !overview.emailConfigured} onclick={() => run('invite', { auctionId, contactIds: selected }, r => `${r.queued} new invitation(s) queued. Already-invited contacts were skipped.`)}>Invite selected</button>
-        <button class="secondary" disabled={busy || !overview.subscribed || !campaign?.enabled || !overview.emailConfigured} onclick={() => run('invite', { auctionId }, r => `${r.queued} new invitation(s) queued. Already-invited contacts were skipped.`)}>Invite all subscribed contacts</button>
+        <button class="secondary" disabled={busy || !overview.contacts.length} onclick={() => selected = overview.contacts.filter(c => c.subscribed).map(c => c.id)}>{ui("Select this page")}</button>
+        <button class="secondary" disabled={busy || !selected.length} onclick={() => selected = []}>{ui("Clear selection")}</button>
+        <button class="primary" disabled={busy || !selected.length || !campaign?.enabled || !overview.emailConfigured} onclick={() => run('invite', { auctionId, contactIds: selected }, r => `${r.queued} new invitation(s) queued. Already-invited contacts were skipped.`)}>{ui("Invite selected")}</button>
+        <button class="secondary" disabled={busy || !overview.subscribed || !campaign?.enabled || !overview.emailConfigured} onclick={() => run('invite', { auctionId }, r => `${r.queued} new invitation(s) queued. Already-invited contacts were skipped.`)}>{ui("Invite all subscribed contacts")}</button>
       </div>
-      <div class="overflow-x-auto"><table><thead><tr><th>Select</th><th>Contact</th><th>Phone</th><th>Tags / notes</th><th>Email status</th><th>Actions</th></tr></thead><tbody>
+      <div class="overflow-x-auto"><table><thead><tr><th>{ui("Select")}</th><th>{ui("Contact")}</th><th>{ui("Phone")}</th><th>{ui("Tags / notes")}</th><th>{ui("Email status")}</th><th>{ui("Actions")}</th></tr></thead><tbody>
         {#each overview.contacts as person (person.id)}
-          <tr><td><input type="checkbox" aria-label={`Select ${person.email}`} checked={selected.includes(person.id)} onchange={event => selectContact(person.id, event.target.checked)} disabled={!person.subscribed} /></td><td><strong>{person.name || 'Unnamed contact'}</strong><br /><span class="text-slate-500">{person.email}</span></td><td>{person.phone || '—'}</td><td><span>{person.tags || '—'}</span>{#if person.notes}<p class="mt-1 max-w-xs whitespace-pre-wrap text-xs text-slate-500">{person.notes}</p>{/if}</td><td><span class:subscribed={person.subscribed} class="badge">{person.subscribed ? 'Subscribed' : 'Paused / opted out'}</span></td><td><div class="flex gap-3"><button class="link" onclick={() => editing = { ...person, name: person.name || '', phone: person.phone || '', tags: person.tags || '', notes: person.notes || '' }}>Edit</button><button class="text-red-700" disabled={busy} onclick={() => { if (confirm(`Delete ${person.email} from your CRM? Their unsubscribe preference will be preserved.`)) run('delete_contact', { contactId: person.id }, 'Contact deleted.'); }}>Delete</button></div></td></tr>
-        {:else}<tr><td colspan="6" class="py-8 text-center text-slate-500">No contacts yet. Add a person or upload your first CSV.</td></tr>{/each}
+          <tr><td><input type="checkbox" aria-label={ui("Select {value0}", { value0: person.email })} checked={selected.includes(person.id)} onchange={event => selectContact(person.id, event.target.checked)} disabled={!person.subscribed} /></td><td><strong>{person.name || ui("Unnamed contact")}</strong><br /><span class="text-slate-500">{person.email}</span></td><td>{person.phone || '—'}</td><td><span>{person.tags || '—'}</span>{#if person.notes}<p class="mt-1 max-w-xs whitespace-pre-wrap text-xs text-slate-500">{person.notes}</p>{/if}</td><td><span class:subscribed={person.subscribed} class="badge">{person.subscribed ? ui("Subscribed") : ui("Paused / opted out")}</span></td><td><div class="flex gap-3"><button class="link" onclick={() => editing = { ...person, name: person.name || '', phone: person.phone || '', tags: person.tags || '', notes: person.notes || '' }}>{ui("Edit")}</button><button class="text-red-700" disabled={busy} onclick={() => { if (confirm(`Delete ${person.email} from your CRM? Their unsubscribe preference will be preserved.`)) run('delete_contact', { contactId: person.id }, 'Contact deleted.'); }}>{ui("Delete")}</button></div></td></tr>
+        {:else}<tr><td colspan="6" class="py-8 text-center text-slate-500">{ui("No contacts yet. Add a person or upload your first CSV.")}</td></tr>{/each}
       </tbody></table></div>
-      <div class="flex items-center justify-between"><button class="secondary" disabled={busy || page <= 1} onclick={() => { page--; reload(); }}>Previous</button><p class="hint">Page {page} of {Math.max(1, Math.ceil(overview.count / 30))}</p><button class="secondary" disabled={busy || page * 30 >= overview.count} onclick={() => { page++; reload(); }}>Next</button></div>
+      <div class="flex items-center justify-between"><button class="secondary" disabled={busy || page <= 1} onclick={() => { page--; reload(); }}>{ui("Previous")}</button><p class="hint">{ui("Page")} {page} {ui("of")} {Math.max(1, Math.ceil(overview.count / 30))}</p><button class="secondary" disabled={busy || page * 30 >= overview.count} onclick={() => { page++; reload(); }}>{ui("Next")}</button></div>
     </section>
 
     <section class="panel space-y-4">
-      <div class="flex flex-wrap items-center justify-between gap-4"><div><h2>Email activity</h2><p class="hint">{overview.statuses.QUEUED || 0} queued · {overview.statuses.SENT || 0} accepted · {overview.statuses.FAILED || 0} failed · {overview.statuses.UNKNOWN || 0} unconfirmed</p></div><button class="secondary" disabled={busy || !overview.emailConfigured} onclick={() => run('process', {}, r => `${r.accepted} email(s) accepted, ${r.cancelled} skipped, ${r.failed} failed, ${r.unknown} unconfirmed.`)}>Process queued emails now</button></div>
-      <p class="hint">Emails are queued for the scheduler. “Accepted” means SMTP2GO accepted the email, not that it reached the inbox. Unconfirmed sends are never retried automatically. Check SMTP2GO activity before sending a replacement.</p>
-      <div class="overflow-x-auto"><table><thead><tr><th>Recipient</th><th>Email</th><th>Status</th><th>Queued / sent</th><th>Details</th></tr></thead><tbody>
-        {#each overview.history as item (item.id)}<tr><td>{item.email}</td><td><span class="capitalize">{label(item.kind)}</span>{#if item.subject}<p class="mt-1 text-xs text-slate-500">{item.subject}</p>{/if}</td><td><span class="badge" class:subscribed={item.status === 'SENT'}>{item.status === 'SENT' ? 'Accepted' : label(item.status)}</span></td><td class="whitespace-nowrap text-xs">{dates(item.sentAt || item.createdAt)}</td><td><p class="max-w-xs text-xs text-slate-500">{item.error || '—'}</p>{#if item.status === 'FAILED'}<button class="link mt-2" disabled={busy} onclick={() => run('retry', { messageId: item.id }, 'Email requeued after a known rejection.')}>Retry</button>{/if}</td></tr>{:else}<tr><td colspan="5" class="py-8 text-center text-slate-500">Invitations, updates, and reminders will appear here.</td></tr>{/each}
+      <div class="flex flex-wrap items-center justify-between gap-4"><div><h2>{ui("Email activity")}</h2><p class="hint">{overview.statuses.QUEUED || 0} {ui("queued ·")} {overview.statuses.SENT || 0} {ui("accepted ·")} {overview.statuses.FAILED || 0} {ui("failed ·")} {overview.statuses.UNKNOWN || 0} {ui("unconfirmed")}</p></div><button class="secondary" disabled={busy || !overview.emailConfigured} onclick={() => run('process', {}, r => `${r.accepted} email(s) accepted, ${r.cancelled} skipped, ${r.failed} failed, ${r.unknown} unconfirmed.`)}>{ui("Process queued emails now")}</button></div>
+      <p class="hint">{ui("Emails are queued for the scheduler. “Accepted” means SMTP2GO accepted the email, not that it reached the inbox. Unconfirmed sends are never retried automatically. Check SMTP2GO activity before sending a replacement.")}</p>
+      <div class="overflow-x-auto"><table><thead><tr><th>{ui("Recipient")}</th><th>{ui("Email")}</th><th>{ui("Status")}</th><th>{ui("Queued / sent")}</th><th>{ui("Details")}</th></tr></thead><tbody>
+        {#each overview.history as item (item.id)}<tr><td>{item.email}</td><td><span class="capitalize">{uiStatus(label(item.kind))}</span>{#if item.subject}<p class="mt-1 text-xs text-slate-500">{item.subject}</p>{/if}</td><td><span class="badge" class:subscribed={item.status === 'SENT'}>{item.status === 'SENT' ? ui("Accepted") : label(item.status)}</span></td><td class="whitespace-nowrap text-xs">{dates(item.sentAt || item.createdAt)}</td><td><p class="max-w-xs text-xs text-slate-500">{item.error || '—'}</p>{#if item.status === 'FAILED'}<button class="link mt-2" disabled={busy} onclick={() => run('retry', { messageId: item.id }, 'Email requeued after a known rejection.')}>{ui("Retry")}</button>{/if}</td></tr>{:else}<tr><td colspan="5" class="py-8 text-center text-slate-500">{ui("Invitations, updates, and reminders will appear here.")}</td></tr>{/each}
       </tbody></table></div>
     </section>
   {/if}

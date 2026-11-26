@@ -115,7 +115,18 @@
 }
 
 /* Hebrew screens keep phone numbers, email, codes, and amounts readable. */
-html[dir="rtl"] body { font-family: 'Heebo', 'Noto Sans Hebrew', sans-serif; }
+html[lang="he"] {
+  --pumbi-hebrew-serif: David, 'Times New Roman', Times, serif;
+  --pumbi-sans: var(--pumbi-hebrew-serif);
+  --pumbi-serif: var(--pumbi-hebrew-serif);
+}
+html[lang="he"] body { font-family: var(--pumbi-hebrew-serif); }
+html[lang="he"] :where(h1, h2, h3, h4, button, input, select, textarea, .font-sans, .font-serif) {
+  font-family: var(--pumbi-hebrew-serif);
+}
+html[lang="he"] :where(h1, h2, h3, .pumbi-eyebrow, .pumbi-btn, .pumbi-btn-secondary) { letter-spacing: normal; }
+html[lang="he"] [class*="tracking-"] { letter-spacing: normal; }
+html[dir="rtl"] [class*="space-x-"] > :not([hidden]) ~ :not([hidden]) { --tw-space-x-reverse: 1; }
 html[dir="rtl"] input[type="email"], html[dir="rtl"] input[type="tel"],
 html[dir="rtl"] input[type="number"], html[dir="rtl"] input[inputmode="numeric"] { direction: ltr; text-align: end; }
 html[dir="rtl"] .account-dropdown { right: auto; left: 0; }

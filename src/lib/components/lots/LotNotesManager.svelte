@@ -1,4 +1,10 @@
 <script>
+  import { page as localePage } from '$app/stores';
+  import { translate as translateUi } from '$lib/i18n.js';
+  import { localeTag as uiLocaleTag } from '$lib/utils/region.js';
+  const uiLocale = () => uiLocaleTag($localePage.data.locale);
+  const ui = (text, values) => translateUi($localePage.data.locale || 'en', text, values);
+
   import VoiceNoteRecorder from './VoiceNoteRecorder.svelte';
 
   let {
@@ -19,12 +25,12 @@
         credentials: 'include'
       });
       if (!response.ok) {
-        throw new Error('Failed to load notes');
+        throw new Error(ui("Failed to load notes"));
       }
       notes = await response.json();
     } catch (err) {
       console.error('Error loading notes:', err);
-      error = err.message || 'Failed to load notes';
+      error = err.message || ui("Failed to load notes");
     } finally {
       loading = false;
     }
@@ -36,7 +42,7 @@
   }
 
   async function deleteNote(noteId) {
-    if (!confirm('Delete this note?')) return;
+    if (!confirm(ui("Delete this note?"))) return;
 
     try {
       const response = await fetch(`/api/lots/${lotId}/notes/${noteId}`, {
@@ -45,13 +51,13 @@
       });
 
       if (!response.ok) {
-        throw new Error('Failed to delete note');
+        throw new Error(ui("Failed to delete note"));
       }
 
       await loadNotes();
     } catch (err) {
       console.error('Error deleting note:', err);
-      alert('Failed to delete note');
+      alert(ui("Failed to delete note"));
     }
   }
 
@@ -63,7 +69,7 @@
       });
 
       if (!response.ok) {
-        throw new Error('Failed to summarize note');
+        throw new Error(ui("Failed to summarize note"));
       }
 
       const result = await response.json();
@@ -71,7 +77,7 @@
       onRefresh();
     } catch (err) {
       console.error('Error summarizing note:', err);
-      alert('Failed to summarize note');
+      alert(ui("Failed to summarize note"));
     }
   }
 
@@ -84,14 +90,14 @@
 
 <div class="space-y-3">
   <div class="flex items-center justify-between">
-    <h4 class="text-sm font-semibold text-gray-900">Notes</h4>
+    <h4 class="text-sm font-semibold text-gray-900">{ui("Notes")}</h4>
     <button
       type="button"
       onclick={loadNotes}
       disabled={loading}
       class="text-xs text-blue-600 hover:text-blue-800 disabled:text-gray-400"
     >
-      {loading ? 'Loading...' : 'Refresh'}
+      {loading ? ui("Loading...") : ui("Refresh")}
     </button>
   </div>
 
@@ -99,14 +105,14 @@
 
   {#if error}
     <div class="bg-red-50 border border-red-200 text-red-700 px-3 py-2 rounded text-sm">
-      {error}
+      {ui(error)}
     </div>
   {/if}
 
   {#if loading && notes.length === 0}
-    <div class="text-center py-4 text-sm text-gray-500">Loading notes...</div>
+    <div class="text-center py-4 text-sm text-gray-500">{ui("Loading notes...")}</div>
   {:else if notes.length === 0}
-    <div class="text-center py-4 text-sm text-gray-500">No notes yet. Record or upload a voice note to get started.</div>
+    <div class="text-center py-4 text-sm text-gray-500">{ui("No notes yet. Record or upload a voice note to get started.")}</div>
   {:else}
     <div class="space-y-2 max-h-64 overflow-y-auto">
       {#each notes as note}
@@ -114,7 +120,7 @@
           <div class="flex items-start justify-between mb-2">
             <div class="flex-1">
               <div class="text-xs text-gray-500 mb-1">
-                {new Date(note.createdAt).toLocaleString()}
+                {new Date(note.createdAt).toLocaleString(uiLocale())}
               </div>
               {#if note.audioUrl}
                 <audio src={note.audioUrl} controls class="w-full mb-2" style="height: 32px;"></audio>
@@ -126,16 +132,16 @@
                   type="button"
                   onclick={() => summarizeNote(note.id)}
                   class="px-2 py-1 text-xs bg-blue-600 text-white rounded hover:bg-blue-700"
-                  title="Summarize"
+                  title={ui("Summarize")}
                 >
-                  Summarize
+                  {ui("Summarize")}
                 </button>
               {/if}
               <button
                 type="button"
                 onclick={() => deleteNote(note.id)}
                 class="px-2 py-1 text-xs bg-red-600 text-white rounded hover:bg-red-700"
-                title="Delete"
+                title={ui("Delete")}
               >
                 ✕
               </button>
@@ -144,7 +150,7 @@
 
           {#if note.transcription}
             <div class="text-sm text-gray-700 mb-2">
-              <div class="font-medium mb-1">Transcription:</div>
+              <div class="font-medium mb-1">{ui("Transcription:")}</div>
               <div class="bg-white p-2 rounded border border-gray-200">
                 {note.transcription}
               </div>
@@ -153,7 +159,7 @@
 
           {#if note.summary}
             <div class="text-sm text-gray-700">
-              <div class="font-medium mb-1">Summary:</div>
+              <div class="font-medium mb-1">{ui("Summary:")}</div>
               <div class="bg-white p-2 rounded border border-gray-200">
                 {note.summary}
               </div>

@@ -1,4 +1,8 @@
 <script>
+  import { page as localePage } from '$app/stores';
+  import { translate as translateUi } from '$lib/i18n.js';
+  const ui = (text, values) => translateUi($localePage.data.locale || 'en', text, values);
+
   import CollapsibleSection from './CollapsibleSection.svelte';
   
   let {
@@ -13,7 +17,7 @@
 
 {#if selectedLotImages.length > 0}
   <CollapsibleSection
-    title="Select Images for Banner"
+    title={ui("Select Images for Banner")}
     bind:isCollapsed
     bgColor="bg-purple-50"
     borderColor="border-purple-200"

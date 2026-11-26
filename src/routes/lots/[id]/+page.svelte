@@ -1,4 +1,10 @@
 <script>
+  import { page as localePage } from '$app/stores';
+  import { translate as translateUi } from '$lib/i18n.js';
+  import { localeTag as uiLocaleTag } from '$lib/utils/region.js';
+  const uiLocale = () => uiLocaleTag($localePage.data.locale);
+  const ui = (text, values) => translateUi($localePage.data.locale || 'en', text, values);
+
   import { lotBidIncrement } from '$lib/utils/bidIncrements.js';
   import { requiresBidderRegistration } from '$lib/utils/biddingAccess.js';
   import MaximumBidForm from '$lib/components/MaximumBidForm.svelte';
@@ -111,7 +117,7 @@
         credentials: 'include'
       });
       const result = await response.json().catch(() => ({}));
-      if (!response.ok) throw new Error(result.message || 'Could not update your watchlist');
+      if (!response.ok) throw new Error(result.message || ui("Could not update your watchlist"));
       isWatching = result.watching;
       lot.watchersCount = result.watchersCount;
     } catch (error) {
@@ -211,14 +217,14 @@
   }
   
   function formatCurrency(amount) {
-    return new Intl.NumberFormat('en-US', {
+    return new Intl.NumberFormat(uiLocale(), {
       style: 'currency',
       currency: (lot?.auction?.currency || 'usd').toUpperCase()
     }).format(amount);
   }
   
   function formatDate(dateString) {
-    return new Date(dateString).toLocaleString('en-US', {
+    return new Date(dateString).toLocaleString(uiLocale(), {
       year: 'numeric',
       month: 'short',
       day: 'numeric',
@@ -243,8 +249,8 @@
 {#if loading}
   <div class="min-h-screen bg-[#f7f4ee] flex items-center justify-center">
     <div class="text-center">
-      <PumbiLoader size="lg" label="Loading lot" />
-      <p class="mt-4 text-gray-600">Loading lot...</p>
+      <PumbiLoader size="lg" label={ui("Loading lot")} />
+      <p class="mt-4 text-gray-600">{ui("Loading lot...")}</p>
     </div>
   </div>
 {:else if lot}
@@ -256,10 +262,10 @@
         onclick={() => goto(`/auctions/${lot.auctionId}`)}
         class="text-[#18372f] hover:text-[#18372f] mb-6 flex items-center"
       >
-        <svg class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <svg class="w-5 h-5 me-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7" />
         </svg>
-        Back to Auction
+        {ui("Back to Auction")}
       </button>
 
       <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
@@ -273,7 +279,7 @@
                 class="w-full h-96 object-cover"
               />
               <div class="absolute top-4 left-4 bg-white px-4 py-2 rounded-sm text-lg font-bold">
-                Lot #{lot.lotNumber}
+                {ui("Lot #")}{lot.lotNumber}
               </div>
             </div>
             <div class="p-8">
@@ -287,26 +293,26 @@
                   class="inline-flex items-center gap-2 rounded-sm border px-4 py-2 text-sm font-bold transition disabled:opacity-50 {isWatching ? 'border-[#ddd6ca] bg-[#efe8dc] text-[#18372f]' : 'border-gray-200 bg-white text-gray-700 hover:border-[#c4b8a8] hover:text-[#18372f]'}"
                 >
                   <span aria-hidden="true">{isWatching ? '♥' : '♡'}</span>
-                  {watchBusy ? 'Updating…' : isWatching ? 'Watching' : 'Watch lot'}
+                  {watchBusy ? ui("Updating…") : isWatching ? ui("Watching") : ui("Watch lot")}
                 </button>
               </div>
-              {#if watchError}<p class="mb-4 text-sm font-medium text-red-600">{watchError}</p>{/if}
-              {#if isWatching}<p class="mb-4 text-xs text-gray-500">When this house enables reminders, we’ll email your verified address as this lot approaches the block. Each email includes an unsubscribe link.</p>{/if}
+              {#if watchError}<p class="mb-4 text-sm font-medium text-red-600">{ui(watchError)}</p>{/if}
+              {#if isWatching}<p class="mb-4 text-xs text-gray-500">{ui("When this house enables reminders, we’ll email your verified address as this lot approaches the block. Each email includes an unsubscribe link.")}</p>{/if}
               <p class="text-gray-600 text-lg mb-6">{lot.description}</p>
               {#if conditionForLot(lot)}
                 <div class="mb-6 rounded-sm border border-amber-200 bg-amber-50 p-4">
-                  <p class="text-xs font-bold uppercase tracking-wide text-amber-700">Condition</p>
+                  <p class="text-xs font-bold uppercase tracking-wide text-amber-700">{ui("Condition")}</p>
                   <p class="mt-1 text-sm leading-6 text-amber-950">{conditionForLot(lot)}</p>
                 </div>
               {/if}
               
               <div class="grid grid-cols-2 gap-6 mb-6">
                 <div>
-                  <p class="text-sm text-gray-500 mb-1">Starting Bid</p>
+                  <p class="text-sm text-gray-500 mb-1">{ui("Starting Bid")}</p>
                   <p class="text-2xl font-bold text-gray-900">{formatCurrency(lot.startingBid)}</p>
                 </div>
                 <div>
-                  <p class="text-sm text-gray-500 mb-1">Bid Increment</p>
+                  <p class="text-sm text-gray-500 mb-1">{ui("Bid Increment")}</p>
                   <p class="text-2xl font-bold text-gray-900">{formatCurrency(lotBidIncrement(lot))}</p>
                 </div>
               </div>
@@ -315,15 +321,15 @@
 
           <!-- Bidding History -->
           <div class="bg-white rounded-lg shadow-lg p-8">
-            <h2 class="text-2xl font-bold text-gray-900 mb-6">Bidding History</h2>
+            <h2 class="text-2xl font-bold text-gray-900 mb-6">{ui("Bidding History")}</h2>
             {#if bids.length === 0}
-              <p class="text-gray-600">No bids yet. Be the first to bid!</p>
+              <p class="text-gray-600">{ui("No bids yet. Be the first to bid!")}</p>
             {:else}
               <div class="space-y-4">
                 {#each bids as bid}
                   <div class="flex items-center justify-between p-4 bg-[#f7f4ee] rounded-lg">
                     <div>
-                      <p class="font-semibold text-gray-900">{bid.userName}{#if bid.isAutomatic}<span class="ml-1 rounded bg-sky-100 px-1.5 py-0.5 text-[10px] font-bold uppercase text-sky-800">Auto</span>{/if}{#if bid.source === 'PHONE'}<span class="ml-2 rounded bg-amber-100 px-2 py-0.5 text-[10px] font-semibold uppercase text-amber-900">Phone</span>{/if}</p>
+                      <p class="font-semibold text-gray-900">{bid.userName}{#if bid.isAutomatic}<span class="ms-1 rounded bg-sky-100 px-1.5 py-0.5 text-[10px] font-bold uppercase text-sky-800">{ui("Auto")}</span>{/if}{#if bid.source === 'PHONE'}<span class="ms-2 rounded bg-amber-100 px-2 py-0.5 text-[10px] font-semibold uppercase text-amber-900">{ui("Phone")}</span>{/if}</p>
                       <p class="text-sm text-gray-500">{formatDate(bid.timestamp)}</p>
                     </div>
                     <p class="text-xl font-bold text-[#18372f]">{formatCurrency(bid.amount)}</p>
@@ -337,70 +343,70 @@
         <!-- Bidding Panel -->
         <div class="lg:col-span-1">
           <div class="bg-white rounded-lg shadow-lg p-6 sticky top-4">
-            <h2 class="text-2xl font-bold text-gray-900 mb-6">Place Your Bid</h2>
+            <h2 class="text-2xl font-bold text-gray-900 mb-6">{ui("Place Your Bid")}</h2>
             
             <div class="mb-6">
-              <p class="text-sm text-gray-500 mb-2">Current Highest Bid</p>
+              <p class="text-sm text-gray-500 mb-2">{ui("Current Highest Bid")}</p>
               <p class="text-4xl font-bold text-[#18372f] mb-4">{formatCurrency(lot.currentBid)}</p>
               
               {#if currentUser && lot.highestBidderId === currentUser.id}
                 <div class="bg-green-100 border border-green-400 text-green-700 px-4 py-3 rounded mb-4">
-                  <p class="font-semibold">You are the highest bidder!</p>
+                  <p class="font-semibold">{ui("You are the highest bidder!")}</p>
                 </div>
               {:else if lot.highestBidderName}
-                <p class="text-sm text-gray-600">Highest bidder: {lot.highestBidderName}</p>
+                <p class="text-sm text-gray-600">{ui("Highest bidder:")} {lot.highestBidderName}</p>
               {/if}
             </div>
 
-            {#if bidError}<p role="alert" class="mb-4 border border-red-200 bg-red-50 p-3 text-sm text-red-800">{bidError}</p>{/if}
+            {#if bidError}<p role="alert" class="mb-4 border border-red-200 bg-red-50 p-3 text-sm text-red-800">{ui(bidError)}</p>{/if}
             {#if !session?.user || !currentUser}
               <div class="mb-6 bg-yellow-50 border border-yellow-200 rounded-lg p-4">
-                <p class="text-sm text-yellow-800 mb-4">You must be logged in to place a bid.</p>
+                <p class="text-sm text-yellow-800 mb-4">{ui("You must be logged in to place a bid.")}</p>
                 <a
                   href="/auth/login?redirect={encodeURIComponent($page.url.pathname)}"
                   class="inline-block bg-[#18372f] text-white px-4 py-2 rounded-lg hover:bg-[#152c26] transition-colors"
                 >
-                  Login to Bid
+                  {ui("Login to Bid")}
                 </a>
               </div>
             {:else if bidAccess?.blocked}
-              <div role="status" class="mb-6 border border-red-200 bg-red-50 p-4 text-sm text-red-900"><p class="font-bold">Bidding access blocked by this house</p><p class="mt-2">Contact the auction house for assistance. This block applies even when registration is not required.</p></div>
+              <div role="status" class="mb-6 border border-red-200 bg-red-50 p-4 text-sm text-red-900"><p class="font-bold">{ui("Bidding access blocked by this house")}</p><p class="mt-2">{ui("Contact the auction house for assistance. This block applies even when registration is not required.")}</p></div>
             {:else if registrationRequired && !isRegistered}
               <div class="mb-6 bg-[#efe8dc] border border-[#ddd6ca] rounded-lg p-4">
                 {#if bidAccess?.needsVerification}
-                  <p class="font-semibold text-amber-900">Finish buyer verification before registering for this auction.</p>
-                  <a href="/dashboard/verification" class="mt-3 inline-block font-bold text-[#18372f] underline">Continue verification</a>
+                  <p class="font-semibold text-amber-900">{ui("Finish buyer verification before registering for this auction.")}</p>
+                  <a href="/dashboard/verification" class="mt-3 inline-block font-bold text-[#18372f] underline">{ui("Continue verification")}</a>
                 {:else if registrationStatus === 'PENDING'}
-                  <p class="font-semibold text-[#152c26]">Approval pending</p>
-                  <p class="mt-1 text-sm text-[#18372f]">The auction house will review your bidder registration.</p>
+                  <p class="font-semibold text-[#152c26]">{ui("Approval pending")}</p>
+                  <p class="mt-1 text-sm text-[#18372f]">{ui("The auction house will review your bidder registration.")}</p>
                 {:else if registrationStatus === 'REJECTED'}
-                  <p class="font-semibold text-red-900">Registration not approved</p>
-                  <p class="mt-1 text-sm text-red-800">Contact the auction organizer if you need more information.</p>
+                  <p class="font-semibold text-red-900">{ui("Registration not approved")}</p>
+                  <p class="mt-1 text-sm text-red-800">{ui("Contact the auction organizer if you need more information.")}</p>
                 {:else}
-                  <p class="text-sm text-[#18372f] mb-2 font-semibold">{lot.auction?.type?.toUpperCase() === 'PRIVATE' ? 'Bidder approval required' : 'Accept Pumbi terms to bid'}</p>
-                  <p class="text-sm text-[#18372f] mb-4">{lot.auction?.type?.toUpperCase() === 'PRIVATE' ? 'Submit your registration for approval by the auction house.' : 'This public auction is open to all account holders.'}</p>
+                  <p class="text-sm text-[#18372f] mb-2 font-semibold">{lot.auction?.type?.toUpperCase() === 'PRIVATE' ? ui("Bidder approval required") : ui("Accept Pumbi terms to bid")}</p>
+                  <p class="text-sm text-[#18372f] mb-4">{lot.auction?.type?.toUpperCase() === 'PRIVATE' ? ui("Submit your registration for approval by the auction house.") : ui("This public auction is open to all account holders.")}</p>
                   <label class="mb-4 flex items-start gap-2 text-sm text-[#152c26]">
                     <input type="checkbox" bind:checked={acceptTerms} class="mt-1" />
-                    <span>I accept the applicable buyer terms and rates for this auction.</span>
+                    <span>{ui("I accept the applicable buyer terms and rates for this auction.")}</span>
                   </label>
                   <button
                     onclick={registerForAuction}
                     disabled={registering || !acceptTerms}
                     class="inline-block bg-[#18372f] text-white px-4 py-2 rounded-lg hover:bg-[#152c26] transition-colors text-sm disabled:opacity-50 disabled:cursor-not-allowed"
                   >
-                    {registering ? 'Submitting...' : lot.auction?.type?.toUpperCase() === 'PRIVATE' ? 'Request approval' : 'Accept and register'}
+                    {registering ? ui("Submitting...") : lot.auction?.type?.toUpperCase() === 'PRIVATE' ? ui("Request approval") : ui("Accept and register")}
                   </button>
                 {/if}
               </div>
             {:else}
-              {#if lot.fairWarningAt && lot.status.toUpperCase() === 'ACTIVE'}<p role="status" class="mb-4 border border-amber-300 bg-amber-50 p-3 text-sm font-bold text-amber-900">Fair warning — last chance to bid.</p>{/if}
+              {#if lot.fairWarningAt && lot.status.toUpperCase() === 'ACTIVE'}<p role="status" class="mb-4 border border-amber-300 bg-amber-50 p-3 text-sm font-bold text-amber-900">{ui("Fair warning — last chance to bid.")}</p>{/if}
               {#key lot.id}
                 <MaximumBidForm {lot} userId={currentUser.id} canBid={lot.status.toUpperCase() === 'ACTIVE' && lot.auction?.status?.toUpperCase() === 'LIVE' && Boolean(lot.auction?.auctioneerStartedAt) && Boolean(lot.endTime && new Date(lot.endTime).getTime() > Date.now())} onbid={async () => { await loadLot(); await loadBids(); }} />
               {/key}
             {/if}
 
             <div class="mt-6 pt-6 border-t">
-              <p class="text-sm text-gray-600 mb-2">Lot ends:</p>
+              <p class="text-sm text-gray-600 mb-2">{ui("Lot ends:")}</p>
               <p class="font-semibold">{formatDate(lot.endTime)}</p>
             </div>
           </div>
@@ -411,12 +417,12 @@
 {:else}
   <div class="min-h-screen bg-[#f7f4ee] flex items-center justify-center">
     <div class="text-center">
-      <p class="text-gray-600 text-lg">Lot not found</p>
+      <p class="text-gray-600 text-lg">{ui("Lot not found")}</p>
       <button
         onclick={() => goto('/')}
         class="mt-4 px-6 py-2 bg-[#18372f] text-white rounded-lg hover:bg-[#152c26]"
       >
-        Back to Auctions
+        {ui("Back to Auctions")}
       </button>
     </div>
   </div>

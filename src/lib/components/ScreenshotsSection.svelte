@@ -1,10 +1,14 @@
 <script>
+  import { page as localePage } from '$app/stores';
+  import { translate as translateUi } from '$lib/i18n.js';
+  const ui = (text, values) => translateUi($localePage.data.locale || 'en', text, values);
+
     let { screenshots } = $props();
 </script>
   
 <section id="screenshots" class="py-20 bg-white">
     <div class="container mx-auto px-4">
-      <h2 class="text-4xl font-bold text-center mb-12 text-gray-800">📸 Screenshots</h2>
+      <h2 class="text-4xl font-bold text-center mb-12 text-gray-800">{ui("📸 Screenshots")}</h2>
       <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8">
         {#each screenshots as screenshot}
           <div class="relative group overflow-hidden rounded-lg shadow-md">

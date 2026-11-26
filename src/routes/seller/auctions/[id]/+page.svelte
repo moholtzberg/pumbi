@@ -1,9 +1,15 @@
 <script>
+  import { page as localePage } from '$app/stores';
+  import { translate as translateUi } from '$lib/i18n.js';
+  import { localeTag as uiLocaleTag } from '$lib/utils/region.js';
+  const uiLocale = () => uiLocaleTag($localePage.data.locale);
+  const ui = (text, values) => translateUi($localePage.data.locale || 'en', text, values);
+
   let { data } = $props();
   let auction = $derived(data.auction);
 
   function formatDate(value) {
-    return new Date(value).toLocaleString('en-US', {
+    return new Date(value).toLocaleString(uiLocale(), {
       month: 'short',
       day: 'numeric',
       year: 'numeric',
@@ -17,39 +23,39 @@
   let tiles = $derived([
     {
       href: `/seller/auctions/${auction.id}/control-room`,
-      eyebrow: 'Live sale',
-      title: 'Control room',
-      body: 'Claim the auctioneer seat, open lots, and hammer the sale.',
+      eyebrow: ui("Live sale"),
+      title: ui("Control room"),
+      body: ui("Claim the auctioneer seat, open lots, and hammer the sale."),
       tone: 'dark'
     },
     {
       href: `/seller/auctions/${auction.id}/lots`,
-      eyebrow: 'Catalog',
-      title: 'Lots',
-      body: 'Add, edit, reorder, and mark lots ready for the block.',
+      eyebrow: ui("Catalog"),
+      title: ui("Lots"),
+      body: ui("Add, edit, reorder, and mark lots ready for the block."),
       tone: 'light'
     },
     {
       href: `/seller/auctions/${auction.id}/interest`,
-      eyebrow: 'Analytics',
-      title: 'Interest',
-      body: 'Unique page views and time on page for this sale and its lots.',
+      eyebrow: ui("Analytics"),
+      title: ui("Interest"),
+      body: ui("Unique page views and time on page for this sale and its lots."),
       tone: 'light'
     },
     {
       href: `/seller/auctions/${auction.id}/settings`,
-      eyebrow: 'Setup',
-      title: 'Auction settings',
-      body: 'Timing, live stream, gallery, and sale-specific rules.',
+      eyebrow: ui("Setup"),
+      title: ui("Auction settings"),
+      body: ui("Timing, live stream, gallery, and sale-specific rules."),
       tone: 'light'
     },
     ...(isPrivate
       ? [
           {
             href: `/seller/auctions/${auction.id}/bidders`,
-            eyebrow: 'Access',
-            title: 'Bidders',
-            body: 'Review bidders, open profiles, and manage registrations.',
+            eyebrow: ui("Access"),
+            title: ui("Bidders"),
+            body: ui("Review bidders, open profiles, and manage registrations."),
             tone: 'light'
           }
         ]
@@ -59,15 +65,15 @@
 
 <section class="grid gap-4 sm:grid-cols-3">
   <div class="pumbi-panel p-5">
-    <p class="pumbi-eyebrow">Lots</p>
+    <p class="pumbi-eyebrow">{ui("Lots")}</p>
     <p class="mt-2 font-[family-name:var(--pumbi-serif)] text-3xl font-semibold">{auction.lotCount}</p>
   </div>
   <div class="pumbi-panel p-5">
-    <p class="pumbi-eyebrow">Registrations</p>
+    <p class="pumbi-eyebrow">{ui("Registrations")}</p>
     <p class="mt-2 font-[family-name:var(--pumbi-serif)] text-3xl font-semibold">{auction.registrationCount}</p>
   </div>
   <div class="pumbi-panel p-5">
-    <p class="pumbi-eyebrow">Window</p>
+    <p class="pumbi-eyebrow">{ui("Window")}</p>
     <p class="mt-2 text-sm leading-6 text-[var(--pumbi-ink-soft)]">
       {formatDate(auction.startDate)}
       <span class="text-[var(--pumbi-muted)]"> → </span>
@@ -90,7 +96,7 @@
       <h2 class="mt-3 font-[family-name:var(--pumbi-serif)] text-2xl font-semibold">{tile.title}</h2>
       <p class="mt-2 text-sm leading-6 {tile.tone === 'dark' ? 'text-[#bec9c4]' : 'text-[var(--pumbi-ink-soft)]'}">{tile.body}</p>
       <p class="mt-4 text-xs font-bold uppercase tracking-wide {tile.tone === 'dark' ? 'text-[#d6b477]' : 'text-[var(--pumbi-forest)]'} group-hover:underline">
-        Open →
+        {ui("Open →")}
       </p>
     </a>
   {/each}
@@ -98,7 +104,7 @@
 
 {#if auction.description}
   <section class="pumbi-panel mt-6 p-6">
-    <p class="pumbi-eyebrow">Description</p>
+    <p class="pumbi-eyebrow">{ui("Description")}</p>
     <p class="mt-3 whitespace-pre-wrap text-sm leading-7 text-[var(--pumbi-ink-soft)]">{auction.description}</p>
   </section>
 {/if}

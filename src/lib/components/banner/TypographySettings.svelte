@@ -1,4 +1,8 @@
 <script>
+  import { page as localePage } from '$app/stores';
+  import { translate as translateUi } from '$lib/i18n.js';
+  const ui = (text, values) => translateUi($localePage.data.locale || 'en', text, values);
+
   import CollapsibleSection from './CollapsibleSection.svelte';
   
   let {
@@ -11,7 +15,7 @@
 </script>
 
 <CollapsibleSection
-  title="Typography"
+  title={ui("Typography")}
   bind:isCollapsed
   bgColor="bg-gray-50"
   borderColor="border-gray-200"
@@ -20,7 +24,7 @@
   <div class="space-y-3">
     <div>
       <label for="font-family" class="block text-xs font-medium text-gray-700 mb-1">
-        English Font
+        {ui("English Font")}
       </label>
       <select
         id="font-family"
@@ -35,7 +39,7 @@
     
     <div>
       <label for="hebrew-font-family" class="block text-xs font-medium text-gray-700 mb-1">
-        Hebrew Font
+        {ui("Hebrew Font")}
       </label>
       <select
         id="hebrew-font-family"
@@ -50,7 +54,7 @@
     
     <div>
       <label for="text-color" class="block text-xs font-medium text-gray-700 mb-1">
-        Text Color
+        {ui("Text Color")}
       </label>
       <input
         id="text-color"
@@ -61,11 +65,11 @@
     </div>
     
     <div class="pt-2 border-t border-gray-200">
-      <div class="text-xs font-medium text-gray-700 mb-2">Spacing</div>
+      <div class="text-xs font-medium text-gray-700 mb-2">{ui("Spacing")}</div>
       
       <div>
         <label for="text-spacing-title" class="block text-xs text-gray-600 mb-1">
-          Title Spacing: {bannerSettings.textSpacingTitle ?? 20}px
+          {ui("Title Spacing:")} {bannerSettings.textSpacingTitle ?? 20}px
         </label>
         <input
           id="text-spacing-title"
@@ -77,12 +81,12 @@
           oninput={(e) => bannerSettings.textSpacingTitle = parseInt(e.target.value)}
           class="w-full"
         />
-        <p class="text-xs text-gray-500 mt-1">Spacing after title</p>
+        <p class="text-xs text-gray-500 mt-1">{ui("Spacing after title")}</p>
       </div>
       
       <div>
         <label for="text-spacing-year" class="block text-xs text-gray-600 mb-1">
-          Year Spacing: {bannerSettings.textSpacingYear ?? 20}px
+          {ui("Year Spacing:")} {bannerSettings.textSpacingYear ?? 20}px
         </label>
         <input
           id="text-spacing-year"
@@ -94,12 +98,12 @@
           oninput={(e) => bannerSettings.textSpacingYear = parseInt(e.target.value)}
           class="w-full"
         />
-        <p class="text-xs text-gray-500 mt-1">Spacing after year</p>
+        <p class="text-xs text-gray-500 mt-1">{ui("Spacing after year")}</p>
       </div>
       
       <div>
         <label for="text-spacing-subtitle" class="block text-xs text-gray-600 mb-1">
-          Subtitle Spacing: {bannerSettings.textSpacingSubtitle ?? 10}px
+          {ui("Subtitle Spacing:")} {bannerSettings.textSpacingSubtitle ?? 10}px
         </label>
         <input
           id="text-spacing-subtitle"
@@ -111,12 +115,12 @@
           oninput={(e) => bannerSettings.textSpacingSubtitle = parseInt(e.target.value)}
           class="w-full"
         />
-        <p class="text-xs text-gray-500 mt-1">Spacing after subtitle</p>
+        <p class="text-xs text-gray-500 mt-1">{ui("Spacing after subtitle")}</p>
       </div>
       
       <div>
         <label for="text-line-height" class="block text-xs text-gray-600 mb-1">
-          Line Height Multiplier: {(bannerSettings.textLineHeight ?? 1.2).toFixed(1)}x
+          {ui("Line Height Multiplier:")} {(bannerSettings.textLineHeight ?? 1.2).toFixed(1)}x
         </label>
         <input
           id="text-line-height"
@@ -128,7 +132,7 @@
           oninput={(e) => bannerSettings.textLineHeight = parseFloat(e.target.value)}
           class="w-full"
         />
-        <p class="text-xs text-gray-500 mt-1">Spacing between lines of text</p>
+        <p class="text-xs text-gray-500 mt-1">{ui("Spacing between lines of text")}</p>
       </div>
     </div>
   </div>

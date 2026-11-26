@@ -1,16 +1,20 @@
 <script>
+  import { page as localePage } from '$app/stores';
+  import { translate as translateUi } from '$lib/i18n.js';
+  const ui = (text, values) => translateUi($localePage.data.locale || 'en', text, values);
+
   import { page } from '$app/stores';
 
   let { auctionHouse = null, limited = false } = $props();
 
   const links = [
-    { href: '/seller', label: 'Auctions', match: (path) => path === '/seller' || path.startsWith('/seller/auctions') },
-    { href: '/seller/sold', label: 'Sold', match: (path) => path.startsWith('/seller/sold') },
-    { href: '/seller/bidders', label: 'Bidders', match: (path) => path.startsWith('/seller/bidders') },
-    { href: '/seller/marketing', label: 'Marketing', match: (path) => path.startsWith('/seller/marketing') },
-    { href: '/seller/settings', label: 'House settings', match: (path) => path === '/seller/settings' },
-    { href: '/seller/team', label: 'Team', match: (path) => path.startsWith('/seller/team') },
-    { href: '/seller/banking', label: 'Banking', match: (path) => path.startsWith('/seller/banking') }
+    { href: '/seller', label: ui("Auctions"), match: (path) => path === '/seller' || path.startsWith('/seller/auctions') },
+    { href: '/seller/sold', label: ui("Sold"), match: (path) => path.startsWith('/seller/sold') },
+    { href: '/seller/bidders', label: ui("Bidders"), match: (path) => path.startsWith('/seller/bidders') },
+    { href: '/seller/marketing', label: ui("Marketing"), match: (path) => path.startsWith('/seller/marketing') },
+    { href: '/seller/settings', label: ui("House settings"), match: (path) => path === '/seller/settings' },
+    { href: '/seller/team', label: ui("Team"), match: (path) => path.startsWith('/seller/team') },
+    { href: '/seller/banking', label: ui("Banking"), match: (path) => path.startsWith('/seller/banking') }
   ];
 
   let path = $derived($page.url.pathname);
@@ -22,31 +26,31 @@
 <header class="seller-nav print:hidden">
   <div class="seller-nav__inner">
     <div class="seller-nav__brand">
-      <p class="pumbi-eyebrow">Seller</p>
+      <p class="pumbi-eyebrow">{ui("Seller")}</p>
       <a href="/seller" class="seller-nav__house">
-        {auctionHouse?.name || 'Auction house'}
+        {auctionHouse?.name || ui("Auction house")}
       </a>
     </div>
 
     {#if !limited}
-      <nav class="seller-nav__links" aria-label="Seller">
+      <nav class="seller-nav__links" aria-label={ui("Seller")}>
         {#each links as link}
           <a href={link.href} class:active={link.match(path)}>{link.label}</a>
         {/each}
       </nav>
     {:else}
-      <nav class="seller-nav__links" aria-label="Seller onboarding">
-        <a href="/seller/onboarding" class:active={path.startsWith('/seller/onboarding')}>Onboarding</a>
-        <a href="/seller/team" class:active={path.startsWith('/seller/team')}>Team</a>
-        <a href="/seller/banking" class:active={path.startsWith('/seller/banking')}>Banking</a>
+      <nav class="seller-nav__links" aria-label={ui("Seller onboarding")}>
+        <a href="/seller/onboarding" class:active={path.startsWith('/seller/onboarding')}>{ui("Onboarding")}</a>
+        <a href="/seller/team" class:active={path.startsWith('/seller/team')}>{ui("Team")}</a>
+        <a href="/seller/banking" class:active={path.startsWith('/seller/banking')}>{ui("Banking")}</a>
       </nav>
     {/if}
 
     <div class="seller-nav__aside">
       {#if needsOnboarding}
-        <a href="/seller/onboarding" class="seller-nav__chip">Finish onboarding</a>
+        <a href="/seller/onboarding" class="seller-nav__chip">{ui("Finish onboarding")}</a>
       {/if}
-      <a href="/" class="seller-nav__public">Public site</a>
+      <a href="/" class="seller-nav__public">{ui("Public site")}</a>
     </div>
   </div>
 </header>

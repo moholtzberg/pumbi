@@ -1,4 +1,8 @@
 <script>
+  import { page as localePage } from '$app/stores';
+  import { translate as translateUi } from '$lib/i18n.js';
+  const ui = (text, values) => translateUi($localePage.data.locale || 'en', text, values);
+
   let {
     lotId = '',
     onNoteSaved = () => {}
@@ -39,7 +43,7 @@
       isRecording = true;
     } catch (err) {
       console.error('Error starting recording:', err);
-      error = 'Failed to access microphone. Please check permissions.';
+      error = ui("Failed to access microphone. Please check permissions.");
     }
   }
 
@@ -69,7 +73,7 @@
       });
 
       if (!uploadResponse.ok) {
-        throw new Error('Failed to upload audio');
+        throw new Error(ui("Failed to upload audio"));
       }
 
       const { noteId } = await uploadResponse.json();
@@ -81,7 +85,7 @@
       });
 
       if (!transcribeResponse.ok) {
-        throw new Error('Failed to transcribe audio');
+        throw new Error(ui("Failed to transcribe audio"));
       }
 
       const result = await transcribeResponse.json();
@@ -101,7 +105,7 @@
       await summarizeNote(noteId);
     } catch (err) {
       console.error('Error uploading/transcribing:', err);
-      error = err.message || 'Failed to upload and transcribe audio';
+      error = err.message || ui("Failed to upload and transcribe audio");
     } finally {
       isUploading = false;
       isTranscribing = false;
@@ -145,7 +149,7 @@
     if (!file) return;
 
     if (!file.type.startsWith('audio/')) {
-      error = 'Please select an audio file';
+      error = ui("Please select an audio file");
       return;
     }
 
@@ -158,7 +162,7 @@
 <div class="space-y-3">
   {#if error}
     <div class="bg-red-50 border border-red-200 text-red-700 px-3 py-2 rounded text-sm">
-      {error}
+      {ui(error)}
     </div>
   {/if}
 
@@ -172,14 +176,14 @@
         <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
           <path fill-rule="evenodd" d="M7 4a3 3 0 016 0v4a3 3 0 11-6 0V4zm4 10.93A7.001 7.001 0 0017 8a1 1 0 10-2 0A5 5 0 015 8a1 1 0 00-2 0 7.001 7.001 0 006 6.93V17H6a1 1 0 100 2h8a1 1 0 100-2h-3v-2.07z" clip-rule="evenodd" />
         </svg>
-        Record Voice Note
+        {ui("Record Voice Note")}
       </button>
 
       <label class="flex items-center gap-2 px-4 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700 transition-colors text-sm font-medium cursor-pointer">
         <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
         </svg>
-        Upload Audio
+        {ui("Upload Audio")}
         <input
           type="file"
           accept="audio/*"
@@ -191,21 +195,21 @@
       <div class="flex items-center gap-3">
         <div class="flex items-center gap-2">
           <div class="w-3 h-3 bg-red-600 rounded-full animate-pulse"></div>
-          <span class="text-sm text-gray-700 font-medium">Recording...</span>
+          <span class="text-sm text-gray-700 font-medium">{ui("Recording...")}</span>
         </div>
         <button
           type="button"
           onclick={stopRecording}
           class="px-4 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700 transition-colors text-sm font-medium"
         >
-          Stop
+          {ui("Stop")}
         </button>
         <button
           type="button"
           onclick={cancelRecording}
           class="px-4 py-2 bg-gray-300 text-gray-700 rounded-lg hover:bg-gray-400 transition-colors text-sm font-medium"
         >
-          Cancel
+          {ui("Cancel")}
         </button>
       </div>
     {:else if showUploadOption}
@@ -220,11 +224,11 @@
           class="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-sm font-medium disabled:bg-gray-400 disabled:cursor-not-allowed"
         >
           {#if isUploading}
-            Uploading...
+            {ui("Uploading...")}
           {:else if isTranscribing}
-            Transcribing...
+            {ui("Transcribing...")}
           {:else}
-            Save & Transcribe
+            {ui("Save & Transcribe")}
           {/if}
         </button>
         <button
@@ -232,7 +236,7 @@
           onclick={cancelRecording}
           class="px-4 py-2 bg-gray-300 text-gray-700 rounded-lg hover:bg-gray-400 transition-colors text-sm font-medium"
         >
-          Cancel
+          {ui("Cancel")}
         </button>
       </div>
     {/if}

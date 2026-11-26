@@ -1,4 +1,11 @@
 <script>
+  import { page as localePage } from '$app/stores';
+  import { translate as translateUi } from '$lib/i18n.js';
+  import { localeTag as uiLocaleTag } from '$lib/utils/region.js';
+  const uiLocale = () => uiLocaleTag($localePage.data.locale);
+  const ui = (text, values) => translateUi($localePage.data.locale || 'en', text, values);
+  const uiStatus = value => ui(String(value ?? '').replaceAll('_', ' '));
+
   import { translate } from '$lib/i18n.js';
   import { page } from '$app/stores';
   const t = (text, values) => translate($page.data.locale || 'en', text, values);
@@ -44,10 +51,10 @@
         body: JSON.stringify({ action, ...payload })
       });
       const body = await response.json().catch(() => ({}));
-      if (!response.ok) throw new Error(body.message || `Failed to ${action}`);
+      if (!response.ok) throw new Error(body.message || ui("Failed to {value0}", { value0: action }));
       return body;
     } catch (err) {
-      errorMessage = err.message || 'Something went wrong';
+      errorMessage = err.message || ui("Something went wrong");
       throw err;
     } finally {
       busy = '';
@@ -61,7 +68,7 @@
       ratedAddress = shippingKey(requestedAddress);
       rates = result.rates || [];
       selectedRateId = '';
-      successMessage = rates.length ? 'Shipping options loaded.' : 'No rates returned.';
+      successMessage = rates.length ? ui("Shipping options loaded.") : ui("No rates returned.");
     } catch {
       /* shown via errorMessage */
     }
@@ -72,7 +79,7 @@
       const result = await api('select_shipping', { rateId });
       selectedRateId = rateId;
       invoice = result.invoice;
-      successMessage = 'Shipping option selected.';
+      successMessage = ui("Shipping option selected.");
     } catch {
       /* shown */
     }
@@ -85,7 +92,7 @@
         window.location.href = result.url;
         return;
       }
-      throw new Error('Checkout URL missing');
+      throw new Error(ui("Checkout URL missing"));
     } catch {
       /* shown */
     }
@@ -95,7 +102,7 @@
     try {
       const result = await api('pay_external', { method });
       invoice = result.invoice;
-      successMessage = `Marked as paying by ${method}. The seller will confirm when payment arrives.`;
+      successMessage = ui("Marked as paying by {value0}. The seller will confirm when payment arrives.", { value0: method });
     } catch {
       /* shown */
     }
@@ -113,16 +120,16 @@
         {t("Lot #")}{invoice.lot?.lotNumber} · {invoice.lot?.title}
       </h1>
       <p class="mt-1 text-sm text-[#435048]">
-        {invoice.auctionHouse?.name || 'Seller'} · {invoice.auction?.title}
+        {invoice.auctionHouse?.name || ui("Seller")} · {invoice.auction?.title}
       </p>
     </header>
     <InvoiceHouseContact house={invoice.auctionHouse} />
 
     {#if errorMessage}
-      <div class="mt-4 border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-800">{errorMessage}</div>
+      <div class="mt-4 border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-800">{ui(errorMessage)}</div>
     {/if}
     {#if successMessage}
-      <div class="mt-4 border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-800">{successMessage}</div>
+      <div class="mt-4 border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-800">{ui(successMessage)}</div>
     {/if}
 
     <section class="mt-6 grid gap-4 border border-[#ddd6ca] bg-white p-5 sm:grid-cols-[96px_1fr]">
@@ -136,7 +143,7 @@
         <div class="flex justify-between gap-4"><span class="text-[#435048]">{t("Buyer’s premium (")}{invoice.buyerPremiumRate}%)</span><strong>{money(invoice.buyerPremiumAmount)}</strong></div>
         <div class="flex justify-between gap-4"><span class="text-[#435048]">{t("Shipping")}</span><strong>{money(invoice.shippingAmount)}</strong></div>
         <div class="flex justify-between gap-4 border-t border-[#e2dcd1] pt-2 text-base"><span class="font-semibold">{t("Total")}</span><strong>{money(invoice.totalAmount)}</strong></div>
-        <p class="pt-2 text-xs font-bold uppercase tracking-wide text-[#18372f]">{t("Status ·")} {invoice.status.replaceAll('_', ' ')}</p>
+        <p class="pt-2 text-xs font-bold uppercase tracking-wide text-[#18372f]">{t("Status ·")} {uiStatus(invoice.status.replaceAll('_', ' '))}</p>
       </div>
     </section>
 
@@ -145,7 +152,7 @@
         <h2 class="font-[family-name:var(--pumbi-serif)] text-xl font-semibold">{t("Shipping address")}</h2>
         <p class="mt-1 text-sm text-[#435048]">{t("Buyer pays shipping — choose a rate before checkout. The label is created for the seller automatically after payment.")}</p>
         {#if data.savedAddresses?.length}
-          <label class="mt-4 block text-sm font-semibold">{t("Saved shipping address")}<select bind:value={selectedAddress} onchange={chooseAddress} disabled={Boolean(busy)} class="mt-2 w-full border border-[#ddd6ca] bg-white p-3"><option value="custom">{t("Use a different address")}</option>{#each data.savedAddresses as saved}<option value={saved.id}>{saved.label}{saved.isDefault ? ' (default)' : ''} · {saved.street1}, {saved.city}</option>{/each}</select></label>
+          <label class="mt-4 block text-sm font-semibold">{t("Saved shipping address")}<select bind:value={selectedAddress} onchange={chooseAddress} disabled={Boolean(busy)} class="mt-2 w-full border border-[#ddd6ca] bg-white p-3"><option value="custom">{t("Use a different address")}</option>{#each data.savedAddresses as saved}<option value={saved.id}>{saved.label}{saved.isDefault ? ui(" (default)") : ''} · {saved.street1}, {saved.city}</option>{/each}</select></label>
         {/if}
         <a href="/dashboard/profile#saved-addresses" class="mt-3 inline-block text-xs font-semibold text-[#18372f] underline">{t("Manage saved addresses")}</a>
         {#if !address.city || !address.zip}<p class="mt-2 text-xs text-slate-600">{t("Confirm the city, region, and postal code from your profile address before requesting rates.")}</p>{/if}
@@ -173,13 +180,13 @@
             {#each rates as rate}
               <button
                 type="button"
-                class="flex w-full items-center justify-between gap-3 px-4 py-3 text-left hover:bg-[#f7f4ee] {selectedRateId === rate.objectId ? 'bg-[#e8eee9]' : ''}"
+                class="flex w-full items-center justify-between gap-3 px-4 py-3 text-start hover:bg-[#f7f4ee] {selectedRateId === rate.objectId ? 'bg-[#e8eee9]' : ''}"
                 disabled={Boolean(busy) || addressChanged}
                 onclick={() => chooseRate(rate.objectId)}
               >
                 <div>
                   <p class="font-semibold text-[#1a2821]">{rate.provider} · {rate.servicelevel}</p>
-                  <p class="text-xs text-[#435048]">{rate.durationTerms || (rate.estimatedDays ? `${rate.estimatedDays} days` : 'Transit time varies')}</p>
+                  <p class="text-xs text-[#435048]">{rate.durationTerms || (rate.estimatedDays ? ui("{value0} days", { value0: rate.estimatedDays }) : ui("Transit time varies"))}</p>
                 </div>
                 <p class="font-bold">{money(rate.amount)}</p>
               </button>
@@ -200,7 +207,7 @@
             disabled={Boolean(busy) || shippingNotReady}
             onclick={payPumbi}
           >
-            {busy === 'pay_pumbi' ? 'Starting checkout…' : 'Pay with Pumbi'}
+            {busy === 'pay_pumbi' ? ui("Starting checkout…") : ui("Pay with Pumbi")}
           </button>
           {#each data.paymentMethods.filter((m) => m.channel === 'EXTERNAL') as method}
             <button
@@ -218,14 +225,14 @@
       <section class="mt-6 border border-[#ddd6ca] bg-white p-5">
         <h2 class="font-[family-name:var(--pumbi-serif)] text-xl font-semibold">{t("Paid")}</h2>
         <p class="mt-1 text-sm text-[#435048]">
-          {t("Paid")} {invoice.paidAt ? new Date(invoice.paidAt).toLocaleString() : ''}
+          {t("Paid")} {invoice.paidAt ? new Date(invoice.paidAt).toLocaleString(uiLocale()) : ''}
           {#if invoice.paymentChannel === 'PUMBI_STRIPE'} {t("via Pumbi")}{/if}
           {#if invoice.externalPaymentMethod} · {invoice.externalPaymentMethod}{/if}
         </p>
         {#if invoice.shipment?.trackingNumber}
           <p class="mt-3 text-sm">
             {t("Tracking:")} <a class="font-semibold text-[#18372f] underline" href={invoice.shipment.trackingUrl || '#'} target="_blank" rel="noreferrer">{invoice.shipment.trackingNumber}</a>
-            · {invoice.shipment.status.replaceAll('_', ' ')}
+            · {uiStatus(invoice.shipment.status.replaceAll('_', ' '))}
           </p>
         {/if}
       </section>

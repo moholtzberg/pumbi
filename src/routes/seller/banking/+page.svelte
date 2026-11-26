@@ -1,4 +1,11 @@
 <script>
+  import { page as localePage } from '$app/stores';
+  import { translate as translateUi } from '$lib/i18n.js';
+  import { localeTag as uiLocaleTag } from '$lib/utils/region.js';
+  const uiLocale = () => uiLocaleTag($localePage.data.locale);
+  const ui = (text, values) => translateUi($localePage.data.locale || 'en', text, values);
+  const uiStatus = value => ui(String(value ?? '').replaceAll('_', ' '));
+
   import RegionalPayoutOptions from '$lib/components/RegionalPayoutOptions.svelte';
   import { translate } from '$lib/i18n.js';
   import { page } from '$app/stores';
@@ -22,7 +29,7 @@
   async function api(url, options) {
     const response = await fetch(url, options);
     const payload = await response.json().catch(() => ({}));
-    if (!response.ok) throw new Error(payload.message || payload.error || `Request failed (${response.status})`);
+    if (!response.ok) throw new Error(payload.message || payload.error || ui("Request failed ({value0})", { value0: response.status }));
     return payload;
   }
 
@@ -65,7 +72,7 @@
         body: JSON.stringify(form)
       });
       form = { amount: '', currency: (data.auctionHouse.currency || 'usd').toLowerCase(), sourceReference: '', reason: '' };
-      notice = 'Payout release submitted for platform approval.';
+      notice = ui("Payout release submitted for platform approval.");
       await load();
     } catch (err) {
       failure = err.message;
@@ -75,7 +82,7 @@
   }
 
   function money(item) {
-    return new Intl.NumberFormat(undefined, {
+    return new Intl.NumberFormat(uiLocale(), {
       style: 'currency',
       currency: item.currency.toUpperCase()
     }).format(Number(item.amount));
@@ -92,8 +99,8 @@
       <p class="mt-1 text-sm text-[var(--pumbi-ink-soft)]">{data.auctionHouse.name}</p>
     </header>
 
-    {#if notice}<div class="border border-emerald-200 bg-emerald-50 p-3 text-sm text-emerald-800">{notice}</div>{/if}
-    {#if failure}<div class="border border-red-200 bg-red-50 p-3 text-sm text-red-800">{failure}</div>{/if}
+    {#if notice}<div class="border border-emerald-200 bg-emerald-50 p-3 text-sm text-emerald-800">{ui(notice)}</div>{/if}
+    {#if failure}<div class="border border-red-200 bg-red-50 p-3 text-sm text-red-800">{ui(failure)}</div>{/if}
 
     {#if loading}
       <p class="pumbi-panel p-8 text-center text-[var(--pumbi-muted)]">{t("Loading banking status…")}</p>
@@ -103,9 +110,9 @@
           <div>
             <h2 class="font-[family-name:var(--pumbi-serif)] text-xl font-semibold">{t("Stripe Express account")}</h2>
             <p class="mt-1 text-sm text-[var(--pumbi-ink-soft)]">
-              {t("Status:")} <strong>{connect?.status || 'NOT_CONNECTED'}</strong>
-              {t("· Details")} {connect?.detailsSubmitted ? 'submitted' : 'needed'}
-              {t("· Payouts")} {connect?.payoutsEnabled ? 'enabled' : 'disabled'}
+              {t("Status:")} <strong>{uiStatus(connect?.status || "NOT_CONNECTED")}</strong>
+              {t("· Details")} {connect?.detailsSubmitted ? ui("submitted") : ui("needed")}
+              {t("· Payouts")} {connect?.payoutsEnabled ? ui("enabled") : ui("disabled")}
             </p>
           </div>
           <button class="pumbi-btn" disabled={busy !== '' || connect?.availability?.requiresActivation} onclick={onboard}>
@@ -127,7 +134,7 @@
           <div class="grid gap-3 md:grid-cols-2">
             <label class="text-sm font-medium">{t("Amount")}<input class="mt-1 w-full border border-[var(--pumbi-line)] bg-white px-3 py-2" type="number" min="0.01" step="0.01" bind:value={form.amount} required /></label>
             <label class="text-sm font-medium">{t("Currency")}<input class="mt-1 w-full border border-[var(--pumbi-line)] bg-white px-3 py-2 uppercase" maxlength="3" bind:value={form.currency} required /></label>
-            <label class="text-sm font-medium md:col-span-2">{t("Source reference")}<input class="mt-1 w-full border border-[var(--pumbi-line)] bg-white px-3 py-2" maxlength="200" placeholder="Internal settlement, auction, or invoice reference" bind:value={form.sourceReference} required /></label>
+            <label class="text-sm font-medium md:col-span-2">{t("Source reference")}<input class="mt-1 w-full border border-[var(--pumbi-line)] bg-white px-3 py-2" maxlength="200" placeholder={ui("Internal settlement, auction, or invoice reference")} bind:value={form.sourceReference} required /></label>
             <label class="text-sm font-medium md:col-span-2">{t("Reason")}<textarea class="mt-1 w-full border border-[var(--pumbi-line)] bg-white px-3 py-2" rows="3" maxlength="1000" bind:value={form.reason} required></textarea></label>
           </div>
           <button class="pumbi-btn mt-4" disabled={busy !== ''}>{t("Submit for approval")}</button>
@@ -139,7 +146,7 @@
             {#each releases as item}
               <article class="flex flex-wrap items-start justify-between gap-3 border border-[var(--pumbi-line)] p-3">
                 <div><strong>{money(item)}</strong><p class="text-sm text-[var(--pumbi-ink-soft)]">{item.reason}</p><p class="text-xs text-[var(--pumbi-muted)]">{item.sourceReference}</p></div>
-                <div class="text-right"><span class="bg-[var(--pumbi-cream-deep)] px-2 py-1 text-[10px] font-bold uppercase tracking-wide">{item.status}</span><p class="mt-1 text-xs text-[var(--pumbi-muted)]">{new Date(item.requestedAt).toLocaleString()}</p></div>
+                <div class="text-end"><span class="bg-[var(--pumbi-cream-deep)] px-2 py-1 text-[10px] font-bold uppercase tracking-wide">{uiStatus(item.status)}</span><p class="mt-1 text-xs text-[var(--pumbi-muted)]">{new Date(item.requestedAt).toLocaleString(uiLocale())}</p></div>
               </article>
             {/each}
             {#if releases.length === 0}<p class="py-5 text-center text-sm text-[var(--pumbi-muted)]">{t("No payout releases requested.")}</p>{/if}

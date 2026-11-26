@@ -1,4 +1,8 @@
 <script>
+  import { page as localePage } from '$app/stores';
+  import { translate as translateUi } from '$lib/i18n.js';
+  const ui = (text, values) => translateUi($localePage.data.locale || 'en', text, values);
+
   import CollapsibleSection from './CollapsibleSection.svelte';
   
   let {
@@ -12,7 +16,7 @@
 
 {#if selectedBannerImages.length > 0}
   <CollapsibleSection
-    title="Image Settings"
+    title={ui("Image Settings")}
     bind:isCollapsed
     bgColor="bg-blue-50"
     borderColor="border-blue-200"
@@ -53,7 +57,7 @@
         >
           <!-- Header: Drag Handle, Thumbnail, Position, Actions -->
           <div class="flex items-center gap-3 p-3 bg-gray-50 border-b border-gray-200">
-            <div class="cursor-move text-gray-400 hover:text-gray-600" title="Drag to reorder">
+            <div class="cursor-move text-gray-400 hover:text-gray-600" title={ui("Drag to reorder")}>
               <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 8h16M4 16h16"></path>
               </svg>
@@ -80,9 +84,9 @@
                 updatePrimaryImage();
               }}
               class="px-2 py-1 text-xs rounded transition-colors {image.isFeatured ? 'bg-yellow-500 text-white hover:bg-yellow-600' : 'bg-gray-200 text-gray-700 hover:bg-gray-300'}"
-              title={image.isFeatured ? 'Featured Image' : 'Set as Featured'}
+              title={image.isFeatured ? ui("Featured Image") : ui("Set as Featured")}
             >
-              {image.isFeatured ? '⭐ Featured' : 'Set Featured'}
+              {image.isFeatured ? ui("⭐ Featured") : ui("Set Featured")}
             </button>
             
             <button
@@ -92,8 +96,8 @@
                 applyPresetCollagePositions();
                 updatePrimaryImage();
               }}
-              class="ml-auto px-2 py-1 text-xs bg-red-500 text-white rounded hover:bg-red-600"
-              title="Remove image"
+              class="ms-auto px-2 py-1 text-xs bg-red-500 text-white rounded hover:bg-red-600"
+              title={ui("Remove image")}
             >
               ✕
             </button>
@@ -105,7 +109,7 @@
             <div class="grid grid-cols-2 gap-3">
               <div>
                 <label for="zoom-{index}" class="block text-xs text-gray-600 mb-1">
-                  Zoom: {Math.round((image.zoom ?? bannerSettings.imageSize ?? 1.0) * 100)}%
+                  {ui("Zoom:")} {Math.round((image.zoom ?? bannerSettings.imageSize ?? 1.0) * 100)}%
                 </label>
                 <input
                   id="zoom-{index}"
@@ -127,7 +131,7 @@
               
               <div>
                 <label for="opacity-{index}" class="block text-xs text-gray-600 mb-1">
-                  Opacity: {Math.round((image.opacity ?? bannerSettings.imageOpacity ?? 1.0) * 100)}%
+                  {ui("Opacity:")} {Math.round((image.opacity ?? bannerSettings.imageOpacity ?? 1.0) * 100)}%
                 </label>
                 <input
                   id="opacity-{index}"
@@ -152,7 +156,7 @@
             {#if bannerSettings.imageLayout !== 'collage'}
               <div>
                 <label for="rotation-{index}" class="block text-xs text-gray-600 mb-1">
-                  Rotation: {image.rotation ?? 0}°
+                  {ui("Rotation:")} {image.rotation ?? 0}°
                 </label>
                 <input
                   id="rotation-{index}"
@@ -187,7 +191,7 @@
                   }}
                   class="w-4 h-4 text-purple-600 border-gray-300 rounded focus:ring-purple-500"
                 />
-                <span class="text-xs text-gray-700">Flip Horizontal</span>
+                <span class="text-xs text-gray-700">{ui("Flip Horizontal")}</span>
               </label>
               
               <label class="flex items-center gap-2 cursor-pointer">
@@ -203,7 +207,7 @@
                   }}
                   class="w-4 h-4 text-purple-600 border-gray-300 rounded focus:ring-purple-500"
                 />
-                <span class="text-xs text-gray-700">Flip Vertical</span>
+                <span class="text-xs text-gray-700">{ui("Flip Vertical")}</span>
               </label>
             </div>
             
@@ -211,8 +215,8 @@
             {#if bannerSettings.imageLayout === 'collage'}
               <div>
                 <label for="zindex-{index}" class="block text-xs text-gray-600 mb-1">
-                  Stack Order (Z-Index): {image.zIndex ?? index}
-                  <span class="text-gray-400 ml-1">(Higher = on top)</span>
+                  {ui("Stack Order (Z-Index):")} {image.zIndex ?? index}
+                  <span class="text-gray-400 ms-1">{ui("(Higher = on top)")}</span>
                 </label>
                 <input
                   id="zindex-{index}"
@@ -236,7 +240,7 @@
             <!-- Layout Position Controls (for collage layouts) -->
             {#if bannerSettings.imageLayout === 'collage'}
               <div class="pt-2 border-t border-gray-200">
-                <div class="text-xs font-medium text-gray-700 mb-2">Layout Position</div>
+                <div class="text-xs font-medium text-gray-700 mb-2">{ui("Layout Position")}</div>
                 <div class="grid grid-cols-3 gap-2">
                   <div>
                     <label for="pos-x-{index}" class="block text-[10px] text-gray-600 mb-0.5">X: {pos.x}%</label>
@@ -277,7 +281,7 @@
                     />
                   </div>
                   <div>
-                    <label for="pos-rot-{index}" class="block text-[10px] text-gray-600 mb-0.5">Rotation: {pos.rotation}°</label>
+                    <label for="pos-rot-{index}" class="block text-[10px] text-gray-600 mb-0.5">{ui("Rotation:")} {pos.rotation}°</label>
                     <input
                       id="pos-rot-{index}"
                       type="range"

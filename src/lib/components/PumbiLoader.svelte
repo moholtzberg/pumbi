@@ -1,4 +1,8 @@
 <script>
+  import { page as localePage } from '$app/stores';
+  import { translate as translateUi } from '$lib/i18n.js';
+  const ui = (text, values) => translateUi($localePage.data.locale || 'en', text, values);
+
   /**
    * Branded Pumbi loading mark — terracotta "P" gently zooms in/out.
    * @type {{ size?: 'sm' | 'md' | 'lg'; label?: string; class?: string }}
@@ -14,13 +18,13 @@
   const fontPx = Math.round(px * 0.68);
 </script>
 
-<div class="pumbi-loader {className}" role="status" aria-live="polite" aria-label={label}>
+<div class="pumbi-loader {className}" role="status" aria-live="polite" aria-label={ui(label)}>
   <span
     class="pumbi-loader__mark"
     style="width: {px}px; height: {px}px; font-size: {fontPx}px;"
     aria-hidden="true"
   >P</span>
-  <span class="sr-only">{label}</span>
+  <span class="sr-only">{ui(label)}</span>
 </div>
 
 <style>

@@ -1,4 +1,8 @@
 <script>
+  import { page as localePage } from '$app/stores';
+  import { translate as translateUi } from '$lib/i18n.js';
+  const ui = (text, values) => translateUi($localePage.data.locale || 'en', text, values);
+
   import { createEventDispatcher } from 'svelte';
 
   export let isOpen = false;
@@ -27,7 +31,7 @@
       <button
         class="absolute top-3 right-3 text-gray-600 hover:text-gray-800 focus:outline-none"
         on:click={closeModal}
-        aria-label="Close modal"
+        aria-label={ui("Close modal")}
       >
         ✖️
       </button>
@@ -38,17 +42,17 @@
       <!-- Modal Content (Form) -->
       <form on:submit|preventDefault>
         <div class="mb-4">
-          <label for="modal-name" class="block text-slate-800 mb-2">Name*</label>
+          <label for="modal-name" class="block text-slate-800 mb-2">{ui("Name*")}</label>
           <input
             type="text"
             id="modal-name"
-            placeholder="Your Name"
+            placeholder={ui("Your Name")}
             class="w-full p-3 rounded bg-gray-100 focus:outline-none"
             required
           />
         </div>
         <div class="mb-4">
-          <label for="modal-email" class="block text-slate-800 mb-2">Email*</label>
+          <label for="modal-email" class="block text-slate-800 mb-2">{ui("Email*")}</label>
           <input
             type="email"
             id="modal-email"
@@ -58,7 +62,7 @@
           />
         </div>
         <div class="mb-4">
-          <label for="modal-phone" class="block text-slate-800 mb-2">Phone</label>
+          <label for="modal-phone" class="block text-slate-800 mb-2">{ui("Phone")}</label>
           <input
             type="tel"
             id="modal-phone"
@@ -67,11 +71,11 @@
           />
         </div>
         <div class="mb-4">
-          <label for="modal-message" class="block text-slate-800 mb-2">Message</label>
+          <label for="modal-message" class="block text-slate-800 mb-2">{ui("Message")}</label>
           <textarea
             id="modal-message"
             rows="3"
-            placeholder="Tell us about your needs..."
+            placeholder={ui("Tell us about your needs...")}
             class="w-full p-3 rounded bg-gray-100 focus:outline-none"
           ></textarea>
         </div>
@@ -80,7 +84,7 @@
           class="w-full bg-slate-800 text-white px-6 py-3 rounded hover:bg-slate-700 transition"
           on:click={closeModal}
         >
-          Submit Request
+          {ui("Submit Request")}
         </button>
       </form>
     </div>

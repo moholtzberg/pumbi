@@ -1,4 +1,10 @@
 <script>
+  import { page as localePage } from '$app/stores';
+  import { translate as translateUi } from '$lib/i18n.js';
+  import { localeTag as uiLocaleTag } from '$lib/utils/region.js';
+  const uiLocale = () => uiLocaleTag($localePage.data.locale);
+  const ui = (text, values) => translateUi($localePage.data.locale || 'en', text, values);
+
   import { onMount } from 'svelte';
   import { page } from '$app/stores';
   import { goto } from '$app/navigation';
@@ -817,7 +823,7 @@
       generatedBannerUrl = canvas.toDataURL('image/png');
     } catch (error) {
       console.error('Error generating banner:', error);
-      alert(`Error generating banner: ${error.message || 'Please check image files and try again.'}`);
+      alert(ui("Error generating banner: {value0}", { value0: error.message || 'Please check image files and try again.' }));
     } finally {
       generating = false;
     }
@@ -931,7 +937,7 @@
   }
   
   function formatCurrency(amount) {
-    return new Intl.NumberFormat('en-US', {
+    return new Intl.NumberFormat(uiLocale(), {
       style: 'currency',
       currency: (auction?.currency || 'usd').toUpperCase()
     }).format(amount);
@@ -940,27 +946,27 @@
 
 {#if loading}
   <div class="py-20 text-center">
-    <PumbiLoader size="lg" label="Loading" />
-    <p class="mt-4 text-[var(--pumbi-muted)]">Loading…</p>
+    <PumbiLoader size="lg" label={ui("Loading")} />
+    <p class="mt-4 text-[var(--pumbi-muted)]">{ui("Loading…")}</p>
   </div>
 {:else if auction}
   <div>
       <header class="mb-6">
-        <p class="pumbi-eyebrow">Promotional</p>
-        <h2 class="mt-1 font-[family-name:var(--pumbi-serif)] text-2xl font-semibold">Banner studio</h2>
-        <p class="mt-1 text-sm text-[var(--pumbi-ink-soft)]">Create promotional banners for lots and auctions.</p>
+        <p class="pumbi-eyebrow">{ui("Promotional")}</p>
+        <h2 class="mt-1 font-[family-name:var(--pumbi-serif)] text-2xl font-semibold">{ui("Banner studio")}</h2>
+        <p class="mt-1 text-sm text-[var(--pumbi-ink-soft)]">{ui("Create promotional banners for lots and auctions.")}</p>
       </header>
 
       <div class="grid grid-cols-1 gap-8 lg:grid-cols-3">
         <!-- Settings Panel -->
         <div class="lg:col-span-1">
           <div class="pumbi-panel sticky top-4 p-6">
-            <h3 class="font-[family-name:var(--pumbi-serif)] text-xl font-semibold mb-6">Banner Settings</h3>
+            <h3 class="font-[family-name:var(--pumbi-serif)] text-xl font-semibold mb-6">{ui("Banner Settings")}</h3>
             
             <!-- Lot Selection -->
             <div class="mb-6">
               <label class="block text-sm font-medium text-[var(--pumbi-ink-soft)] mb-2">
-                Select Lot (Optional)
+                {ui("Select Lot (Optional)")}
               </label>
               <select
                 bind:value={selectedLotId}
@@ -985,16 +991,16 @@
                 }}
                 class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white"
               >
-                <option value="">-- Select a lot --</option>
+                <option value="">{ui("-- Select a lot --")}</option>
                 {#each lots as lot}
                   <option value={lot.id}>
-                    Lot #{lot.lotNumber}: {lot.title}
+                    {ui("Lot #")}{lot.lotNumber}: {lot.title}
                   </option>
                 {/each}
               </select>
               {#if selectedLot}
                 <div class="mt-2 p-3 bg-blue-50 border border-blue-200 rounded-lg">
-                  <p class="text-sm font-semibold text-blue-900">Selected: Lot #{selectedLot.lotNumber}</p>
+                  <p class="text-sm font-semibold text-blue-900">{ui("Selected: Lot #")}{selectedLot.lotNumber}</p>
                   <p class="text-xs text-blue-700 mt-1">{selectedLot.title}</p>
                 </div>
               {/if}
@@ -1003,7 +1009,7 @@
             <!-- Font Selection -->
             <div class="mb-4">
               <label for="fontFamily" class="block text-sm font-medium text-gray-700 mb-2">
-                English Font
+                {ui("English Font")}
               </label>
               <select
                 id="fontFamily"
@@ -1018,7 +1024,7 @@
 
             <div class="mb-4">
               <label for="hebrewFontFamily" class="block text-sm font-medium text-gray-700 mb-2">
-                Hebrew Font
+                {ui("Hebrew Font")}
               </label>
               <select
                 id="hebrewFontFamily"
@@ -1034,7 +1040,7 @@
             <!-- Title -->
             <div class="mb-4">
               <label for="title" class="block text-sm font-medium text-gray-700 mb-2">
-                Title (English) *
+                {ui("Title (English) *")}
               </label>
               <input
                 id="title"
@@ -1042,112 +1048,112 @@
                 bind:value={bannerSettings.title}
                 required
                 class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white"
-                placeholder="Auction or Lot Title"
+                placeholder={ui("Auction or Lot Title")}
               />
               {#if bannerSettings.title}
-                <p class="mt-1 text-xs text-gray-500">Preview: {bannerSettings.title}</p>
+                <p class="mt-1 text-xs text-gray-500">{ui("Preview:")} {bannerSettings.title}</p>
               {/if}
             </div>
 
             <!-- Title Hebrew -->
             <div class="mb-4">
               <label for="titleHebrew" class="block text-sm font-medium text-gray-700 mb-2">
-                Title (Hebrew)
+                {ui("Title (Hebrew)")}
               </label>
               <input
                 id="titleHebrew"
                 type="text"
                 bind:value={bannerSettings.titleHebrew}
                 dir="rtl"
-                class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white text-right"
+                class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white text-end"
                 placeholder="כותרת בעברית"
               />
               {#if bannerSettings.titleHebrew}
-                <p class="mt-1 text-xs text-gray-500">Hebrew: {bannerSettings.titleHebrew}</p>
+                <p class="mt-1 text-xs text-gray-500">{ui("Hebrew:")} {bannerSettings.titleHebrew}</p>
               {/if}
             </div>
 
             <!-- Subtitle -->
             <div class="mb-4">
               <label for="subtitle" class="block text-sm font-medium text-gray-700 mb-2">
-                Subtitle / Description (English)
+                {ui("Subtitle / Description (English)")}
               </label>
               <textarea
                 id="subtitle"
                 bind:value={bannerSettings.subtitle}
                 rows="3"
                 class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white"
-                placeholder="Brief description..."
+                placeholder={ui("Brief description...")}
               ></textarea>
               {#if bannerSettings.subtitle}
-                <p class="mt-1 text-xs text-gray-500">Length: {bannerSettings.subtitle.length} characters</p>
+                <p class="mt-1 text-xs text-gray-500">{ui("Length:")} {bannerSettings.subtitle.length} {ui("characters")}</p>
               {/if}
             </div>
 
             <!-- Subtitle Hebrew -->
             <div class="mb-4">
               <label for="subtitleHebrew" class="block text-sm font-medium text-gray-700 mb-2">
-                Subtitle / Description (Hebrew)
+                {ui("Subtitle / Description (Hebrew)")}
               </label>
               <textarea
                 id="subtitleHebrew"
                 bind:value={bannerSettings.subtitleHebrew}
                 rows="3"
                 dir="rtl"
-                class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white text-right"
+                class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white text-end"
                 placeholder="תיאור קצר בעברית..."
               ></textarea>
               {#if bannerSettings.subtitleHebrew}
-                <p class="mt-1 text-xs text-gray-500">Hebrew length: {bannerSettings.subtitleHebrew.length} characters</p>
+                <p class="mt-1 text-xs text-gray-500">{ui("Hebrew length:")} {bannerSettings.subtitleHebrew.length} {ui("characters")}</p>
               {/if}
             </div>
 
             <!-- Category -->
             <div class="mb-4">
               <label for="category" class="block text-sm font-medium text-gray-700 mb-2">
-                Category (English)
+                {ui("Category (English)")}
               </label>
               <input
                 id="category"
                 type="text"
                 bind:value={bannerSettings.category}
                 class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white"
-                placeholder="e.g., Menorahs, Torah Scrolls"
+                placeholder={ui("e.g., Menorahs, Torah Scrolls")}
               />
               {#if bannerSettings.category}
-                <p class="mt-1 text-xs text-gray-500">Category: {bannerSettings.category}</p>
+                <p class="mt-1 text-xs text-gray-500">{ui("Category:")} {bannerSettings.category}</p>
               {/if}
             </div>
 
             <!-- Category Hebrew -->
             <div class="mb-4">
               <label for="categoryHebrew" class="block text-sm font-medium text-gray-700 mb-2">
-                Category (Hebrew)
+                {ui("Category (Hebrew)")}
               </label>
               <input
                 id="categoryHebrew"
                 type="text"
                 bind:value={bannerSettings.categoryHebrew}
                 dir="rtl"
-                class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white text-right"
+                class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white text-end"
                 placeholder="למשל: מנורות, ספרי תורה"
               />
               {#if bannerSettings.categoryHebrew}
-                <p class="mt-1 text-xs text-gray-500">Hebrew category: {bannerSettings.categoryHebrew}</p>
+                <p class="mt-1 text-xs text-gray-500">{ui("Hebrew category:")} {bannerSettings.categoryHebrew}</p>
               {/if}
             </div>
 
             <!-- Year (English) -->
             <div class="mb-4">
               <label for="yearEnglish" class="block text-sm font-medium text-gray-700 mb-2">
-                Year (English)
+                {ui("Year (English)")}
               </label>
               <input
                 id="yearEnglish"
                 type="text"
                 bind:value={bannerSettings.yearEnglish}
                 class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white"
-                placeholder="e.g., 1890 or c. 1850"
+                placeholder={ui("e.g., 1890 or c. 1850")}
                 oninput={(e) => {
                   // Auto-convert to Hebrew year if possible
                   const yearMatch = e.target.value.match(/\b(18|19|20)\d{2}\b/);
@@ -1157,38 +1163,38 @@
                 }}
               />
               {#if bannerSettings.yearEnglish}
-                <p class="mt-1 text-xs text-gray-500">English year: {bannerSettings.yearEnglish}</p>
+                <p class="mt-1 text-xs text-gray-500">{ui("English year:")} {bannerSettings.yearEnglish}</p>
               {/if}
             </div>
 
             <!-- Year (Hebrew) -->
             <div class="mb-4">
               <label for="yearHebrew" class="block text-sm font-medium text-gray-700 mb-2">
-                Year (Hebrew)
+                {ui("Year (Hebrew)")}
               </label>
               <input
                 id="yearHebrew"
                 type="text"
                 bind:value={bannerSettings.yearHebrew}
                 dir="rtl"
-                class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white text-right"
+                class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white text-end"
                 placeholder="תר״נ"
               />
               {#if bannerSettings.yearHebrew}
-                <p class="mt-1 text-xs text-gray-500">Hebrew year: {bannerSettings.yearHebrew}</p>
+                <p class="mt-1 text-xs text-gray-500">{ui("Hebrew year:")} {bannerSettings.yearHebrew}</p>
               {/if}
             </div>
 
             <!-- Primary Image -->
             <div class="mb-4">
               <label for="primaryImage" class="block text-sm font-medium text-gray-700 mb-2">
-                Primary Image(s) *
+                {ui("Primary Image(s) *")}
               </label>
               
               <!-- Multiple File Upload Option (Collage) -->
               <div class="mb-2">
                 <label for="primaryImageFiles" class="block text-xs text-gray-600 mb-1">
-                  Upload Multiple Images (Collage)
+                  {ui("Upload Multiple Images (Collage)")}
                 </label>
                 <input
                   id="primaryImageFiles"
@@ -1205,13 +1211,13 @@
                   }}
                   class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white text-sm"
                 />
-                <p class="text-xs text-gray-500 mt-1">Select multiple images for a staggered collage layout</p>
+                <p class="text-xs text-gray-500 mt-1">{ui("Select multiple images for a staggered collage layout")}</p>
               </div>
               
               <!-- Single File Upload Option -->
               <div class="mb-2">
                 <label for="primaryImageFile" class="block text-xs text-gray-600 mb-1">
-                  Upload Single Image File
+                  {ui("Upload Single Image File")}
                 </label>
                 <input
                   id="primaryImageFile"
@@ -1232,14 +1238,14 @@
               <!-- OR divider -->
               <div class="flex items-center my-2">
                 <div class="flex-1 border-t border-gray-300"></div>
-                <span class="px-2 text-xs text-gray-500">OR</span>
+                <span class="px-2 text-xs text-gray-500">{ui("OR")}</span>
                 <div class="flex-1 border-t border-gray-300"></div>
               </div>
               
               <!-- URL Input Option -->
               <div>
                 <label for="primaryImageUrl" class="block text-xs text-gray-600 mb-1">
-                  Image URL
+                  {ui("Image URL")}
                 </label>
                 <input
                   id="primaryImageUrl"
@@ -1259,13 +1265,13 @@
               <!-- Preview Multiple Images -->
               {#if bannerSettings.primaryImageFiles && bannerSettings.primaryImageFiles.length > 0}
                 <div class="mt-2">
-                  <p class="text-xs text-gray-600 mb-2">Collage Preview ({bannerSettings.primaryImageFiles.length} image(s)):</p>
+                  <p class="text-xs text-gray-600 mb-2">{ui("Collage Preview (")}{bannerSettings.primaryImageFiles.length} {ui("image(s)):")}</p>
                   <div class="grid grid-cols-2 gap-2">
                     {#each bannerSettings.primaryImageFiles as file}
                       <div class="relative">
                         <img
                           src={URL.createObjectURL(file)}
-                          alt="Collage image preview"
+                          alt={ui("Collage image preview")}
                           class="w-full h-24 object-cover rounded-lg border border-gray-200"
                           onerror={(e) => {
                             e.target.style.display = 'none';
@@ -1277,7 +1283,7 @@
                             bannerSettings.primaryImageFiles = bannerSettings.primaryImageFiles.filter(f => f !== file);
                           }}
                           class="absolute top-1 right-1 bg-red-500 text-white rounded-full w-5 h-5 flex items-center justify-center text-xs hover:bg-red-600"
-                          title="Remove image"
+                          title={ui("Remove image")}
                         >
                           ×
                         </button>
@@ -1290,20 +1296,20 @@
                 <div class="mt-2">
                   <img
                     src={URL.createObjectURL(bannerSettings.primaryImageFile)}
-                    alt="Primary image preview"
+                    alt={ui("Primary image preview")}
                     class="w-full h-32 object-cover rounded-lg border border-gray-200"
                     onerror={(e) => {
                       e.target.style.display = 'none';
                     }}
                   />
-                  <p class="text-xs text-gray-500 mt-1">File: {bannerSettings.primaryImageFile.name}</p>
+                  <p class="text-xs text-gray-500 mt-1">{ui("File:")} {bannerSettings.primaryImageFile.name}</p>
                 </div>
               <!-- Preview URL -->
               {:else if bannerSettings.primaryImageUrl}
                 <div class="mt-2">
                   <img
                     src={bannerSettings.primaryImageUrl}
-                    alt="Primary image preview"
+                    alt={ui("Primary image preview")}
                     class="w-full h-32 object-cover rounded-lg border border-gray-200"
                     onerror={(e) => {
                       e.target.style.display = 'none';
@@ -1314,7 +1320,7 @@
               
               <!-- Primary Image Styling Options -->
               <div class="mt-4 p-4 bg-gray-50 rounded-lg border border-gray-200">
-                <h4 class="text-sm font-semibold text-gray-700 mb-3">Image Styling Options</h4>
+                <h4 class="text-sm font-semibold text-gray-700 mb-3">{ui("Image Styling Options")}</h4>
                 
                 <!-- Rounded Corners Toggle -->
                 <div class="mb-3">
@@ -1322,9 +1328,9 @@
                     <input
                       type="checkbox"
                       bind:checked={bannerSettings.primaryImageRounded}
-                      class="mr-2 w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
+                      class="me-2 w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
                     />
-                    <span class="text-sm text-gray-700">Enable Rounded Corners</span>
+                    <span class="text-sm text-gray-700">{ui("Enable Rounded Corners")}</span>
                   </label>
                 </div>
                 
@@ -1332,7 +1338,7 @@
                 {#if bannerSettings.primaryImageRounded}
                   <div class="mb-3">
                     <label for="cornerRadius" class="block text-xs text-gray-600 mb-1">
-                      Corner Radius: {bannerSettings.primaryImageCornerRadius}px
+                      {ui("Corner Radius:")} {bannerSettings.primaryImageCornerRadius}px
                     </label>
                     <input
                       id="cornerRadius"
@@ -1352,9 +1358,9 @@
                     <input
                       type="checkbox"
                       bind:checked={bannerSettings.primaryImageBlend}
-                      class="mr-2 w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
+                      class="me-2 w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
                     />
-                    <span class="text-sm text-gray-700">Enable Edge Blending (Fade)</span>
+                    <span class="text-sm text-gray-700">{ui("Enable Edge Blending (Fade)")}</span>
                   </label>
                 </div>
                 
@@ -1362,7 +1368,7 @@
                 {#if bannerSettings.primaryImageBlend}
                   <div>
                     <label for="blendWidth" class="block text-xs text-gray-600 mb-1">
-                      Blend Width: {bannerSettings.primaryImageBlendWidth}px
+                      {ui("Blend Width:")} {bannerSettings.primaryImageBlendWidth}px
                     </label>
                     <input
                       id="blendWidth"
@@ -1373,19 +1379,19 @@
                       bind:value={bannerSettings.primaryImageBlendWidth}
                       class="w-full"
                     />
-                    <p class="text-xs text-gray-500 mt-1">Controls how far the fade extends from the left edge</p>
+                    <p class="text-xs text-gray-500 mt-1">{ui("Controls how far the fade extends from the left edge")}</p>
                   </div>
                 {/if}
                 
                 <!-- Collage Layout Options (only show if multiple images) -->
                 {#if bannerSettings.primaryImageFiles && bannerSettings.primaryImageFiles.length > 1}
                   <div class="mt-4 pt-4 border-t border-gray-300">
-                    <h5 class="text-sm font-semibold text-gray-700 mb-3">Collage Layout Options</h5>
+                    <h5 class="text-sm font-semibold text-gray-700 mb-3">{ui("Collage Layout Options")}</h5>
                     
                     <!-- Center Image Size -->
                     <div class="mb-3">
                       <label for="centerImageSize" class="block text-xs text-gray-600 mb-1">
-                        Center Image Size: {Math.round(bannerSettings.collageCenterImageSize * 100)}%
+                        {ui("Center Image Size:")} {Math.round(bannerSettings.collageCenterImageSize * 100)}%
                       </label>
                       <input
                         id="centerImageSize"
@@ -1396,13 +1402,13 @@
                         bind:value={bannerSettings.collageCenterImageSize}
                         class="w-full"
                       />
-                      <p class="text-xs text-gray-500 mt-1">Size of the first (center) image</p>
+                      <p class="text-xs text-gray-500 mt-1">{ui("Size of the first (center) image")}</p>
                     </div>
                     
                     <!-- Other Images Size -->
                     <div class="mb-3">
                       <label for="otherImageSize" class="block text-xs text-gray-600 mb-1">
-                        Other Images Size: {Math.round(bannerSettings.collageOtherImageSize * 100)}%
+                        {ui("Other Images Size:")} {Math.round(bannerSettings.collageOtherImageSize * 100)}%
                       </label>
                       <input
                         id="otherImageSize"
@@ -1413,13 +1419,13 @@
                         bind:value={bannerSettings.collageOtherImageSize}
                         class="w-full"
                       />
-                      <p class="text-xs text-gray-500 mt-1">Size of surrounding images</p>
+                      <p class="text-xs text-gray-500 mt-1">{ui("Size of surrounding images")}</p>
                     </div>
                     
                     <!-- Spacing -->
                     <div class="mb-3">
                       <label for="collageSpacing" class="block text-xs text-gray-600 mb-1">
-                        Image Spacing: {bannerSettings.collageSpacing}px
+                        {ui("Image Spacing:")} {bannerSettings.collageSpacing}px
                       </label>
                       <input
                         id="collageSpacing"
@@ -1430,13 +1436,13 @@
                         bind:value={bannerSettings.collageSpacing}
                         class="w-full"
                       />
-                      <p class="text-xs text-gray-500 mt-1">Space between images</p>
+                      <p class="text-xs text-gray-500 mt-1">{ui("Space between images")}</p>
                     </div>
                     
                     <!-- Stagger Amount -->
                     <div>
                       <label for="collageStagger" class="block text-xs text-gray-600 mb-1">
-                        Stagger Amount: {Math.round(bannerSettings.collageStaggerAmount * 100)}%
+                        {ui("Stagger Amount:")} {Math.round(bannerSettings.collageStaggerAmount * 100)}%
                       </label>
                       <input
                         id="collageStagger"
@@ -1447,7 +1453,7 @@
                         bind:value={bannerSettings.collageStaggerAmount}
                         class="w-full"
                       />
-                      <p class="text-xs text-gray-500 mt-1">Amount of offset/stagger for surrounding images</p>
+                      <p class="text-xs text-gray-500 mt-1">{ui("Amount of offset/stagger for surrounding images")}</p>
                     </div>
                   </div>
                 {/if}
@@ -1457,13 +1463,13 @@
             <!-- Background Image -->
             <div class="mb-4">
               <label for="backgroundImage" class="block text-sm font-medium text-gray-700 mb-2">
-                Background Image (Optional)
+                {ui("Background Image (Optional)")}
               </label>
               
               <!-- File Upload Option -->
               <div class="mb-2">
                 <label for="backgroundImageFile" class="block text-xs text-gray-600 mb-1">
-                  Upload Image File
+                  {ui("Upload Image File")}
                 </label>
                 <input
                   id="backgroundImageFile"
@@ -1483,14 +1489,14 @@
               <!-- OR divider -->
               <div class="flex items-center my-2">
                 <div class="flex-1 border-t border-gray-300"></div>
-                <span class="px-2 text-xs text-gray-500">OR</span>
+                <span class="px-2 text-xs text-gray-500">{ui("OR")}</span>
                 <div class="flex-1 border-t border-gray-300"></div>
               </div>
               
               <!-- URL Input Option -->
               <div>
                 <label for="backgroundImageUrl" class="block text-xs text-gray-600 mb-1">
-                  Image URL
+                  {ui("Image URL")}
                 </label>
                 <input
                   id="backgroundImageUrl"
@@ -1506,32 +1512,32 @@
                 />
               </div>
               
-              <p class="mt-1 text-xs text-gray-500">If not provided, antique paper background will be used</p>
+              <p class="mt-1 text-xs text-gray-500">{ui("If not provided, antique paper background will be used")}</p>
               
               <!-- Preview -->
               {#if bannerSettings.backgroundImageFile}
                 <div class="mt-2">
                   <img
                     src={URL.createObjectURL(bannerSettings.backgroundImageFile)}
-                    alt="Background image preview"
+                    alt={ui("Background image preview")}
                     class="w-full h-32 object-cover rounded-lg border border-gray-200 opacity-30"
                     onerror={(e) => {
                       e.target.style.display = 'none';
                     }}
                   />
-                  <p class="text-xs text-gray-500 mt-1">File: {bannerSettings.backgroundImageFile.name} (shown at 30% opacity for preview)</p>
+                  <p class="text-xs text-gray-500 mt-1">{ui("File:")} {bannerSettings.backgroundImageFile.name} {ui("(shown at 30% opacity for preview)")}</p>
                 </div>
               {:else if bannerSettings.backgroundImageUrl}
                 <div class="mt-2">
                   <img
                     src={bannerSettings.backgroundImageUrl}
-                    alt="Background image preview"
+                    alt={ui("Background image preview")}
                     class="w-full h-32 object-cover rounded-lg border border-gray-200 opacity-30"
                     onerror={(e) => {
                       e.target.style.display = 'none';
                     }}
                   />
-                  <p class="text-xs text-gray-500 mt-1">(shown at 30% opacity for preview)</p>
+                  <p class="text-xs text-gray-500 mt-1">{ui("(shown at 30% opacity for preview)")}</p>
                 </div>
               {/if}
             </div>
@@ -1539,7 +1545,7 @@
             <!-- Base Background Color -->
             <div class="mb-4">
               <label for="baseBackgroundColor" class="block text-sm font-medium text-gray-700 mb-2">
-                Base Background Color (Antique Paper)
+                {ui("Base Background Color (Antique Paper)")}
               </label>
               <input
                 id="baseBackgroundColor"
@@ -1547,13 +1553,13 @@
                 bind:value={bannerSettings.baseBackgroundColor}
                 class="w-full h-10 border border-gray-300 rounded-lg cursor-pointer"
               />
-              <p class="text-xs text-gray-500 mt-1">Default: Antique paper (#F5F1E8)</p>
+              <p class="text-xs text-gray-500 mt-1">{ui("Default: Antique paper (#F5F1E8)")}</p>
             </div>
 
             <!-- Text Color -->
             <div class="mb-4">
               <label for="textColor" class="block text-sm font-medium text-gray-700 mb-2">
-                Text Color
+                {ui("Text Color")}
               </label>
               <input
                 id="textColor"
@@ -1561,19 +1567,19 @@
                 bind:value={bannerSettings.textColor}
                 class="w-full h-10 border border-gray-300 rounded-lg cursor-pointer"
               />
-              <p class="text-xs text-gray-500 mt-1">Default: Dark brown (#2C1810)</p>
+              <p class="text-xs text-gray-500 mt-1">{ui("Default: Dark brown (#2C1810)")}</p>
             </div>
 
             <!-- Category Ribbon -->
             <div class="mb-4">
               <label class="block text-sm font-medium text-gray-700 mb-2">
-                Category Ribbon (Ginzey America Colors)
+                {ui("Category Ribbon (Ginzey America Colors)")}
               </label>
               
               <!-- Ribbon Position -->
               <div class="mb-3">
                 <label for="ribbonPosition" class="block text-xs text-gray-600 mb-1">
-                  Ribbon Position
+                  {ui("Ribbon Position")}
                 </label>
                 <div class="flex gap-2">
                   <button
@@ -1581,14 +1587,14 @@
                     onclick={() => bannerSettings.categoryRibbonPosition = 'top-left'}
                     class="flex-1 px-3 py-2 rounded-lg border-2 transition-colors {bannerSettings.categoryRibbonPosition === 'top-left' ? 'border-blue-600 bg-blue-50' : 'border-gray-300 bg-white'}"
                   >
-                    <span class="text-xs">Top Left</span>
+                    <span class="text-xs">{ui("Top Left")}</span>
                   </button>
                   <button
                     type="button"
                     onclick={() => bannerSettings.categoryRibbonPosition = 'top-right'}
                     class="flex-1 px-3 py-2 rounded-lg border-2 transition-colors {bannerSettings.categoryRibbonPosition === 'top-right' ? 'border-blue-600 bg-blue-50' : 'border-gray-300 bg-white'}"
                   >
-                    <span class="text-xs">Top Right</span>
+                    <span class="text-xs">{ui("Top Right")}</span>
                   </button>
                 </div>
               </div>
@@ -1596,7 +1602,7 @@
               <!-- Ribbon Color -->
               <div class="mb-2">
                 <label class="block text-xs text-gray-600 mb-1">
-                  Ribbon Color
+                  {ui("Ribbon Color")}
                 </label>
                 <div class="flex gap-2 mb-2">
                   <button
@@ -1605,7 +1611,7 @@
                     class="flex-1 px-3 py-2 rounded-lg border-2 transition-colors {bannerSettings.categoryColor === ginzeyColors.red ? 'border-red-600 bg-red-50' : 'border-gray-300 bg-white'}"
                   >
                     <div class="w-full h-6 rounded" style="background-color: {ginzeyColors.red};"></div>
-                    <span class="text-xs mt-1">Red</span>
+                    <span class="text-xs mt-1">{ui("Red")}</span>
                   </button>
                   <button
                     type="button"
@@ -1613,7 +1619,7 @@
                     class="flex-1 px-3 py-2 rounded-lg border-2 transition-colors {bannerSettings.categoryColor === ginzeyColors.blue ? 'border-blue-600 bg-blue-50' : 'border-gray-300 bg-white'}"
                   >
                     <div class="w-full h-6 rounded" style="background-color: {ginzeyColors.blue};"></div>
-                    <span class="text-xs mt-1">Blue</span>
+                    <span class="text-xs mt-1">{ui("Blue")}</span>
                   </button>
                 </div>
                 <input
@@ -1628,7 +1634,7 @@
             <!-- Banner Dimensions -->
             <div class="mb-4">
               <label for="dimensions" class="block text-sm font-medium text-gray-700 mb-2">
-                Banner Size
+                {ui("Banner Size")}
               </label>
               <select
                 id="dimensions"
@@ -1653,7 +1659,7 @@
               <div class="mb-4 grid grid-cols-2 gap-4">
                 <div>
                   <label for="customWidth" class="block text-sm font-medium text-gray-700 mb-2">
-                    Width
+                    {ui("Width")}
                   </label>
                   <input
                     id="customWidth"
@@ -1666,7 +1672,7 @@
                 </div>
                 <div>
                   <label for="customHeight" class="block text-sm font-medium text-gray-700 mb-2">
-                    Height
+                    {ui("Height")}
                   </label>
                   <input
                     id="customHeight"
@@ -1683,7 +1689,7 @@
             <!-- Background Image Opacity (Subtlety) -->
             <div class="mb-4">
               <label for="backgroundImageOpacity" class="block text-sm font-medium text-gray-700 mb-2">
-                Background Image Opacity (Subtlety)
+                {ui("Background Image Opacity (Subtlety)")}
               </label>
               <input
                 id="backgroundImageOpacity"
@@ -1698,17 +1704,17 @@
                 }}
                 class="w-full"
               />
-              <p class="text-xs text-gray-500 mt-1">Lower = more subtle background image (default: 0.15)</p>
+              <p class="text-xs text-gray-500 mt-1">{ui("Lower = more subtle background image (default: 0.15)")}</p>
             </div>
 
             <!-- Text Positioning Section -->
             <div class="mb-6 border-t pt-4">
-              <h3 class="text-lg font-semibold text-gray-900 mb-4">Text Positioning & Spacing</h3>
+              <h3 class="text-lg font-semibold text-gray-900 mb-4">{ui("Text Positioning & Spacing")}</h3>
               
               <!-- Text Area Width -->
               <div class="mb-4">
                 <label for="textAreaWidth" class="block text-sm font-medium text-gray-700 mb-2">
-                  Text Area Width (%)
+                  {ui("Text Area Width (%)")}
                 </label>
                 <input
                   id="textAreaWidth"
@@ -1718,14 +1724,14 @@
                   max="70"
                   class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                 />
-                <p class="text-xs text-gray-500 mt-1">Width of text area (default: 50% - image takes remaining space)</p>
+                <p class="text-xs text-gray-500 mt-1">{ui("Width of text area (default: 50% - image takes remaining space)")}</p>
               </div>
 
               <!-- Margins -->
               <div class="grid grid-cols-2 gap-4 mb-4">
                 <div>
                   <label for="textMarginLeft" class="block text-sm font-medium text-gray-700 mb-2">
-                    Left Margin (px)
+                    {ui("Left Margin (px)")}
                   </label>
                   <input
                     id="textMarginLeft"
@@ -1738,7 +1744,7 @@
                 </div>
                 <div>
                   <label for="textMarginTop" class="block text-sm font-medium text-gray-700 mb-2">
-                    Top Margin (px)
+                    {ui("Top Margin (px)")}
                   </label>
                   <input
                     id="textMarginTop"
@@ -1751,7 +1757,7 @@
                 </div>
                 <div>
                   <label for="textMarginRight" class="block text-sm font-medium text-gray-700 mb-2">
-                    Right Margin (px)
+                    {ui("Right Margin (px)")}
                   </label>
                   <input
                     id="textMarginRight"
@@ -1764,7 +1770,7 @@
                 </div>
                 <div>
                   <label for="textMarginBottom" class="block text-sm font-medium text-gray-700 mb-2">
-                    Bottom Margin (px)
+                    {ui("Bottom Margin (px)")}
                   </label>
                   <input
                     id="textMarginBottom"
@@ -1780,7 +1786,7 @@
               <!-- Text Padding (spacing between elements) -->
               <div class="mb-4">
                 <label for="textPadding" class="block text-sm font-medium text-gray-700 mb-2">
-                  Text Padding/Spacing (px)
+                  {ui("Text Padding/Spacing (px)")}
                 </label>
                 <input
                   id="textPadding"
@@ -1790,7 +1796,7 @@
                   max="100"
                   class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                 />
-                <p class="text-xs text-gray-500 mt-1">Spacing between text elements (title, subtitle, etc.)</p>
+                <p class="text-xs text-gray-500 mt-1">{ui("Spacing between text elements (title, subtitle, etc.)")}</p>
               </div>
             </div>
 
@@ -1800,7 +1806,7 @@
               disabled={generating || !bannerSettings.title || (!bannerSettings.primaryImageUrl && !bannerSettings.primaryImageFile && (!bannerSettings.primaryImageFiles || bannerSettings.primaryImageFiles.length === 0))}
               class="w-full bg-blue-600 text-white py-3 rounded-lg hover:bg-blue-700 transition-colors font-semibold disabled:bg-gray-400 disabled:cursor-not-allowed"
             >
-              {generating ? 'Generating...' : 'Generate Banner'}
+              {generating ? ui("Generating...") : ui("Generate Banner")}
             </button>
           </div>
         </div>
@@ -1808,13 +1814,13 @@
         <!-- Preview Panel -->
         <div class="lg:col-span-2">
           <div class="bg-white rounded-lg shadow-lg p-6">
-            <h2 class="text-2xl font-bold text-gray-900 mb-6">Banner Preview</h2>
+            <h2 class="text-2xl font-bold text-gray-900 mb-6">{ui("Banner Preview")}</h2>
             
             {#if generatedBannerUrl}
               <div class="mb-6">
                 <img
                   src={generatedBannerUrl}
-                  alt="Generated Banner"
+                  alt={ui("Generated Banner")}
                   class="w-full rounded-lg shadow-lg"
                 />
               </div>
@@ -1822,21 +1828,21 @@
                 onclick={downloadBanner}
                 class="w-full bg-green-600 text-white py-3 rounded-lg hover:bg-green-700 transition-colors font-semibold"
               >
-                Download Banner
+                {ui("Download Banner")}
               </button>
             {:else}
               <div class="border-2 border-dashed border-gray-300 rounded-lg p-12 text-center">
                 <svg class="mx-auto h-12 w-12 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
                 </svg>
-                <p class="mt-4 text-gray-600">Configure settings and click "Generate Banner" to create your promotional banner</p>
+                <p class="mt-4 text-gray-600">{ui("Configure settings and click \"Generate Banner\" to create your promotional banner")}</p>
               </div>
             {/if}
           </div>
 
           <!-- Quick Templates -->
           <div class="mt-6 bg-white rounded-lg shadow-lg p-6">
-            <h3 class="text-xl font-bold text-gray-900 mb-4">Ginzey America Quick Templates</h3>
+            <h3 class="text-xl font-bold text-gray-900 mb-4">{ui("Ginzey America Quick Templates")}</h3>
             <div class="grid grid-cols-2 gap-4">
               <button
                 onclick={() => {
@@ -1847,7 +1853,7 @@
                 }}
                 class="px-4 py-2 bg-red-50 text-red-800 rounded-lg hover:bg-red-100 transition-colors border-2 border-red-200"
               >
-                Menorahs (Red Sticker)
+                {ui("Menorahs (Red Sticker)")}
               </button>
               <button
                 onclick={() => {
@@ -1858,7 +1864,7 @@
                 }}
                 class="px-4 py-2 bg-blue-50 text-blue-800 rounded-lg hover:bg-blue-100 transition-colors border-2 border-blue-200"
               >
-                Torah Scrolls (Blue Sticker)
+                {ui("Torah Scrolls (Blue Sticker)")}
               </button>
               <button
                 onclick={() => {
@@ -1869,7 +1875,7 @@
                 }}
                 class="px-4 py-2 bg-red-50 text-red-800 rounded-lg hover:bg-red-100 transition-colors border-2 border-red-200"
               >
-                Ceremonial Silver (Red Sticker)
+                {ui("Ceremonial Silver (Red Sticker)")}
               </button>
               <button
                 onclick={() => {
@@ -1880,12 +1886,12 @@
                 }}
                 class="px-4 py-2 bg-blue-50 text-blue-800 rounded-lg hover:bg-blue-100 transition-colors border-2 border-blue-200"
               >
-                Antique Judaica (Blue Sticker)
+                {ui("Antique Judaica (Blue Sticker)")}
               </button>
             </div>
             <div class="mt-4 p-3 bg-amber-50 border border-amber-200 rounded-lg">
               <p class="text-sm text-amber-800">
-                <strong>Ginzey America Color Scheme:</strong> Antique paper base (#F5F1E8) with red (#C41E3A) and blue (#1E3A8A) accent stickers
+                <strong>{ui("Ginzey America Color Scheme:")}</strong> {ui("Antique paper base (#F5F1E8) with red (#C41E3A) and blue (#1E3A8A) accent stickers")}
               </p>
             </div>
           </div>

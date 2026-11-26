@@ -616,3 +616,27 @@ pages. No migration is required.
 `tests/houseSlugs.test.js` covers generation, validation, routes, visibility,
 scope, pagination, and safe public data. Set `RUN_STOREFRONT_DATABASE_TESTS=1`
 to include the rolled-back PostgreSQL storefront and admin slug-edit test.
+
+## Hebrew interface
+
+Hebrew uses the installed `David` font with `Times New Roman`, `Times`, and serif
+fallbacks for body copy, headings, and form controls. Interface typography does
+not depend on downloading a Hebrew web font. The banner artwork editor retains
+its optional font choices.
+
+Page copy uses the shared translation catalog across the marketplace, auctions,
+lots, buyer account/invoices, seller workspace, CRM, settings, and platform admin.
+Admin schema labels and enum choices are translated for display while submitted
+field keys and values remain unchanged. Dates, times, and money follow the UI
+locale; currency follows the auction/invoice. Logical alignment and spacing
+support RTL. The admin sidebar also includes a language selector.
+
+Catalog titles, descriptions, account names, and house-entered terms remain as
+authored. Provider-hosted screens follow that provider's language support.
+Unknown messages retain their original text. Add shared interface translations
+to `src/lib/locales/he-ui.js` and schema labels to `he-admin.js`.
+
+`tests/i18nUi.test.js` checks Hebrew and English rendering, interpolation,
+catalog-content preservation, schema-label coverage, unchanged option values,
+and static text that bypasses localization. Browser checks cover Hebrew font
+selection, RTL overflow, marketplace filters, lot activity, and sign-in labels.
