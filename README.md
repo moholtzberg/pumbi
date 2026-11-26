@@ -565,3 +565,36 @@ summary. Previously issued invoice amounts are not rewritten.
 No migration is required. Tests cover tier boundaries, proxy limits/ties, phone
 and online enforcement, validation, settings permissions/inheritance, state
 preservation, and real rolled-back PostgreSQL bidding/settings transactions.
+
+## Platform admin inventory management
+
+**Admin → Auction houses / Auctions / Lots** now provide paginated management
+lists with search, status filters, sorting, and direct **Edit** / **Remove** row
+actions. Auctions include both public and private sales. House rows link to that
+house's auctions and lots; auction rows link to their lots. The house partner
+profile also provides editing, removal, and child-inventory shortcuts. Lot prices
+use their auction's currency.
+
+Editing opens a common-fields form directly in the list. Optional blank fields
+are editable without a technical null toggle. **Show all fields** retains the
+full schema editor and JSON mode. Record pickers can search related houses,
+auctions, and users. New lots opened from an auction-filtered list prefill the
+auction reference.
+
+Removal opens the existing dependency/cascade preview directly. The exact record
+ID and current revision are still required before the server deletes anything.
+Role checks, self-admin protection, write-only secrets, and stale-edit rejection
+remain in the shared admin data service. No live records are removed by deploying
+this change.
+
+Recurring series, public-sale creation, policies, and submission review are under
+**Admin → Auction operations** (`/admin/auction-operations`). All-auction inventory
+is at `/admin/auctions`. The advanced data manager remains available for every
+collection. No migration is required.
+
+`tests/adminInventory.test.js` covers list authorization, scope filters, status /
+type validation, pagination, row actions, currency display, and common-field
+selection. Set `RUN_ADMIN_DATABASE_TESTS=1` alongside the existing database-test
+flags to run the rolled-back PostgreSQL inventory, edit, revision, and removal
+test. Browser interaction checks use disposable preview fixtures rather than
+real partner records.

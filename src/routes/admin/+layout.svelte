@@ -6,11 +6,12 @@
   const navigation = [
     { href: '/admin', label: 'Overview', description: 'Platform health' },
     { href: '/admin/data', label: 'Data manager', description: 'Create, edit & delete all records' },
-    { href: '/admin/auctions', label: 'Auctions', description: 'Series & submissions' },
-    { href: '/admin/auction-houses', label: 'Auction houses', description: 'Partners & onboarding' },
+    { href: '/admin/auctions', label: 'Auctions', description: 'All sales · edit & remove' },
+    { href: '/admin/auction-operations', label: 'Auction operations', description: 'Series, policies & submissions' },
+    { href: '/admin/auction-houses', label: 'Auction houses', description: 'Partners · edit & remove' },
     { href: '/admin/users', label: 'Users', description: 'Accounts & roles' },
     { href: '/admin/trust', label: 'Trust & Safety', description: 'Login & fraud signals' },
-    { href: '/admin/lots', label: 'Lots', description: 'Catalog inventory' },
+    { href: '/admin/lots', label: 'Lots', description: 'Catalog · edit & remove' },
     { href: '/admin/payouts', label: 'Payments', description: 'Payout releases' }
   ];
 
@@ -20,7 +21,7 @@
 </script>
 
 <div class="min-h-screen bg-slate-100 text-slate-900 lg:grid lg:grid-cols-[260px_minmax(0,1fr)]">
-  <aside class="border-b border-slate-800 bg-slate-950 text-white lg:sticky lg:top-0 lg:h-screen lg:border-b-0 lg:border-r">
+  <aside class="border-b border-slate-800 bg-slate-950 text-white lg:sticky lg:top-0 lg:h-screen lg:border-b-0 lg:border-r lg:flex lg:flex-col">
     <div class="flex items-center justify-between px-5 py-5 lg:block">
       <a href="/admin" class="block">
         <span class="text-xl font-black tracking-tight">Pumbi</span>
@@ -29,7 +30,7 @@
       <a href="/" class="text-xs font-semibold text-slate-400 hover:text-white lg:mt-2 lg:block">← Back to marketplace</a>
     </div>
 
-    <nav class="flex gap-1 overflow-x-auto px-3 pb-4 lg:block lg:space-y-1 lg:overflow-visible lg:pb-0" aria-label="Admin navigation">
+    <nav class="flex gap-1 overflow-x-auto px-3 pb-4 lg:block lg:space-y-1 lg:overflow-y-auto lg:min-h-0 lg:flex-1 lg:pb-3" aria-label="Admin navigation">
       {#each navigation as item}
         <a
           href={item.href}
@@ -42,7 +43,7 @@
       {/each}
     </nav>
 
-    <div class="hidden border-t border-slate-800 px-5 py-4 lg:absolute lg:inset-x-0 lg:bottom-0 lg:block">
+    <div class="hidden border-t border-slate-800 px-5 py-4 lg:mt-auto lg:shrink-0 lg:block">
       <p class="truncate text-sm font-semibold">{data.admin.name || data.admin.email}</p>
       <p class="truncate text-xs text-slate-400">{data.admin.email}</p>
     </div>

@@ -1,7 +1,10 @@
 import { error } from '@sveltejs/kit';
 import prisma from '$lib/prisma.js';
+import { requirePlatformAdmin } from '$lib/server/platformAdmin.js';
+import { modelFor } from '$lib/server/adminData.js';
 
-export async function load({ params }) {
+export async function load({ params, locals }) {
+  await requirePlatformAdmin(locals);
   const house = await prisma.auctionHouse.findUnique({
     where: { id: params.id },
     include: {
@@ -12,5 +15,5 @@ export async function load({ params }) {
     }
   });
   if (!house) throw error(404, 'Auction house not found');
-  return { house };
+  return { house, model: modelFor('auctionHouse') };
 }

@@ -1,7 +1,10 @@
 <script>
-  import { invalidateAll } from '$app/navigation';
+  import { goto, invalidateAll } from '$app/navigation';
 
+  import AdminRecordEditor from '$lib/components/admin/AdminRecordEditor.svelte';
   let { data } = $props();
+  let editor = $state(null);
+  async function saved(result) { editor = null; if (result.deleted) await goto('/admin/auction-houses'); else { await invalidateAll(); notice = 'Partner details saved.'; } }
   let house = $derived(data.house);
   let email = $state('');
   let newRole = $state('OWNER');
@@ -86,6 +89,7 @@
     <span class="rounded-full bg-white px-3 py-1.5 text-sm font-bold shadow-sm">{label(house.onboardingStatus)}</span>
   </header>
 
+  <div class="flex flex-wrap gap-2"><button type="button" onclick={() => editor = { remove: false }} class="rounded-lg bg-indigo-600 px-4 py-2 text-sm font-semibold text-white">Edit house</button><a href={`/admin/auctions?house=${encodeURIComponent(house.id)}`} class="rounded-lg border bg-white px-4 py-2 text-sm font-semibold">Manage auctions</a><a href={`/admin/lots?house=${encodeURIComponent(house.id)}`} class="rounded-lg border bg-white px-4 py-2 text-sm font-semibold">Manage lots</a><button type="button" onclick={() => editor = { remove: true }} class="rounded-lg border border-red-200 bg-white px-4 py-2 text-sm font-semibold text-red-700">Remove house</button></div>
   <section class="grid gap-4 sm:grid-cols-3">
     <div class="rounded-2xl border bg-white p-5"><span class="text-xs font-bold uppercase text-slate-400">Auctions</span><strong class="mt-2 block text-3xl">{house._count.auctions}</strong></div>
     <div class="rounded-2xl border bg-white p-5"><span class="text-xs font-bold uppercase text-slate-400">Payout requests</span><strong class="mt-2 block text-3xl">{house._count.payoutReleases}</strong></div>
@@ -130,3 +134,5 @@
 
   <section class="overflow-hidden rounded-2xl border bg-white shadow-sm"><div class="border-b px-5 py-4"><h2 class="font-bold">Compliance documents</h2><p class="text-xs text-slate-500">Review state and submitted metadata</p></div><div class="overflow-x-auto"><table class="w-full min-w-[650px] text-left text-sm"><thead class="bg-slate-50 text-xs uppercase text-slate-500"><tr><th class="px-5 py-3">Document</th><th class="px-5 py-3">Status</th><th class="px-5 py-3">Jurisdiction</th><th class="px-5 py-3">Submitted</th></tr></thead><tbody class="divide-y">{#each house.documents as document}<tr><td class="px-5 py-4"><strong>{label(document.type)}</strong><div class="text-xs text-slate-500">{document.fileName || document.mimeType}</div></td><td class="px-5 py-4">{document.reviewStatus}</td><td class="px-5 py-4">{document.jurisdiction || '—'}</td><td class="px-5 py-4">{date(document.createdAt)}</td></tr>{/each}{#if house.documents.length === 0}<tr><td colspan="4" class="px-5 py-10 text-center text-slate-500">No documents submitted.</td></tr>{/if}</tbody></table></div></section>
 </div>
+
+{#if editor}{#key `${house.id}:${editor.remove}`}<AdminRecordEditor model={data.model} recordId={house.id} recordLabel={house.name} simple initialDelete={editor.remove} onclose={() => editor = null} onsaved={saved} />{/key}{/if}

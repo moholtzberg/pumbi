@@ -42,7 +42,7 @@
       <h2 class="font-bold text-amber-950">Needs your attention</h2>
       <div class="mt-3 flex flex-wrap gap-2 text-sm">
         {#if data.metrics.pendingHouses}<a class="rounded-full bg-white px-3 py-1.5 font-semibold text-amber-900 shadow-sm" href="/admin/auction-houses?status=SUBMITTED">{data.metrics.pendingHouses} house reviews</a>{/if}
-        {#if data.metrics.pendingLots}<a class="rounded-full bg-white px-3 py-1.5 font-semibold text-amber-900 shadow-sm" href="/admin/auctions#lot-submissions">{data.metrics.pendingLots} lot submissions</a>{/if}
+        {#if data.metrics.pendingLots}<a class="rounded-full bg-white px-3 py-1.5 font-semibold text-amber-900 shadow-sm" href="/admin/auction-operations#lot-submissions">{data.metrics.pendingLots} lot submissions</a>{/if}
         {#if data.metrics.pendingPayouts}<a class="rounded-full bg-white px-3 py-1.5 font-semibold text-amber-900 shadow-sm" href="/admin/payouts">{data.metrics.pendingPayouts} payout releases</a>{/if}
       </div>
     </section>
@@ -59,7 +59,7 @@
         <tbody class="divide-y divide-slate-100">
           {#each data.recentAuctions as auction}
             <tr class="hover:bg-slate-50">
-              <td class="px-5 py-4"><a class="font-semibold text-slate-950 hover:text-indigo-600" href={`/auctions/${auction.id}`}>{auction.title}</a><div class="text-xs text-slate-500">{auction.type}</div></td>
+              <td class="px-5 py-4"><a class="font-semibold text-slate-950 hover:text-indigo-600" href={`/admin/auctions?q=${encodeURIComponent(auction.id)}`}>{auction.title}</a><div class="text-xs text-slate-500">{auction.type}</div></td>
               <td class="px-5 py-4">{auction.auctionHouse.name}</td>
               <td class="px-5 py-4"><span class="rounded-full bg-slate-100 px-2 py-1 text-xs font-bold">{auction.status}</span></td>
               <td class="px-5 py-4 text-slate-600">{auction._count.lots} lots · {auction._count.registrations} bidders</td>
