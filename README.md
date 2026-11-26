@@ -598,3 +598,21 @@ selection. Set `RUN_ADMIN_DATABASE_TESTS=1` alongside the existing database-test
 flags to run the rolled-back PostgreSQL inventory, edit, revision, and removal
 test. Browser interaction checks use disposable preview fixtures rather than
 real partner records.
+
+## Auction house public addresses
+
+Approved, active houses publish a storefront at `/<slug>` with their public
+contact details and current/past auctions. `/auction-houses/<slug>` redirects to
+that address. Storefront data is scoped to the house and excludes private
+onboarding settings and unready lot counts.
+
+Signup generates the slug as the name is typed until it is manually edited.
+Signup and platform admin saves normalize slugs to lowercase, check uniqueness
+without case sensitivity, and reject reserved platform routes. Older mixed-case
+slugs resolve through a case-insensitive fallback; mixed-case URLs redirect to
+lowercase. Seller settings and platform admin house views link to published
+pages. No migration is required.
+
+`tests/houseSlugs.test.js` covers generation, validation, routes, visibility,
+scope, pagination, and safe public data. Set `RUN_STOREFRONT_DATABASE_TESTS=1`
+to include the rolled-back PostgreSQL storefront and admin slug-edit test.

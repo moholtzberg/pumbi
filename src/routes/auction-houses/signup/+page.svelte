@@ -1,5 +1,8 @@
 <script>
   import { goto } from '$app/navigation';
+  import { page } from '$app/stores';
+  import { generateHouseSlug, normalizeHouseSlug, houseSlugProblem } from '$lib/utils/houseSlugs.js';
+  let slugEdited = $state(false);
   
   // Get session data
   let session = $state(null);
@@ -13,7 +16,9 @@
         const pending = sessionStorage.getItem('pendingAuctionHouseSignup');
         if (pending) {
           try {
-            Object.assign(formData, JSON.parse(pending));
+            const restored = JSON.parse(pending);
+            slugEdited = Boolean(restored.slug);
+            Object.assign(formData, restored);
             sessionStorage.removeItem('pendingAuctionHouseSignup');
             queueMicrotask(() => handleSubmit());
           } catch {
@@ -46,23 +51,10 @@
   let errorMessage = $state('');
   let isLoggedIn = $derived(!!session?.user);
   
-  // Auto-generate slug from name
-  function generateSlug(name) {
-    return name
-      .toLowerCase()
-      .trim()
-      .replace(/[^\w\s-]/g, '') // Remove special characters
-      .replace(/\s+/g, '-') // Replace spaces with hyphens
-      .replace(/-+/g, '-') // Replace multiple hyphens with single hyphen
-      .replace(/^-+|-+$/g, ''); // Remove leading/trailing hyphens
-  }
-  
   $effect(() => {
-    if (formData.name && !formData.slug) {
-      formData.slug = generateSlug(formData.name);
-    }
+    if (!slugEdited) formData.slug = generateHouseSlug(formData.name);
   });
-  
+
   async function handleSubmit() {
     errors = {};
     errorMessage = '';
@@ -156,15 +148,7 @@
     }
   }
   
-  function validateSlug(slug) {
-    if (!slug) return 'Slug is required';
-    if (slug.length < 3) return 'Slug must be at least 3 characters';
-    if (slug.length > 50) return 'Slug must be less than 50 characters';
-    if (!/^[a-z0-9-]+$/.test(slug)) {
-      return 'Slug can only contain lowercase letters, numbers, and hyphens';
-    }
-    return null;
-  }
+  function validateSlug(slug) { return houseSlugProblem(slug); }
 </script>
 
 <div class="min-h-screen bg-gray-50 py-12 px-4 sm:px-6 lg:px-8">
@@ -237,7 +221,7 @@
               URL Slug <span class="text-red-500">*</span>
             </label>
             <div class="flex items-center">
-              <span class="text-gray-500 mr-2">pumbi.com/</span>
+              <span class="text-gray-500 mr-2">{$page.url.host}/</span>
               <input
                 type="text"
                 id="slug"
@@ -245,11 +229,12 @@
                 required
                 minlength="3"
                 maxlength="50"
-                pattern="[a-z0-9-]+"
+                pattern="[a-z0-9]+(-[a-z0-9]+)*"
                 class="flex-1 px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                 placeholder="heritage-judaica"
                 oninput={() => {
-                  formData.slug = formData.slug.toLowerCase().replace(/[^a-z0-9-]/g, '');
+                  slugEdited = true;
+                  formData.slug = normalizeHouseSlug(formData.slug);
                   const slugError = validateSlug(formData.slug);
                   if (slugError) {
                     errors.slug = slugError;
@@ -260,7 +245,7 @@
               />
             </div>
             <p class="mt-1 text-sm text-gray-500">
-              This will be your unique URL identifier. Only lowercase letters, numbers, and hyphens.
+              Your public address uses lowercase Latin letters, numbers, and hyphens. It becomes available after the house is approved and active.
             </p>
             {#if errors.slug}
               <p class="mt-1 text-sm text-red-600">{errors.slug}</p>

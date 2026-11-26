@@ -39,6 +39,8 @@ export async function POST({ request, locals }) {
       const owner = await tx.user.findUnique({ where: { email: session.user.email } });
       if (!owner) throw error(401, 'Your signed-in account could not be found. Sign out and sign in again.');
 
+      const duplicate = await tx.auctionHouse.findFirst({ where: { slug: { equals: validated.slug, mode: 'insensitive' } }, select: { id: true } });
+      if (duplicate) throw error(409, 'An auction house with this slug already exists');
       const auctionHouse = await tx.auctionHouse.create({
         data: {
           name: validated.name,
@@ -86,8 +88,8 @@ export async function POST({ request, locals }) {
     // Handle Prisma unique constraint errors
     if (err.code === 'P2002' || err.meta?.target) {
       const target = err.meta?.target?.[0];
-      if (target === 'slug') {
-        throw error(400, 'An auction house with this slug already exists');
+      if (target === 'slug' || String(err.meta?.target || '').includes('slug')) {
+        throw error(409, 'An auction house with this slug already exists');
       }
       if (target === 'domain') {
         throw error(400, 'An auction house with this domain already exists');

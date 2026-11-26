@@ -1,4 +1,5 @@
 <script>
+  import { publicHousePath, houseSlugProblem } from '$lib/utils/houseSlugs.js';
   import { goto, invalidateAll } from '$app/navigation';
 
   import AdminRecordEditor from '$lib/components/admin/AdminRecordEditor.svelte';
@@ -90,6 +91,7 @@
   </header>
 
   <div class="flex flex-wrap gap-2"><button type="button" onclick={() => editor = { remove: false }} class="rounded-lg bg-indigo-600 px-4 py-2 text-sm font-semibold text-white">Edit house</button><a href={`/admin/auctions?house=${encodeURIComponent(house.id)}`} class="rounded-lg border bg-white px-4 py-2 text-sm font-semibold">Manage auctions</a><a href={`/admin/lots?house=${encodeURIComponent(house.id)}`} class="rounded-lg border bg-white px-4 py-2 text-sm font-semibold">Manage lots</a><button type="button" onclick={() => editor = { remove: true }} class="rounded-lg border border-red-200 bg-white px-4 py-2 text-sm font-semibold text-red-700">Remove house</button></div>
+  <div class="rounded-xl border bg-white p-4 text-sm"><span class="font-semibold">Public address:</span> <span class="break-all">{publicHousePath(house.slug)}</span>{#if house.isActive && house.onboardingStatus === 'APPROVED' && !houseSlugProblem(house.slug)}<a href={publicHousePath(house.slug)} target="_blank" rel="noreferrer" class="ms-3 font-semibold text-indigo-600">Open public page ↗</a>{:else}<p class="mt-2 text-slate-500">A valid slug and an active, approved house are required before this page is public.</p>{/if}</div>
   <section class="grid gap-4 sm:grid-cols-3">
     <div class="rounded-2xl border bg-white p-5"><span class="text-xs font-bold uppercase text-slate-400">Auctions</span><strong class="mt-2 block text-3xl">{house._count.auctions}</strong></div>
     <div class="rounded-2xl border bg-white p-5"><span class="text-xs font-bold uppercase text-slate-400">Payout requests</span><strong class="mt-2 block text-3xl">{house._count.payoutReleases}</strong></div>

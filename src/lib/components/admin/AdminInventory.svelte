@@ -3,6 +3,7 @@
   import { page } from '$app/stores';
   import AdminRecordEditor from '$lib/components/admin/AdminRecordEditor.svelte';
   import { adminListUrl } from '$lib/utils/adminManagement.js';
+  import { publicHousePath, houseSlugProblem } from '$lib/utils/houseSlugs.js';
   import { formatMoney } from '$lib/utils/region.js';
   let { data, kind } = $props();
   let editor = $state(null);
@@ -255,7 +256,7 @@
                     href={`/admin/auction-houses/${row.id}`}
                   >
                     Team & partner profile →
-                  </a>{:else if kind === 'auction'}<a
+                  </a>{#if row.isActive && row.onboardingStatus === 'APPROVED' && !houseSlugProblem(row.slug)}<a class="mt-2 block text-xs font-semibold text-indigo-600" href={publicHousePath(row.slug)} target="_blank" rel="noreferrer">Public page ↗</a>{:else}<span class="mt-2 block text-xs text-slate-400">Public page not published</span>{/if}{:else if kind === 'auction'}<a
                     class="font-semibold text-indigo-600"
                     href={`/admin/auction-houses/${row.auctionHouse.id}`}
                   >

@@ -1,11 +1,12 @@
 import { z } from 'zod';
 import { BaseModel } from './BaseModel.js';
 import prisma from '$lib/prisma.js';
+import { normalizeHouseSlug, houseSlugProblem } from '$lib/utils/houseSlugs.js';
 
 const auctionHouseSchema = z.object({
   id: z.string().optional(),
   name: z.string().min(1, 'Name is required'),
-  slug: z.string().min(3, 'Slug must be at least 3 characters').regex(/^[a-z0-9-]+$/, 'Slug can only contain lowercase letters, numbers, and hyphens'),
+  slug: z.string().transform(normalizeHouseSlug).refine(value => !houseSlugProblem(value), 'Choose a valid, non-reserved public slug (3–50 lowercase letters, numbers, and hyphens)'),
   domain: z.string().nullable().optional(),
   description: z.string().nullable().optional(),
   logoUrl: z.string().url().nullable().optional().or(z.literal('')),

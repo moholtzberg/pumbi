@@ -3,6 +3,7 @@ import { createRequire } from 'node:module';
 import prisma from '$lib/prisma.js';
 import { adminModels, adminModelMap } from '$lib/server/adminCatalog.js';
 import { serializeAdminValue } from '$lib/utils/adminSchema.js';
+import { normalizeHouseSlug, houseSlugProblem } from '$lib/utils/houseSlugs.js';
 import { hashPassword } from '$lib/utils/password.js';
 
 const { Prisma } = createRequire(import.meta.url)('@prisma/client');
@@ -80,6 +81,11 @@ export async function parseAdminData(model, input, { creating = false } = {}) {
   if (creating) {
     const missing = model.fields.filter(field => field.required && data[field.name] === undefined);
     if (missing.length) throw error(400, `Required fields: ${missing.map(field => field.label).join(', ')}`);
+  }
+  if (model.name === 'AuctionHouse' && Object.hasOwn(data, 'slug')) {
+    data.slug = normalizeHouseSlug(data.slug);
+    const message = houseSlugProblem(data.slug);
+    if (message) throw error(400, message);
   }
   if (model.name === 'User' && Object.hasOwn(data, 'password')) {
     if (typeof data.password === 'string') {
@@ -171,6 +177,10 @@ export async function mutateRecord({ key, id, input, revision, actor, deleting =
       if (current.updatedAt && (!revision || new Date(revision).getTime() !== current.updatedAt.getTime())) throw error(409, 'This record changed after you opened it. Reload before saving or deleting.');
       if (model.name === 'User' && id === actor.id && (deleting || (data.role && data.role !== 'PLATFORM_ADMIN'))) throw error(409, 'Use another administrator account to delete your account or change your own admin role.');
       if (model.name === 'User' && current.role === 'PLATFORM_ADMIN' && (deleting || (data.role && data.role !== 'PLATFORM_ADMIN')) && await tx.user.count({ where: { role: 'PLATFORM_ADMIN' } }) <= 1) throw error(409, 'At least one platform administrator must remain.');
+    }
+    if (model.name === 'AuctionHouse' && data.slug) {
+      const duplicate = await tx.auctionHouse.findFirst({ where: { slug: { equals: data.slug, mode: 'insensitive' }, ...(id ? { id: { not: id } } : {}) }, select: { id: true } });
+      if (duplicate) throw error(409, 'An auction house with this slug already exists');
     }
     if (model.name === 'Auction') {
       const start = data.startDate || current?.startDate;

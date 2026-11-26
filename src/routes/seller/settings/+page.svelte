@@ -1,4 +1,5 @@
 <script>
+  import { publicHousePath } from '$lib/utils/houseSlugs.js';
   import { onMount } from 'svelte';
   import SettingsSection from '$lib/components/settings/SettingsSection.svelte';
   import SettingsFields from '$lib/components/settings/SettingsFields.svelte';
@@ -155,6 +156,7 @@
     </div>
     <a href="/seller" class="pumbi-btn-secondary">Back to dashboard</a>
   </header>
+  {#if data.auctionHouse?.slug}<div class="settings-note mb-6"><strong>Public auction house address</strong><p class="break-all">{publicHousePath(data.auctionHouse.slug)}</p>{#if data.auctionHouse.isActive && data.auctionHouse.onboardingStatus === 'APPROVED'}<a href={publicHousePath(data.auctionHouse.slug)} target="_blank" rel="noreferrer" class="font-semibold underline">Open public page ↗</a>{:else}<p class="text-sm">This page becomes public when your house is approved and active.</p>{/if}</div>{/if}
   <div class="settings-note mb-6">
     <strong>One place for each setting</strong>
     <p>

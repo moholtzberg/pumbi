@@ -1,4 +1,5 @@
 <script>
+  import { publicHousePath } from '$lib/utils/houseSlugs.js';
   import { requiresBidderRegistration } from '$lib/utils/biddingAccess.js';
   import { onMount } from 'svelte';
   import { page } from '$app/stores';
@@ -185,7 +186,7 @@
             <div class="space-y-3 mb-6">
               <div class="flex items-center text-gray-700">
                 <span class="font-semibold mr-2">Auction House:</span>
-                <span>{auction.auctionHouse?.name || 'N/A'}</span>
+                {#if auction.auctionHouse?.slug}<a href={publicHousePath(auction.auctionHouse.slug)} class="font-semibold underline hover:text-[#18372f]">{auction.auctionHouse.name}</a>{:else}<span>{auction.auctionHouse?.name || 'N/A'}</span>{/if}
               </div>
               {#if shouldShowCountdown(auction)}
                 <div class="flex items-center text-gray-700">

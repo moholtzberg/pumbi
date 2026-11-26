@@ -1,6 +1,7 @@
 import prisma from './prisma.js';
 import { publicLotBidRules } from './utils/bidIncrements.js';
 import { auctionCurrency } from './utils/region.js';
+import { normalizeHouseSlug } from './utils/houseSlugs.js';
 import { AuctionHouse, User, Auction, Lot, Bid } from './models/index.js';
 
 // Helper functions to map Prisma models to API format
@@ -210,9 +211,9 @@ export const db = {
       return mapAuctionHouse(house);
     },
     getBySlug: async (slug) => {
-      const house = await prisma.auctionHouse.findUnique({
-        where: { slug }
-      });
+      const normalized = normalizeHouseSlug(slug);
+      const house = await prisma.auctionHouse.findUnique({ where: { slug: normalized } })
+        || await prisma.auctionHouse.findFirst({ where: { slug: { equals: normalized, mode: 'insensitive' } }, orderBy: [{ createdAt: 'asc' }, { id: 'asc' }] });
       return mapAuctionHouse(house);
     },
     create: async (data) => {

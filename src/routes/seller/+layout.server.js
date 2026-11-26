@@ -43,7 +43,7 @@ export async function load({ locals, url }) {
   const auctionHouse = primaryHouseId
     ? await prisma.auctionHouse.findUnique({
         where: { id: primaryHouseId },
-        select: { id: true, name: true, onboardingStatus: true, country: true, settings: true }
+        select: { id: true, name: true, onboardingStatus: true, country: true, settings: true, slug: true, isActive: true }
       })
     : null;
 
@@ -67,7 +67,7 @@ export async function load({ locals, url }) {
         auctionHouseId: primaryHouseId
       }
     },
-    auctionHouse: auctionHouse ? { id: auctionHouse.id, name: auctionHouse.name, onboardingStatus: auctionHouse.onboardingStatus, country: auctionHouse.country, currency: readSettings(auctionHouse.settings).defaultCurrency || defaultCurrency(auctionHouse.country) } : null
+    auctionHouse: auctionHouse ? { id: auctionHouse.id, name: auctionHouse.name, slug: auctionHouse.slug, isActive: auctionHouse.isActive, onboardingStatus: auctionHouse.onboardingStatus, country: auctionHouse.country, currency: readSettings(auctionHouse.settings).defaultCurrency || defaultCurrency(auctionHouse.country) } : null
   };
 }
 

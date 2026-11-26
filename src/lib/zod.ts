@@ -1,4 +1,5 @@
 import { z } from "zod"
+import { normalizeHouseSlug, houseSlugProblem } from "./utils/houseSlugs.js"
  
 export const signInSchema = z.object({
   email: z.string({ required_error: "Email is required" })
@@ -15,11 +16,10 @@ export const auctionHouseSignupSchema = z.object({
     .min(1, "Auction house name is required")
     .min(3, "Name must be at least 3 characters")
     .max(100, "Name must be less than 100 characters"),
-  slug: z.string({ required_error: "Slug is required" })
-    .min(1, "Slug is required")
-    .min(3, "Slug must be at least 3 characters")
-    .max(50, "Slug must be less than 50 characters")
-    .regex(/^[a-z0-9-]+$/, "Slug can only contain lowercase letters, numbers, and hyphens"),
+  slug: z.string({ required_error: "Slug is required" }).transform(normalizeHouseSlug).superRefine((value, ctx) => {
+    const message = houseSlugProblem(value);
+    if (message) ctx.addIssue({ code: z.ZodIssueCode.custom, message });
+  }),
   description: z.string().optional().nullable(),
   domain: z.string()
     .regex(/^[a-z0-9.-]+\.[a-z]{2,}$/i, "Invalid domain format")
