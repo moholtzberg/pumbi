@@ -1,6 +1,7 @@
 import { error } from '@sveltejs/kit';
 import prisma from '$lib/prisma.js';
 import { convertToPresignedUrl } from '$lib/utils/s3Presigned.js';
+import { SUBMISSION_CATEGORIES } from '$lib/utils/lotSubmission.js';
 
 export const submissionSelect = {
   id: true,
@@ -129,6 +130,26 @@ export async function getPublicOpportunities(now = new Date()) {
   return { series, auctions };
 }
 
+export async function getSubmissionCategories() {
+  const lots = await prisma.lot.findMany({
+    where: { isReady: true, category: { not: null }, auction: { type: 'PUBLIC', status: { in: ['UPCOMING', 'LIVE', 'ENDED'] } } },
+    select: { category: true }, distinct: ['category'], orderBy: { category: 'asc' }, take: 200
+  });
+  return [...new Set([...SUBMISSION_CATEGORIES, ...lots.map(lot => lot.category?.trim()).filter(Boolean)])];
+}
+
+// Drafts can be saved before a sale is chosen or after its window closes.
+// References still have to belong to public sales; submission uses the strict check below.
+export async function validateDraftTarget({ auctionSeriesId, auctionId }) {
+  if (auctionSeriesId && auctionId) throw error(400, 'Choose exactly one public auction series or upcoming public auction');
+  if (auctionSeriesId && !await prisma.auctionSeries.findFirst({ where: { id: auctionSeriesId, auctionType: 'PUBLIC' }, select: { id: true } })) {
+    throw error(400, 'The selected public auction series is no longer available');
+  }
+  if (auctionId && !await prisma.auction.findFirst({ where: { id: auctionId, type: 'PUBLIC' }, select: { id: true } })) {
+    throw error(400, 'The selected public auction is no longer available');
+  }
+}
+
 export function readSubmissionInput(body) {
   if (!body || typeof body !== 'object' || Array.isArray(body)) {
     throw error(400, 'Request body must be a JSON object');
@@ -168,7 +189,7 @@ export function readSubmissionInput(body) {
   if (body.auctionSeriesId !== undefined || body.auctionId !== undefined) {
     const auctionSeriesId = text(body.auctionSeriesId, 100);
     const auctionId = text(body.auctionId, 100);
-    if (!!auctionSeriesId === !!auctionId) {
+    if (auctionSeriesId && auctionId) {
       throw error(400, 'Choose exactly one public auction series or upcoming public auction');
     }
     data.auctionSeriesId = auctionSeriesId;

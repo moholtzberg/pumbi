@@ -6,7 +6,7 @@ import {
   requireCurrentUser,
   serializeSubmission,
   submissionSelect,
-  validatePublicTarget
+  validateDraftTarget
 } from '$lib/server/seller-submissions.js';
 
 export async function PATCH({ params, request, locals }) {
@@ -39,7 +39,7 @@ export async function PATCH({ params, request, locals }) {
       data.auctionSeriesId === undefined ? existing.auctionSeriesId : data.auctionSeriesId,
     auctionId: data.auctionId === undefined ? existing.auctionId : data.auctionId
   };
-  await validatePublicTarget(target);
+  await validateDraftTarget(target);
 
   const submission = await prisma.lotSubmission.update({
     where: { id: existing.id },

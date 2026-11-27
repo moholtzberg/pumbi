@@ -3,23 +3,25 @@ import prisma from '$lib/prisma.js';
 import {
   getActivePolicy,
   getPublicOpportunities,
+  getSubmissionCategories,
   readSubmissionInput,
   readSubmissionImages,
   requireCurrentUser,
   serializeSubmission,
   submissionSelect,
-  validatePublicTarget
+  validateDraftTarget
 } from '$lib/server/seller-submissions.js';
 
 export async function GET({ locals }) {
   const user = await requireCurrentUser(locals);
-  const [profile, opportunities, policy] = await Promise.all([
+  const [profile, opportunities, policy, categories] = await Promise.all([
     prisma.sellerProfile.findUnique({
       where: { userId: user.id },
       select: { id: true }
     }),
     getPublicOpportunities(),
-    getActivePolicy()
+    getActivePolicy(),
+    getSubmissionCategories()
   ]);
 
   const submissions = profile
@@ -33,6 +35,7 @@ export async function GET({ locals }) {
   return json({
     submissions: await Promise.all(submissions.map(serializeSubmission)),
     opportunities,
+    categories,
     policy: policy
       ? {
           ...policy,
@@ -44,20 +47,15 @@ export async function GET({ locals }) {
 
 export async function POST({ request, locals }) {
   const user = await requireCurrentUser(locals);
-  const profile = await prisma.sellerProfile.findUnique({
-    where: { userId: user.id },
-    select: { id: true }
-  });
-  if (!profile) {
-    throw error(400, 'Create your seller profile before starting a submission');
-  }
-
   const body = await request.json().catch(() => {
     throw error(400, 'Request body must be valid JSON');
   });
   const data = readSubmissionInput(body);
   const images = readSubmissionImages(body.images);
-  await validatePublicTarget(data);
+  await validateDraftTarget(data);
+  const profile = await prisma.sellerProfile.upsert({
+    where: { userId: user.id }, create: { userId: user.id }, update: {}, select: { id: true }
+  });
 
   const submission = await prisma.lotSubmission.create({
     data: {

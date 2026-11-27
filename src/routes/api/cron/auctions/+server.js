@@ -2,6 +2,7 @@ import { createHash, timingSafeEqual } from 'node:crypto';
 import { env } from '$env/dynamic/private';
 import { json } from '@sveltejs/kit';
 import { processAuctionAutomation } from '$lib/server/auctionAutomation.js';
+export const config = { maxDuration: 120 };
 
 function secureStringEqual(left, right) {
 	const leftDigest = createHash('sha256').update(left).digest();
@@ -45,3 +46,6 @@ export async function POST({ request }) {
 		);
 	}
 }
+
+// Vercel Cron invokes endpoints with GET, using the same bearer authentication.
+export const GET = POST;

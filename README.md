@@ -640,3 +640,28 @@ to `src/lib/locales/he-ui.js` and schema labels to `he-admin.js`.
 catalog-content preservation, schema-label coverage, unchanged option values,
 and static text that bypasses localization. Browser checks cover Hebrew font
 selection, RTL overflow, marketplace filters, lot activity, and sign-in labels.
+
+## Seller submission drafts and availability
+
+`/dashboard/sell` offers starter categories, categories from ready public catalog
+lots, and a custom category field. Drafts may be saved without a title, completed
+seller contact details, images, or a destination auction. The first save creates
+the account's draft profile automatically. A draft can also be saved after its
+selected auction's submission deadline passes.
+
+Submitting still requires complete seller contact details, a title, current
+seller terms acceptance, and an eligible public auction/series. Complete contact
+defaults are saved when submitting. Terms acceptance is visible without opening
+the terms panel; missing auction windows have an explicit explanation. The sole
+eligible destination is preselected for new drafts. Failed submission attempts
+retain the saved draft ID and refresh the terms/window before retrying.
+
+Vercel Cron now schedules `/api/cron/auctions` every minute alongside marketing.
+GET and POST share bearer authentication using `CRON_SECRET`; GET supports
+Vercel's scheduler. Deployment activates this schedule. No live automation was
+invoked while testing. Existing deadlines and approval requirements are retained.
+
+`tests/lotSubmissions.test.js` covers draft/submit validation, ownership, catalog
+choices and cron authentication. `RUN_SUBMISSION_DATABASE_TESTS=1` enables the
+rolled-back PostgreSQL test. Browser checks use an in-memory fixture to save a
+blank draft, fill seller details, choose a public auction and submit for review.

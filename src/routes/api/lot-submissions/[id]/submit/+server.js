@@ -1,5 +1,6 @@
 import { error, json } from '@sveltejs/kit';
 import prisma from '$lib/prisma.js';
+import { sellerContactComplete } from '$lib/utils/lotSubmission.js';
 import {
   getActivePolicy,
   requireCurrentUser,
@@ -30,6 +31,7 @@ export async function POST({ params, request, locals }) {
       id: true,
       status: true,
       title: true,
+      sellerProfile: { select: { displayName: true, legalName: true, contactEmail: true, contactPhone: true, address: true } },
       auctionSeriesId: true,
       auctionId: true
     }
@@ -40,6 +42,9 @@ export async function POST({ params, request, locals }) {
   }
   if (!submission.title?.trim()) {
     throw error(400, 'Add a title before submitting');
+  }
+  if (!sellerContactComplete(submission.sellerProfile)) {
+    throw error(400, 'Complete your seller details before submitting.');
   }
 
   const now = new Date();
