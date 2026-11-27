@@ -1,4 +1,5 @@
 <script>
+  import { uploadImageForm } from '$lib/utils/imageUpload.js';
   import { page as localePage } from '$app/stores';
   import { translate as translateUi } from '$lib/i18n.js';
   import { localeTag as uiLocaleTag } from '$lib/utils/region.js';
@@ -4215,10 +4216,7 @@
       uploadFormData.append('files', file);
       uploadFormData.append('lotId', selectedBannerLotId);
 
-      const uploadResponse = await fetch('/api/upload/image', {
-        method: 'POST',
-        body: uploadFormData
-      });
+      const uploadResponse = await uploadImageForm(uploadFormData);
 
       if (!uploadResponse.ok) {
         throw new Error(ui("Failed to upload banner image"));
@@ -5003,10 +5001,7 @@
                       const formData = new FormData();
                       formData.append('files', file);
                       
-                      const uploadResponse = await fetch('/api/upload/image', {
-                        method: 'POST',
-                        body: formData
-                      });
+                      const uploadResponse = await uploadImageForm(formData);
                       
                       if (!uploadResponse.ok) {
                         throw new Error('Failed to upload logo');

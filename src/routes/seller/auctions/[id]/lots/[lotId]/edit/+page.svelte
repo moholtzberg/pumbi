@@ -1,4 +1,5 @@
 <script>
+  import { uploadImageForm } from '$lib/utils/imageUpload.js';
   import { page as localePage } from '$app/stores';
   import { translate as translateUi } from '$lib/i18n.js';
   import { localeTag as uiLocaleTag } from '$lib/utils/region.js';
@@ -176,10 +177,7 @@
       files.forEach(file => formData.append('files', file));
       formData.append('lotId', $page.params.lotId);
       
-      const response = await fetch('/api/upload/image', {
-        method: 'POST',
-        body: formData
-      });
+      const response = await uploadImageForm(formData);
       
       if (!response.ok) {
         throw new Error(ui("Failed to upload images"));

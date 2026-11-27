@@ -1,4 +1,5 @@
 <script>
+  import { uploadImageForm } from '$lib/utils/imageUpload.js';
   import { page as localePage } from '$app/stores';
   import { translate as translateUi } from '$lib/i18n.js';
   import { localeTag as uiLocaleTag } from '$lib/utils/region.js';
@@ -1007,10 +1008,7 @@
       formData.append('lotId', actualLotId);
       formData.append('removeBackground', (removeBackground[lotId] || false).toString());
 
-      const uploadResponse = await fetch('/api/upload/image', {
-        method: 'POST',
-        body: formData
-      });
+      const uploadResponse = await uploadImageForm(formData);
 
       if (!uploadResponse.ok) {
         throw new Error(ui("Failed to upload images"));
@@ -1171,10 +1169,7 @@
       uploadFormData.append('files', file);
       uploadFormData.append('lotId', lotId);
 
-      const uploadResponse = await fetch('/api/upload/image', {
-        method: 'POST',
-        body: uploadFormData
-      });
+      const uploadResponse = await uploadImageForm(uploadFormData);
 
       if (!uploadResponse.ok) {
         throw new Error(ui("Failed to upload processed image"));
@@ -1292,10 +1287,7 @@
           uploadFormData.append('files', file);
           uploadFormData.append('lotId', lotId);
 
-          const uploadResponse = await fetch('/api/upload/image', {
-            method: 'POST',
-            body: uploadFormData
-          });
+          const uploadResponse = await uploadImageForm(uploadFormData);
 
           if (!uploadResponse.ok) {
             throw new Error(ui("Failed to upload processed image"));
@@ -1741,10 +1733,7 @@
       uploadFormData.append('files', file);
       uploadFormData.append('lotId', lotId);
 
-      const uploadResponse = await fetch('/api/upload/image', {
-        method: 'POST',
-        body: uploadFormData
-      });
+      const uploadResponse = await uploadImageForm(uploadFormData);
 
       if (!uploadResponse.ok) {
         const errorText = await uploadResponse.text();
@@ -2144,10 +2133,7 @@
             formData.append('lotId', lot.id);
 
             console.log(`[Upload] Sending ${lotImages.length} files to /api/upload/image`);
-            const uploadResponse = await fetch('/api/upload/image', {
-              method: 'POST',
-              body: formData
-            });
+            const uploadResponse = await uploadImageForm(formData);
 
             if (!uploadResponse.ok) {
               const errorText = await uploadResponse.text();

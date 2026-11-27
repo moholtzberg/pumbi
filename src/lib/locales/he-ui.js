@@ -2329,5 +2329,15 @@ export default {
   "The selected public auction series is no longer available": "סדרת המכירות הציבוריות שנבחרה אינה זמינה עוד",
   "The submission cutoff has passed for this auction": "המועד האחרון להגשות למכירה זו חלף",
   "The submission cutoff has passed for the next auction": "המועד האחרון להגשות למכירה הבאה חלף",
-  "Choose exactly one public auction series or upcoming public auction": "יש לבחור סדרת מכירות ציבורית אחת או מכירה ציבורית עתידית אחת"
+  "Choose exactly one public auction series or upcoming public auction": "יש לבחור סדרת מכירות ציבורית אחת או מכירה ציבורית עתידית אחת",
+  "Attach photos": "צירוף תמונות",
+  "Photos attached. You can enter the details and save your draft.": "התמונות צורפו. אפשר להזין פרטים ולשמור טיוטה.",
+  "Photo uploaded. AI analysis is unavailable; enter the lot details manually.": "התמונה הועלתה. ניתוח בינה מלאכותית אינו זמין; יש להזין את פרטי הפריט ידנית.",
+  "Choose an image to upload": "בחרו תמונה להעלאה",
+  "Choose a JPEG, PNG, WebP, or GIF image.": "בחרו תמונה בפורמט JPEG, PNG, WebP או GIF.",
+  "This image is too large to upload. Choose a smaller image.": "התמונה גדולה מדי להעלאה. בחרו תמונה קטנה יותר.",
+  "Unable to prepare this photo. Choose a JPEG, PNG, or WebP image.": "לא ניתן להכין תמונה זו. בחרו תמונה בפורמט JPEG, PNG או WebP.",
+  "A submission may have up to 8 images": "ניתן לצרף עד 8 תמונות להגשה",
+  "Check the lot fields and try again.": "בדקו את שדות הפריט ונסו שוב.",
+  "This lot number is already in use. Choose another lot number and try again.": "מספר הפריט כבר בשימוש. בחרו מספר פריט אחר ונסו שוב."
 };

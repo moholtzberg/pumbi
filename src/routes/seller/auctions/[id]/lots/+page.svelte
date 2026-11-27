@@ -1,4 +1,5 @@
 <script>
+  import { uploadImageForm } from '$lib/utils/imageUpload.js';
   import { page as localePage } from '$app/stores';
   import { translate as translateUi } from '$lib/i18n.js';
   import { localeTag as uiLocaleTag } from '$lib/utils/region.js';
@@ -15,6 +16,8 @@
   let loading = $state(true);
   let showCreateModal = $state(false);
   let createError = $state('');
+  let uploading = $state(false);
+  let creating = $state(false);
   
   let newLot = $state({
     lotNumber: 1,
@@ -267,7 +270,7 @@
       
       // Set default lot number
       if (lots.length > 0) {
-        newLot.lotNumber = lots.length + 1;
+        newLot.lotNumber = Math.max(0, ...lots.map(lot => Number(lot.lotNumber) || 0)) + 1;
       }
       
       // Initialize positions if not set
@@ -302,34 +305,32 @@
   
   async function handleImageUpload(event) {
     const files = Array.from(event.target.files || []);
-    if (files.length === 0) return;
+    if (files.length === 0 || uploading || creating) return;
+    uploading = true;
+    createError = '';
 
     try {
       const formData = new FormData();
       files.forEach(file => formData.append('files', file));
       formData.append('removeBackground', removeBackground.toString());
 
-      const uploadResponse = await fetch('/api/upload/image', {
-        method: 'POST',
-        body: formData
-      });
+      const uploadResponse = await uploadImageForm(formData);
 
-      if (!uploadResponse.ok) {
-        throw new Error(ui("Failed to upload images"));
-      }
-
-      const { images: uploadedImages } = await uploadResponse.json();
-      newLot.uploadedImages = [...(newLot.uploadedImages || []), ...uploadedImages];
+      const result = await uploadResponse.json();
+      newLot.uploadedImages = [...(newLot.uploadedImages || []), ...(result.images || [])];
+      if (!uploadResponse.ok) throw new Error(ui(result.error || result.message || 'Failed to upload images'));
       
       // Clear the file input
       event.target.value = '';
     } catch (error) {
       console.error('Error uploading images:', error);
-      alert(ui("Failed to upload images. Please try again."));
-    }
+      createError = error.message || ui("Failed to upload images. Please try again.");
+    } finally { uploading = false; event.target.value = ''; }
   }
 
   async function createLot() {
+    if (uploading || creating) return;
+    creating = true;
     createError = '';
     try {
       // Prepare images array for lot creation
@@ -387,7 +388,7 @@
         const defaultEndTime = `${year}-${month}-${day}T${hours}:${minutes}`;
         
         newLot = {
-          lotNumber: lots.length + 2,
+          lotNumber: Math.max(0, ...lots.map(lot => Number(lot.lotNumber) || 0)) + 2,
           title: '',
           description: '',
           category: '',
@@ -418,8 +419,8 @@
         });
       } else {
         // Display error message
-        if (result.error) {
-          createError = result.error;
+        if (result.error || result.message) {
+          createError = result.error || result.message;
           if (result.details) {
             const detailMessages = Object.entries(result.details)
               .map(([field, errors]) => `${field}: ${Array.isArray(errors) ? errors.join(', ') : errors}`)
@@ -434,8 +435,8 @@
       }
     } catch (error) {
       console.error('Error creating lot:', error);
-      createError = 'An error occurred while creating the lot. Please try again.';
-    }
+      createError = error.message || 'An error occurred while creating the lot. Please try again.';
+    } finally { creating = false; }
   }
   
   function formatCurrency(amount) {
@@ -891,6 +892,7 @@
               </label>
               <input
                 id="imageFiles"
+                disabled={uploading || creating}
                 type="file"
                 accept="image/*"
                 multiple
@@ -901,7 +903,7 @@
                 <div class="mt-2 flex flex-wrap gap-2">
                   {#each newLot.uploadedImages as image}
                     <div class="relative">
-                      <img src={image.url || image} alt={ui("Uploaded")} class="w-20 h-20 object-cover rounded border border-gray-300" />
+                      <img src={image.previewUrl || image.url || image} alt={ui("Uploaded")} class="w-20 h-20 object-cover rounded border border-gray-300" />
                     </div>
                   {/each}
                 </div>
@@ -942,9 +944,10 @@
             </button>
             <button
               type="submit"
+              disabled={uploading || creating}
               class="flex-1 bg-blue-600 text-white py-3 rounded-lg hover:bg-blue-700 transition-colors font-semibold"
             >
-              {ui("Add Lot")}
+              {uploading ? ui('Uploading...') : creating ? ui('Creating…') : ui("Add Lot")}
             </button>
           </div>
         </form>

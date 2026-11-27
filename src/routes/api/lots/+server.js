@@ -2,6 +2,7 @@ import { json } from '@sveltejs/kit';
 import { db } from '$lib/db.js';
 import { Lot } from '$lib/models/index.js';
 import prisma from '$lib/prisma.js';
+import { normalizeLotImages } from '$lib/server/lotImages.js';
 import {
   HOUSE_PERMISSIONS,
   canManageAuctionHouse,
@@ -47,7 +48,8 @@ export async function POST({ request, locals }) {
     const data = await request.json();
     
     // Separate images from lot data
-    const { images, imageUrl, imageUrls, ...lotData } = data;
+    const { images, imageUrl, imageUrls, uploadedImages, ...lotData } = data;
+    const imageRecords = normalizeLotImages(images ?? (imageUrl ? [{ url: imageUrl }] : Array.isArray(imageUrls) ? imageUrls.map(url => ({ url })) : []));
 
     if (!lotData.auctionId) {
       return json({ error: 'Auction ID is required' }, { status: 400 });
@@ -85,45 +87,20 @@ export async function POST({ request, locals }) {
       tags: lotData.tags !== undefined ? lotData.tags : null
     };
     
-    // Use Lot model for validation and creation
-    const lot = await Lot.create(transformedData);
-    
-    // If images were provided, create image records
-    if (images && Array.isArray(images) && images.length > 0) {
-      const imageRecords = await Promise.all(
-        images.map((img, index) =>
-          prisma.lotImage.create({
-            data: {
-              lotId: lot.id,
-              url: img.url,
-              cloudKey: img.key,
-              displayOrder: img.displayOrder ?? index,
-              isPrimary: img.isPrimary ?? (index === 0)
-            }
-          })
-        )
-      );
-      
-      // If setting a primary image, ensure only one is primary
-      const primaryCount = imageRecords.filter(img => img.isPrimary).length;
-      if (primaryCount > 1) {
-        // Keep first as primary, unset others
-        for (let i = 1; i < imageRecords.length; i++) {
-          if (imageRecords[i].isPrimary) {
-            await prisma.lotImage.update({
-              where: { id: imageRecords[i].id },
-              data: { isPrimary: false }
-            });
-          }
-        }
-      }
-    }
-    
+    // Validate before writing, then create the lot and its images atomically.
+    const model = new Lot(transformedData);
+    if (!model.validate()) return json({ error: 'Check the lot fields and try again.', details: model.errors }, { status: 400 });
+    const lot = await prisma.lot.create({
+      data: { ...model.prepareDataForSave(true), ...(imageRecords.length ? { images: { create: imageRecords } } : {}) },
+      select: { id: true }
+    });
+
     // Return lot with images
     const lotWithImages = await db.lots.getById(lot.id);
     return json(lotWithImages, { status: 201 });
   } catch (error) {
     if (error.status) throw error;
+    if (error.code === 'P2002') return json({ error: 'This lot number is already in use. Choose another lot number and try again.' }, { status: 409 });
     console.error('Error creating lot:', error);
     return json(
       { 

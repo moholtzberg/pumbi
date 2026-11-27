@@ -34,6 +34,9 @@ test('PostgreSQL drafts save without an auction/profile and submit only with com
       assert.ok(workspace.categories.includes('Books'));
       assert.ok(workspace.submissions.some(item => item.id === draft.id));
       assert.ok(await tx.sellerProfile.findUnique({ where: { userId: user.id } }));
+      const photoDraft = await (await record.PATCH(event({ images: [{ key: 'lots/submission-photo.png' }] }, draft.id))).json();
+      assert.equal(photoDraft.submission.images[0].key, 'lots/submission-photo.png');
+      assert.ok(photoDraft.submission.images[0].previewUrl);
       await assert.rejects(record.PATCH(event({ title: 'Wrong owner' }, draft.id, outsider)), err => err.status === 404);
       await record.PATCH(event({ title: 'Ready for review', category: 'Books', auctionId: null, auctionSeriesId: null }, draft.id));
       const house = await tx.auctionHouse.create({ data: { name: 'Submission fixture', slug: `submission-${suffix}` } });

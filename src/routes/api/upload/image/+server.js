@@ -1,86 +1,51 @@
-import { json } from '@sveltejs/kit';
+import { json, error } from '@sveltejs/kit';
+import prisma from '$lib/prisma.js';
 import { uploadFile } from '$lib/services/cloudStorage.js';
+import { convertToPresignedUrl } from '$lib/utils/s3Presigned.js';
+import { readUploadImage, imageFormat } from '$lib/server/uploadImages.js';
 import { removeBackground as removeBackgroundService } from '$lib/services/backgroundRemoval.js';
+import { requireAuthenticatedUser, requireAuctionAccess, requireAuctionHousePermission, HOUSE_PERMISSIONS } from '$lib/server/authorization.js';
+export const config = { maxDuration: 120 };
 
-export async function POST({ request }) {
+export async function POST({ request, locals }) {
   try {
+    const user = await requireAuthenticatedUser(locals);
     const formData = await request.formData();
     const files = formData.getAll('files');
-    const lotId = formData.get('lotId'); // Optional: if creating images for a specific lot
-    const shouldRemoveBackground = formData.get('removeBackground') === 'true'; // Checkbox value
-    
-    if (!files || files.length === 0) {
-      return json({ error: 'No files provided' }, { status: 400 });
+    const lotId = formData.get('lotId');
+    if (lotId) {
+      const lot = await prisma.lot.findUnique({ where: { id: String(lotId) }, include: { auction: true } });
+      if (!lot) throw error(404, 'Lot not found');
+      requireAuctionAccess(user, lot.auction);
+      await requireAuctionHousePermission(user, lot.auction.auctionHouseId, HOUSE_PERMISSIONS.MANAGE_CATALOG);
     }
-
-    const uploadedImages = [];
-
-    for (const file of files) {
-      if (!(file instanceof File)) continue;
-      
-      let buffer;
-      let processedFileName = file.name;
-      
-      // If background removal is requested, process the image first
-      if (shouldRemoveBackground) {
+    if (!files.length || files.length > 20) throw error(400, 'Choose between 1 and 20 images');
+    // Validate the full request before uploading any bytes to storage.
+    const inputs = await Promise.all(files.map(readUploadImage));
+    const images = [];
+    for (let index = 0; index < files.length; index++) {
+      const file = files[index];
+      let { buffer, mime, extension } = inputs[index];
+      let backgroundRemoved = false;
+      if (formData.get('removeBackground') === 'true') {
         try {
-          // Call background removal service directly (no HTTP request needed)
-          const bgResult = await removeBackgroundService(file);
-          
-          if (bgResult.success && bgResult.image) {
-            // Convert base64 PNG to buffer
-            // API4AI returns base64 string, may or may not have data URI prefix
-            let base64Data = bgResult.image;
-            if (base64Data.includes(',')) {
-              // Has data URI prefix, remove it
-              base64Data = base64Data.split(',')[1];
-            }
-            // Remove any whitespace
-            base64Data = base64Data.trim();
-            
-            try {
-              buffer = Buffer.from(base64Data, 'base64');
-              processedFileName = file.name.replace(/\.(jpg|jpeg|png)$/i, '.png'); // Change extension to PNG
-              console.log('Background removed successfully, converted to PNG');
-            } catch (base64Error) {
-              console.error('Failed to decode base64 image:', base64Error);
-              throw base64Error;
-            }
-          } else {
-            console.warn('Background removal failed, using original image:', bgResult.error || 'Unknown error');
-            // Fall back to original image
-            const arrayBuffer = await file.arrayBuffer();
-            buffer = Buffer.from(arrayBuffer);
+          const result = await removeBackgroundService(file);
+          if (result.success && result.image) {
+            const processed = Buffer.from(result.image.split(',').at(-1).trim(), 'base64');
+            const format = imageFormat(processed);
+            buffer = processed; mime = format.mime; extension = format.extension;
+            backgroundRemoved = true;
           }
-        } catch (bgError) {
-          console.error('Error during background removal, using original image:', bgError);
-          // Fall back to original image
-          const arrayBuffer = await file.arrayBuffer();
-          buffer = Buffer.from(arrayBuffer);
-        }
-      } else {
-        // Convert file to buffer (no background removal)
-        const arrayBuffer = await file.arrayBuffer();
-        buffer = Buffer.from(arrayBuffer);
+        } catch { /* Keep the original photo if optional background processing fails. */ }
       }
-      
-      // Upload to cloud storage
-      const { url, key } = await uploadFile(buffer, processedFileName, 'lots');
-      
-      uploadedImages.push({
-        url,
-        key,
-        filename: processedFileName,
-        size: buffer.length,
-        type: shouldRemoveBackground ? 'image/png' : file.type,
-        backgroundRemoved: shouldRemoveBackground
-      });
+      const filename = `${file.name.replace(/\.[^.]+$/, '')}.${extension}`;
+      const { url, key } = await uploadFile(buffer, filename, 'lots', mime);
+      images.push({ url, key, previewUrl: await convertToPresignedUrl(url), filename, size: buffer.length, type: mime, backgroundRemoved });
     }
-
-    return json({ images: uploadedImages });
-  } catch (error) {
-    console.error('Error uploading images:', error);
-    return json({ error: error.message || 'Failed to upload images' }, { status: 500 });
+    return json({ images }, { status: 201 });
+  } catch (err) {
+    if (err.status) throw err;
+    console.error('Image upload failed:', err.message);
+    return json({ error: err.message || 'Failed to upload images' }, { status: 503 });
   }
 }
-

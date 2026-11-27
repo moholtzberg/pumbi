@@ -665,3 +665,27 @@ invoked while testing. Existing deadlines and approval requirements are retained
 choices and cron authentication. `RUN_SUBMISSION_DATABASE_TESTS=1` enables the
 rolled-back PostgreSQL test. Browser checks use an in-memory fixture to save a
 blank draft, fill seller details, choose a public auction and submit for review.
+
+## Lot photos and creation
+
+The seller workspace provides **Attach photos** independently of AI analysis.
+If optional AI analysis fails, the uploaded photo remains attached for manual
+catalog entry. Upload responses keep the persistent storage URL/key separate
+from `previewUrl`, which is readable for private S3/Spaces images.
+
+All seller/catalog image upload controls share a per-file transport. Photos up
+to 12 MB are accepted by the client; large photos are resized to fit a 3.5 MB
+upload budget and files are sent sequentially. The server checks authentication,
+existing-lot permissions, image signatures, and per-file limits. Failed optional
+background removal retains the original photo and reports it accurately.
+
+Lot creation validates images before writing and creates image records together
+with the lot in one database operation. Existing-lot image additions use a
+transaction. The Add lot form waits for uploads and suggests a number above the
+highest existing lot number, rather than using the count of lots.
+
+`tests/imageUpload.test.js` covers file validation, previews, permissions, AI and
+background-processing fallback, request splitting, and large-photo preparation.
+`RUN_LOT_CREATION_DATABASE_TESTS=1` runs the rolled-back PostgreSQL creation,
+duplicate-number, image-record and permission checks. A synthetic storage smoke
+test uploaded/read one tiny PNG and deleted that test object successfully.

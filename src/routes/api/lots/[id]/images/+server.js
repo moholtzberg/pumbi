@@ -1,5 +1,7 @@
 import { json, error } from '@sveltejs/kit';
 import prisma from '$lib/prisma.js';
+import { normalizeLotImages } from '$lib/server/lotImages.js';
+import { convertImageObjects } from '$lib/utils/s3Presigned.js';
 import { deleteFile } from '$lib/services/cloudStorage.js';
 import {
   HOUSE_PERMISSIONS,
@@ -33,7 +35,7 @@ export async function GET({ params }) {
       where: { lotId: params.id },
       orderBy: [{ isPrimary: 'desc' }, { displayOrder: 'asc' }]
     });
-    return json(images);
+    return json(await convertImageObjects(images));
   } catch (err) {
     console.error('Error fetching lot images:', err);
     throw error(500, 'Failed to fetch images');
@@ -50,30 +52,13 @@ export async function POST({ params, request, locals }) {
       throw error(400, 'Images array is required');
     }
 
-    // If setting a primary image, unset existing primary
-    const hasPrimary = images.some(img => img.isPrimary);
-    if (hasPrimary) {
-      await prisma.lotImage.updateMany({
-        where: { lotId: params.id, isPrimary: true },
-        data: { isPrimary: false }
-      });
-    }
-
-    // Create image records
-    const createdImages = await Promise.all(
-      images.map((img, index) =>
-        prisma.lotImage.create({
-          data: {
-            lotId: params.id,
-            url: img.url,
-            cloudKey: img.key,
-            displayOrder: img.displayOrder ?? index,
-            isPrimary: img.isPrimary ?? false,
-            isHidden: img.isHidden ?? false
-          }
-        })
-      )
-    );
+    const records = normalizeLotImages(images, { defaultPrimary: false });
+    const createdImages = await prisma.$transaction(async tx => {
+      if (records.some(image => image.isPrimary)) await tx.lotImage.updateMany({ where: { lotId: params.id, isPrimary: true }, data: { isPrimary: false } });
+      const created = [];
+      for (const image of records) created.push(await tx.lotImage.create({ data: { lotId: params.id, ...image } }));
+      return created;
+    });
 
     return json(createdImages, { status: 201 });
   } catch (err) {

@@ -1,27 +1,10 @@
 import { error, json } from '@sveltejs/kit';
 import { env } from '$env/dynamic/private';
 import { requireCurrentUser } from '$lib/server/seller-submissions.js';
-import {
-  deleteFile,
-  getStorageProviderName,
-  uploadFile
-} from '$lib/services/cloudStorage.js';
+import { uploadFile } from '$lib/services/cloudStorage.js';
 import { convertToPresignedUrl } from '$lib/utils/s3Presigned.js';
-
-const MAX_IMAGE_BYTES = 12 * 1024 * 1024;
-
-function detectImage(buffer) {
-  if (buffer.length >= 3 && buffer[0] === 0xff && buffer[1] === 0xd8 && buffer[2] === 0xff) {
-    return { mime: 'image/jpeg', extension: 'jpg' };
-  }
-  if (buffer.length >= 8 && buffer.subarray(0, 8).equals(Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]))) {
-    return { mime: 'image/png', extension: 'png' };
-  }
-  if (buffer.length >= 12 && buffer.toString('ascii', 0, 4) === 'RIFF' && buffer.toString('ascii', 8, 12) === 'WEBP') {
-    return { mime: 'image/webp', extension: 'webp' };
-  }
-  throw error(400, 'Upload a JPEG, PNG, or WebP image');
-}
+import { readUploadImage } from '$lib/server/uploadImages.js';
+export const config = { maxDuration: 120 };
 
 function parseAnalysis(content) {
   try {
@@ -43,6 +26,7 @@ async function analyzeWithOpenAI(imageUrl) {
 
   const response = await fetch('https://api.openai.com/v1/chat/completions', {
     method: 'POST',
+    signal: AbortSignal.timeout(30_000),
     headers: {
       'Content-Type': 'application/json',
       Authorization: `Bearer ${apiKey}`
@@ -81,35 +65,24 @@ async function analyzeWithOpenAI(imageUrl) {
 
 export async function POST({ request, locals }) {
   await requireCurrentUser(locals);
-  if (getStorageProviderName() !== 's3') {
-    throw error(503, 'Create from image requires STORAGE_PROVIDER=s3');
-  }
-
   const formData = await request.formData();
-  const file = formData.get('image');
-  if (!(file instanceof File) || file.size === 0) throw error(400, 'Choose an image to continue');
-  if (file.size > MAX_IMAGE_BYTES) throw error(413, 'Images must be 12 MB or smaller');
-
-  const buffer = Buffer.from(await file.arrayBuffer());
-  const detected = detectImage(buffer);
+  const { buffer, mime, extension } = await readUploadImage(formData.get('image'));
   let uploaded;
   try {
-    uploaded = await uploadFile(buffer, `seller-capture.${detected.extension}`, 'lots', detected.mime);
+    uploaded = await uploadFile(buffer, `seller-capture.${extension}`, 'lots', mime);
   } catch (err) {
     throw error(503, `Image storage is unavailable: ${err.message}`);
   }
-
+  const previewUrl = await convertToPresignedUrl(uploaded.url);
+  let listing = null;
+  let warning = null;
   try {
-    const previewUrl = await convertToPresignedUrl(uploaded.url);
-    const listing = await analyzeWithOpenAI(previewUrl);
-    return json({
-      listing,
-      image: { key: uploaded.key, url: uploaded.url, previewUrl }
-    }, { status: 201 });
+    if (!/^https:\/\//.test(previewUrl) || mime === 'image/gif') throw error(503, 'Photo analysis requires a supported remotely accessible image');
+    listing = await analyzeWithOpenAI(previewUrl);
   } catch (err) {
-    await deleteFile(uploaded.key, 'lots').catch((cleanupError) => {
-      console.error('Failed to clean up image after AI analysis error', cleanupError);
-    });
-    throw err;
+    // Upload and catalog entry do not depend on optional AI availability.
+    console.warn('Optional listing photo analysis unavailable', err.status || 'unavailable');
+    warning = 'Photo uploaded. AI analysis is unavailable; enter the lot details manually.';
   }
+  return json({ listing, warning, image: { key: uploaded.key, url: uploaded.url, previewUrl } }, { status: 201 });
 }

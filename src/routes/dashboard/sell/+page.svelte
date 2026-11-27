@@ -13,6 +13,7 @@
   import { onMount, tick } from 'svelte';
   import { goto } from '$app/navigation';
   import { SUBMISSION_CATEGORIES, defaultSubmissionOpportunity, sellerContactComplete } from '$lib/utils/lotSubmission.js';
+  import { prepareUploadImage, uploadImageForm } from '$lib/utils/imageUpload.js';
 
   let loading = $state(true);
   let busy = $state(false);
@@ -95,30 +96,48 @@
   }
 
   async function createFromImage(file) {
-    if (!file) return;
+    if (!file || imageBusy) return;
     imageBusy = true;
     clearNotices();
     try {
       const formData = new FormData();
-      formData.set('image', file);
+      formData.set('image', await prepareUploadImage(file));
       const response = await fetch('/api/lot-submissions/analyze-image', {
         method: 'POST', credentials: 'include', body: formData
       });
       const result = await response.json().catch(() => ({}));
       if (!response.ok) throw new Error(result.message || result.error || ui("Could not create a listing from this image"));
 
-      lot.title = result.listing.title || lot.title;
-      lot.description = result.listing.description || lot.description;
-      lot.condition = result.listing.condition || lot.condition;
-      lot.category = result.listing.category || lot.category;
+      lot.title = result.listing?.title || lot.title;
+      lot.description = result.listing?.description || lot.description;
+      lot.condition = result.listing?.condition || lot.condition;
+      lot.category = result.listing?.category || lot.category;
       lot.images = [...lot.images, result.image].slice(0, 8);
-      message = ui("AI created a draft from your photo. Review every field before saving.");
+      message = result.warning ? ui(result.warning) : ui("AI created a draft from your photo. Review every field before saving.");
       document.getElementById('lot-form')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
     } catch (err) {
       problem = err.message;
     } finally {
       imageBusy = false;
     }
+  }
+
+  async function attachPhotos(event) {
+    if (imageBusy) return;
+    imageBusy = true;
+    clearNotices();
+    try {
+      const files = Array.from(event.currentTarget.files || []);
+      if (files.length + lot.images.length > 8) throw new Error(ui('A submission may have up to 8 images'));
+      const form = new FormData();
+      files.forEach(file => form.append('files', file));
+      const response = await uploadImageForm(form);
+      const result = await response.json();
+      lot.images = [...lot.images, ...(result.images || [])];
+      if (!response.ok) throw new Error(ui(result.error || result.message || 'Failed to upload images'));
+      message = ui('Photos attached. You can enter the details and save your draft.');
+    } catch (err) { problem = err.message; }
+    finally { imageBusy = false; event.target.value = ''; }
   }
 
   function submissionBody() {
@@ -227,7 +246,9 @@
   <div class="mx-auto max-w-6xl space-y-6 px-4 sm:px-6">
     <header class="flex flex-wrap items-end justify-between gap-4">
       <div><a href="/dashboard" class="text-sm font-semibold text-[#18372f]">{t("← Dashboard")}</a><p class="mt-4 text-xs font-bold uppercase tracking-[0.18em] text-[#a95739]">{t("Seller workspace")}</p><h1 class="mt-1 text-3xl font-black text-slate-950">{t("Create a lot")}</h1><p class="mt-1 text-sm text-slate-500">{t("Start with a photo or enter the catalog details yourself.")}</p></div>
-      <div class="flex flex-wrap gap-2"><a href="/dashboard/sell/bulk" class="inline-flex items-center gap-2 rounded-sm border border-[#ddd6ca] bg-white px-5 py-3 font-bold text-[#18372f] shadow-sm transition hover:bg-[#efe8dc]">{t("Bulk CSV / Grid")}</a><button type="button" onclick={() => document.getElementById('ai-image')?.click()} disabled={busy || imageBusy} class="inline-flex items-center gap-2 rounded-sm bg-[#18372f] px-5 py-3 font-bold text-white shadow-sm transition hover:bg-[#152c26] disabled:cursor-not-allowed disabled:opacity-50"><span aria-hidden="true">✦</span>{imageBusy ? ui("Reading image…") : ui("Create from image")}</button></div>
+      <div class="flex flex-wrap gap-2"><a href="/dashboard/sell/bulk" class="inline-flex items-center gap-2 rounded-sm border border-[#ddd6ca] bg-white px-5 py-3 font-bold text-[#18372f] shadow-sm transition hover:bg-[#efe8dc]">{t("Bulk CSV / Grid")}</a><button type="button" onclick={() => document.getElementById('ai-image')?.click()} disabled={busy || imageBusy || lot.images.length >= 8} class="inline-flex items-center gap-2 rounded-sm bg-[#18372f] px-5 py-3 font-bold text-white shadow-sm transition hover:bg-[#152c26] disabled:cursor-not-allowed disabled:opacity-50"><span aria-hidden="true">✦</span>{imageBusy ? ui("Reading image…") : ui("Create from image")}</button></div>
+      <button type="button" class="rounded-sm border border-[#ddd6ca] bg-white px-5 py-3 font-bold text-[#18372f] disabled:opacity-50" disabled={busy || imageBusy || lot.images.length >= 8} onclick={() => document.getElementById('lot-photos')?.click()}>{ui('Attach photos')}</button>
+      <input id="lot-photos" class="sr-only" type="file" multiple accept="image/jpeg,image/png,image/webp,image/gif" onchange={attachPhotos} />
       <input id="ai-image" class="sr-only" type="file" accept="image/jpeg,image/png,image/webp" capture="environment" onchange={(event) => createFromImage(event.currentTarget.files?.[0])} />
     </header>
 
