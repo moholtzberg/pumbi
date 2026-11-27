@@ -1,5 +1,5 @@
 <script>
-  import { uploadImageForm } from '$lib/utils/imageUpload.js';
+  import { analyzeListingPhoto, uploadImageForm } from '$lib/utils/imageUpload.js';
   import { page as localePage } from '$app/stores';
   import { translate as translateUi } from '$lib/i18n.js';
   import { localeTag as uiLocaleTag } from '$lib/utils/region.js';
@@ -18,6 +18,8 @@
   let createError = $state('');
   let uploading = $state(false);
   let creating = $state(false);
+  let analyzing = $state(false);
+  let createNotice = $state('');
   
   let newLot = $state({
     lotNumber: 1,
@@ -303,6 +305,31 @@
   }
   
   
+  async function createLotFromPhoto(event) {
+    const input = event.currentTarget;
+    const file = input.files?.[0];
+    if (!file || uploading || creating) return;
+    uploading = true;
+    analyzing = true;
+    createError = '';
+    createNotice = '';
+    try {
+      const result = await analyzeListingPhoto(file);
+      newLot.uploadedImages = [...newLot.uploadedImages, result.image];
+      if (result.listing) {
+        newLot.title = result.listing.title || newLot.title;
+        newLot.description = result.listing.description || newLot.description;
+        newLot.category = result.listing.category || newLot.category;
+        categoryInput = newLot.category;
+        if (result.listing.condition) newLot.metaFields = { ...newLot.metaFields, condition: result.listing.condition };
+      }
+      createNotice = result.analysisError
+        ? ui('Photo attached. {reason}', { reason: ui(result.analysisError) })
+        : result.warning ? ui(result.warning) : ui('AI created a draft from your photo. Review every field before saving.');
+    } catch (err) { createError = ui(err.message || 'Could not create a listing from this image'); }
+    finally { uploading = false; analyzing = false; input.value = ''; }
+  }
+
   async function handleImageUpload(event) {
     const files = Array.from(event.target.files || []);
     if (files.length === 0 || uploading || creating) return;
@@ -379,6 +406,7 @@
       if (response.ok) {
         showCreateModal = false;
         createError = '';
+        createNotice = '';
         const endDate = new Date(auction.endDate);
         const year = endDate.getFullYear();
         const month = String(endDate.getMonth() + 1).padStart(2, '0');
@@ -588,6 +616,13 @@
           </button>
         </div>
 
+        <section class="mb-5 rounded-sm border border-[#ddd6ca] bg-[#efe8dc] p-4">
+          <h3 class="font-semibold text-[#18372f]">{ui('Create listing with AI')}</h3>
+          <p class="mt-1 text-sm text-slate-600">{ui('Choose a photo. AI drafts the title, description, condition, and category for you to review.')}</p>
+          <button type="button" disabled={uploading || creating} onclick={() => document.getElementById('house-ai-photo')?.click()} class="mt-3 rounded-sm bg-[#18372f] px-4 py-2 font-bold text-white disabled:opacity-50">{analyzing ? ui('Analyzing photo…') : ui('Create listing with AI')}</button>
+          <input id="house-ai-photo" type="file" class="sr-only" accept="image/jpeg,image/png,image/webp" capture="environment" onchange={createLotFromPhoto} />
+        </section>
+        {#if createNotice}<p role="status" class="mb-4 rounded-sm border border-[#ddd6ca] bg-[#efe8dc] p-4 text-sm text-[#18372f]">{createNotice}</p>{/if}
         {#if createError}
           <div class="mb-4 bg-red-50 border border-red-200 rounded-lg p-4">
             <div class="flex items-center">
@@ -643,6 +678,9 @@
               ></textarea>
             </div>
 
+            {#if !getMetaFieldsForCategory(newLot.category).some(field => field.key === 'condition')}
+              <label class="block text-sm font-medium text-gray-700">{ui('Condition')}<textarea rows="3" bind:value={newLot.metaFields.condition} class="mt-2 w-full rounded-lg border border-gray-300 px-4 py-2" placeholder={ui('Visible wear, damage, completeness, repairs, or uncertainty')}></textarea></label>
+            {/if}
             <!-- Category with autocomplete -->
             <div class="relative">
               <label for="category" class="block text-sm font-medium text-gray-700 mb-2">

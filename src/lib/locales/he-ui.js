@@ -2339,5 +2339,16 @@ export default {
   "Unable to prepare this photo. Choose a JPEG, PNG, or WebP image.": "לא ניתן להכין תמונה זו. בחרו תמונה בפורמט JPEG, PNG או WebP.",
   "A submission may have up to 8 images": "ניתן לצרף עד 8 תמונות להגשה",
   "Check the lot fields and try again.": "בדקו את שדות הפריט ונסו שוב.",
-  "This lot number is already in use. Choose another lot number and try again.": "מספר הפריט כבר בשימוש. בחרו מספר פריט אחר ונסו שוב."
+  "This lot number is already in use. Choose another lot number and try again.": "מספר הפריט כבר בשימוש. בחרו מספר פריט אחר ונסו שוב.",
+  "Create listing with AI": "יצירת פריט בעזרת בינה מלאכותית",
+  "Choose a photo. AI drafts the title, description, condition, and category for you to review.": "בחרו תמונה. הבינה המלאכותית תכין כותרת, תיאור, מצב וקטגוריה לבדיקה שלכם.",
+  "Analyzing photo…": "מנתחים תמונה…",
+  "Photo attached. {reason}": "התמונה צורפה. {reason}",
+  "AI photo analysis is unavailable: the platform’s OpenAI API account needs credits.": "ניתוח תמונות בבינה מלאכותית אינו זמין: יש להוסיף יתרת שימוש לחשבון OpenAI API של הפלטפורמה.",
+  "AI photo analysis is not configured. Contact the platform administrator.": "ניתוח תמונות בבינה מלאכותית טרם הוגדר. פנו למנהל הפלטפורמה.",
+  "AI photo analysis credentials need attention. Contact the platform administrator.": "יש לטפל בפרטי החיבור לשירות ניתוח התמונות. פנו למנהל הפלטפורמה.",
+  "AI photo analysis is busy. Please try again shortly.": "שירות ניתוח התמונות עמוס. נסו שוב בעוד זמן קצר.",
+  "AI photo analysis is temporarily unavailable. Please try again.": "ניתוח התמונות אינו זמין זמנית. נסו שוב.",
+  "AI photo analysis timed out. Please try again.": "הזמן לניתוח התמונה הסתיים. נסו שוב.",
+  "No image returned from analysis": "לא התקבלה תמונה מהניתוח"
 };

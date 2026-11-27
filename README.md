@@ -689,3 +689,17 @@ background-processing fallback, request splitting, and large-photo preparation.
 `RUN_LOT_CREATION_DATABASE_TESTS=1` runs the rolled-back PostgreSQL creation,
 duplicate-number, image-record and permission checks. A synthetic storage smoke
 test uploaded/read one tiny PNG and deleted that test object successfully.
+
+## AI listing entry points
+
+**Create listing with AI** is available in the individual seller workspace and
+the auction-house Add lot dialog. Both use the same prepared-photo request to
+draft title, description, condition and category, attach the photo, and let the
+seller review the result before saving. Standard Attach photos remains available.
+
+AI analysis requires an enabled `OPENAI_API_KEY` with available API credits.
+Responses distinguish missing configuration, exhausted credits, credential
+problems, rate limits and timeouts. The UI displays the reason without discarding
+the photo. When credits are exhausted, the platform administrator must resolve
+API billing before live analysis can resume; photo uploads and manual drafts
+remain available.

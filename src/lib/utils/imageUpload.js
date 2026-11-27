@@ -53,3 +53,13 @@ export async function uploadImageForm(form, { fetcher = fetch, prepare = prepare
     return result({ images: uploaded }, 201);
   } catch (err) { return result({ error: err.message || 'Failed to upload images', images: uploaded }, 400); }
 }
+
+export async function analyzeListingPhoto(file, { fetcher = fetch, prepare = prepareUploadImage } = {}) {
+  const form = new FormData();
+  form.set('image', await prepare(file));
+  const response = await fetcher('/api/lot-submissions/analyze-image', { method: 'POST', credentials: 'include', body: form });
+  const result = await response.json().catch(() => ({}));
+  if (!response.ok) throw new Error(result.message || result.error || 'Could not create a listing from this image');
+  if (!result.image?.key) throw new Error('No image returned from analysis');
+  return result;
+}

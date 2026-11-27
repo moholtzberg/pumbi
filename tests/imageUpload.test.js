@@ -86,3 +86,40 @@ test('lot image validation runs before persistence and retains one primary witho
   assert.equal(images.normalizeLotImages([{ url: 'lots/one.png' }, { url: 'https://example.com/two.png', isPrimary: true }]).filter(x => x.isPrimary).length, 1);
   assert.equal(images.normalizeLotImages([{ url: 'lots/one.png', isPrimary: false }], { defaultPrimary: false })[0].isPrimary, false);
 });
+
+test('AI listing analysis returns title, description, category and condition when the provider succeeds', async () => {
+  const originalFetch = globalThis.fetch;
+  state.env.OPENAI_API_KEY = 'fixture-key';
+  globalThis.fetch = async (url, options) => {
+    assert.equal(url, 'https://api.openai.com/v1/chat/completions');
+    assert.ok(options.signal);
+    return Response.json({ choices: [{ message: { content: JSON.stringify({ title: 'Antique book', description: 'A bound volume.', category: 'Books', condition: 'Visible wear.' }) } }] });
+  };
+  try {
+    const form = new FormData(); form.append('image', file());
+    const result = await (await analysis.POST(request(form))).json();
+    assert.equal(result.listing.title, 'Antique book'); assert.equal(result.listing.condition, 'Visible wear.');
+    assert.equal(result.warning, null); assert.equal(result.analysisError, null); assert.equal(result.image.key, 'lots/photo.png');
+  } finally { globalThis.fetch = originalFetch; delete state.env.OPENAI_API_KEY; }
+});
+test('exhausted AI credits are reported clearly while the uploaded photo remains attached', async () => {
+  const originalFetch = globalThis.fetch;
+  state.env.OPENAI_API_KEY = 'fixture-key';
+  globalThis.fetch = async () => Response.json({ error: { code: 'insufficient_quota', message: 'You have no credits remaining.' } }, { status: 429 });
+  try {
+    const form = new FormData(); form.append('image', file());
+    const result = await (await analysis.POST(request(form))).json();
+    assert.equal(result.listing, null); assert.equal(result.analysisCode, 'AI_CREDITS_REQUIRED');
+    assert.match(result.analysisError, /needs credits/); assert.equal(result.image.key, 'lots/photo.png');
+  } finally { globalThis.fetch = originalFetch; delete state.env.OPENAI_API_KEY; }
+});
+test('shared client analysis flow sends a prepared image and exposes successful listing data to either editor', async () => {
+  const { analyzeListingPhoto } = await import('../src/lib/utils/imageUpload.js');
+  const result = await analyzeListingPhoto(file(), { prepare: async f => f, fetcher: async (url, options) => {
+    assert.equal(url, '/api/lot-submissions/analyze-image'); assert.equal(options.credentials, 'include');
+    assert.ok(options.body.get('image') instanceof File);
+    return Response.json({ image: { key: 'lots/photo.png' }, listing: { title: 'AI generated lot', description: 'Photo details', category: 'Books', condition: 'Worn' } }, { status: 201 });
+  } });
+  assert.equal(result.listing.title, 'AI generated lot');
+  await assert.rejects(analyzeListingPhoto(file(), { prepare: async f => f, fetcher: async () => Response.json({ message: 'Image storage unavailable' }, { status: 503 }) }), /Image storage unavailable/);
+});

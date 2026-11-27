@@ -22,7 +22,7 @@ function parseAnalysis(content) {
 
 async function analyzeWithOpenAI(imageUrl) {
   const apiKey = env.OPENAI_API_KEY || process.env.OPENAI_API_KEY;
-  if (!apiKey) throw error(503, 'AI listing creation is not configured');
+  if (!apiKey) throw error(503, { message: 'AI photo analysis is not configured. Contact the platform administrator.', code: 'AI_NOT_CONFIGURED' });
 
   const response = await fetch('https://api.openai.com/v1/chat/completions', {
     method: 'POST',
@@ -58,7 +58,13 @@ async function analyzeWithOpenAI(imageUrl) {
   const result = await response.json().catch(() => ({}));
   if (!response.ok) {
     console.error('OpenAI image analysis failed', response.status, result?.error?.message);
-    throw error(502, result?.error?.message || 'AI could not analyze the image');
+    const providerError = result?.error || {};
+    if (['insufficient_quota', 'billing_hard_limit_reached'].includes(providerError.code) || /no credits|credit balance|exceeded.*quota/i.test(providerError.message || '')) {
+      throw error(503, { message: 'AI photo analysis is unavailable: the platform’s OpenAI API account needs credits.', code: 'AI_CREDITS_REQUIRED' });
+    }
+    if ([401, 403].includes(response.status)) throw error(503, { message: 'AI photo analysis credentials need attention. Contact the platform administrator.', code: 'AI_CREDENTIALS_REQUIRED' });
+    if (response.status === 429) throw error(503, { message: 'AI photo analysis is busy. Please try again shortly.', code: 'AI_RATE_LIMITED' });
+    throw error(502, { message: 'AI photo analysis is temporarily unavailable. Please try again.', code: 'AI_UNAVAILABLE' });
   }
   return parseAnalysis(result.choices?.[0]?.message?.content || '');
 }
@@ -76,6 +82,8 @@ export async function POST({ request, locals }) {
   const previewUrl = await convertToPresignedUrl(uploaded.url);
   let listing = null;
   let warning = null;
+  let analysisError = null;
+  let analysisCode = null;
   try {
     if (!/^https:\/\//.test(previewUrl) || mime === 'image/gif') throw error(503, 'Photo analysis requires a supported remotely accessible image');
     listing = await analyzeWithOpenAI(previewUrl);
@@ -83,6 +91,8 @@ export async function POST({ request, locals }) {
     // Upload and catalog entry do not depend on optional AI availability.
     console.warn('Optional listing photo analysis unavailable', err.status || 'unavailable');
     warning = 'Photo uploaded. AI analysis is unavailable; enter the lot details manually.';
+    analysisError = err.name === 'TimeoutError' ? 'AI photo analysis timed out. Please try again.' : err.body?.message || 'AI photo analysis is temporarily unavailable. Please try again.';
+    analysisCode = err.name === 'TimeoutError' ? 'AI_TIMEOUT' : err.body?.code || 'AI_UNAVAILABLE';
   }
-  return json({ listing, warning, image: { key: uploaded.key, url: uploaded.url, previewUrl } }, { status: 201 });
+  return json({ listing, warning, analysisError, analysisCode, image: { key: uploaded.key, url: uploaded.url, previewUrl } }, { status: 201 });
 }

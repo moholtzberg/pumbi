@@ -13,7 +13,7 @@
   import { onMount, tick } from 'svelte';
   import { goto } from '$app/navigation';
   import { SUBMISSION_CATEGORIES, defaultSubmissionOpportunity, sellerContactComplete } from '$lib/utils/lotSubmission.js';
-  import { prepareUploadImage, uploadImageForm } from '$lib/utils/imageUpload.js';
+  import { analyzeListingPhoto, uploadImageForm } from '$lib/utils/imageUpload.js';
 
   let loading = $state(true);
   let busy = $state(false);
@@ -100,21 +100,16 @@
     imageBusy = true;
     clearNotices();
     try {
-      const formData = new FormData();
-      formData.set('image', await prepareUploadImage(file));
-      const response = await fetch('/api/lot-submissions/analyze-image', {
-        method: 'POST', credentials: 'include', body: formData
-      });
-      const result = await response.json().catch(() => ({}));
-      if (!response.ok) throw new Error(result.message || result.error || ui("Could not create a listing from this image"));
+      const result = await analyzeListingPhoto(file);
 
       lot.title = result.listing?.title || lot.title;
       lot.description = result.listing?.description || lot.description;
       lot.condition = result.listing?.condition || lot.condition;
       lot.category = result.listing?.category || lot.category;
       lot.images = [...lot.images, result.image].slice(0, 8);
-      message = result.warning ? ui(result.warning) : ui("AI created a draft from your photo. Review every field before saving.");
-      document.getElementById('lot-form')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      message = result.analysisError ? ui('Photo attached. {reason}', { reason: ui(result.analysisError) }) : result.warning ? ui(result.warning) : ui("AI created a draft from your photo. Review every field before saving.");
+      await tick();
+      document.getElementById(result.analysisError ? 'workspace-message' : 'lot-form')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
     } catch (err) {
       problem = err.message;
     } finally {
@@ -246,7 +241,7 @@
   <div class="mx-auto max-w-6xl space-y-6 px-4 sm:px-6">
     <header class="flex flex-wrap items-end justify-between gap-4">
       <div><a href="/dashboard" class="text-sm font-semibold text-[#18372f]">{t("← Dashboard")}</a><p class="mt-4 text-xs font-bold uppercase tracking-[0.18em] text-[#a95739]">{t("Seller workspace")}</p><h1 class="mt-1 text-3xl font-black text-slate-950">{t("Create a lot")}</h1><p class="mt-1 text-sm text-slate-500">{t("Start with a photo or enter the catalog details yourself.")}</p></div>
-      <div class="flex flex-wrap gap-2"><a href="/dashboard/sell/bulk" class="inline-flex items-center gap-2 rounded-sm border border-[#ddd6ca] bg-white px-5 py-3 font-bold text-[#18372f] shadow-sm transition hover:bg-[#efe8dc]">{t("Bulk CSV / Grid")}</a><button type="button" onclick={() => document.getElementById('ai-image')?.click()} disabled={busy || imageBusy || lot.images.length >= 8} class="inline-flex items-center gap-2 rounded-sm bg-[#18372f] px-5 py-3 font-bold text-white shadow-sm transition hover:bg-[#152c26] disabled:cursor-not-allowed disabled:opacity-50"><span aria-hidden="true">✦</span>{imageBusy ? ui("Reading image…") : ui("Create from image")}</button></div>
+      <div class="flex flex-wrap gap-2"><a href="/dashboard/sell/bulk" class="inline-flex items-center gap-2 rounded-sm border border-[#ddd6ca] bg-white px-5 py-3 font-bold text-[#18372f] shadow-sm transition hover:bg-[#efe8dc]">{t("Bulk CSV / Grid")}</a><button type="button" onclick={() => document.getElementById('ai-image')?.click()} disabled={busy || imageBusy || lot.images.length >= 8} class="inline-flex items-center gap-2 rounded-sm bg-[#18372f] px-5 py-3 font-bold text-white shadow-sm transition hover:bg-[#152c26] disabled:cursor-not-allowed disabled:opacity-50"><span aria-hidden="true">✦</span>{imageBusy ? ui("Reading image…") : ui("Create listing with AI")}</button></div>
       <button type="button" class="rounded-sm border border-[#ddd6ca] bg-white px-5 py-3 font-bold text-[#18372f] disabled:opacity-50" disabled={busy || imageBusy || lot.images.length >= 8} onclick={() => document.getElementById('lot-photos')?.click()}>{ui('Attach photos')}</button>
       <input id="lot-photos" class="sr-only" type="file" multiple accept="image/jpeg,image/png,image/webp,image/gif" onchange={attachPhotos} />
       <input id="ai-image" class="sr-only" type="file" accept="image/jpeg,image/png,image/webp" capture="environment" onchange={(event) => createFromImage(event.currentTarget.files?.[0])} />
@@ -283,7 +278,7 @@
             {#if lot.images.length}
               <div class="space-y-3">{#each lot.images as image, index}<div class="overflow-hidden rounded-sm border bg-slate-100"><img src={image.previewUrl || image.url} alt={ui("Listing reference {value0}", { value0: index + 1 })} class="aspect-square w-full object-cover" /></div>{/each}<button type="button" onclick={() => document.getElementById('ai-image')?.click()} disabled={imageBusy || lot.images.length >= 8} class="w-full rounded-lg border border-[#ddd6ca] px-3 py-2 text-sm font-bold text-[#18372f] disabled:opacity-50">{t("+ Analyze another photo")}</button></div>
             {:else}
-              <button type="button" onclick={() => document.getElementById('ai-image')?.click()} disabled={busy || imageBusy} class="grid aspect-square w-full place-items-center rounded-sm border-2 border-dashed border-[#ddd6ca] bg-[#efe8dc] p-6 text-center text-[#18372f] disabled:opacity-50"><span><span class="block text-4xl">✦</span><strong class="mt-3 block">{t("Create from image")}</strong><span class="mt-1 block text-sm text-[#a95739]">{t("Take a photo or choose one. AI will draft the listing.")}</span></span></button>
+              <button type="button" onclick={() => document.getElementById('ai-image')?.click()} disabled={busy || imageBusy} class="grid aspect-square w-full place-items-center rounded-sm border-2 border-dashed border-[#ddd6ca] bg-[#efe8dc] p-6 text-center text-[#18372f] disabled:opacity-50"><span><span class="block text-4xl">✦</span><strong class="mt-3 block">{t("Create listing with AI")}</strong><span class="mt-1 block text-sm text-[#a95739]">{t("Take a photo or choose one. AI will draft the listing.")}</span></span></button>
             {/if}
             <p class="mt-3 text-xs leading-5 text-slate-500">{t("JPEG, PNG, or WebP · 12 MB max. Images are stored securely in Pumbi’s S3 bucket.")}</p>
           </div>
